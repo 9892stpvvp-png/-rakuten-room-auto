@@ -42,6 +42,29 @@
 その行自身の絵文字とだけ重複を避けていて、他の文で既に使っている絵文字とは
 重複してしまう不具合が見つかった（例：1文目が「🧲😊」、2文目も「😊」で
 終わってしまう）。文章全体で既に使われている絵文字を避けるように修正した。
+
+## 商品名の単語だけで特徴を決めつける問題の修正
+
+上記の文章形式化のあと、実際のSummaryで次のような「商品名に含まれる単語と、
+商品全体の用途が食い違う」問題が見つかった。
+
+- 三角コーナー（生ゴミの水切り用）の商品名に「吸盤」が含まれ、紹介文が
+  「吸盤で好きな場所に取り付けられる」になっていた
+- 味噌マドラーの商品名に「ステンレス」が含まれ、紹介文が「サビに強い
+  キッチングッズです」になっていた（マドラーの本来の用途である
+  「味噌を溶かしやすい」ことが伝わらない）
+- ドアストッパーの商品名に「マグネット」が含まれ、紹介文が「マグネットで
+  浮かせて設置できる」になっていた（実際は扉を固定するための商品）
+
+原因は、商品名から見つかった構造・仕様の単語（マグネット・吸盤・ステンレス等）を
+そのまま1文目（紹介文の主役）にしていたこと。商品名はSEO対策で多くの単語が
+詰め込まれており、単語が含まれること＝それが商品全体の用途、とは限らない。
+
+対応として、`PRODUCT_TYPE_HINTS`（商品の種類そのものが分かる場合の、
+用途に沿った1文目）を`FEATURE_CLAUSES`（構造・仕様の単語一致）より優先させ、
+`FEATURE_CLAUSES`は見つかっても1文目の主役にはせず、2文目に「〜なので、」
+という理由として添えるだけにした。また、商品の用途に繋がりにくい「ステンレス
+＝サビに強い」という素材だけの表現は`FEATURE_CLAUSES`から削除した。
 """
 
 from __future__ import annotations
@@ -393,6 +416,70 @@ class DescriptionFormatTest(unittest.TestCase):
         self.assertNotEqual(description_a, description_b)
 
 
+class ProductTypeMismatchRegressionTest(unittest.TestCase):
+    """商品名に含まれる単語だけで特徴を決めつけないことを確認する回帰テスト。
+
+    楽天の商品名はSEO対策で色々な単語が詰め込まれていることが多く、
+    「商品名に単語が含まれる＝それが商品全体の用途」とは限らない。
+    ここでは実際に報告された3つの不一致パターン（三角コーナー・味噌マドラー・
+    ドアストッパー）を、実際の商品名によく見られる形（色々な単語が
+    詰め込まれた商品名）で再現し、商品全体の用途に沿った文章になることを確認する。
+    """
+
+    def test_triangle_corner_is_not_described_as_suction_cup_item(self):
+        # 三角コーナー（生ゴミの水切り用）の商品名に「吸盤」が含まれていても、
+        # 「吸盤で好きな場所に取り付けられる」を紹介文の主役にしない。
+        item = make_item(
+            name="水切り 三角コーナー キッチン ステンレス 吸盤 排水口ネット付き シンク こし器 送料無料"
+        )
+        description = dg.generate_description(item, category="キッチン", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("三角コーナー", description)
+        self.assertNotIn("吸盤で好きな場所に取り付けられる", description)
+        self.assertNotIn("サビに強い", description)
+
+    def test_miso_muddler_is_not_described_as_rust_resistant(self):
+        # 味噌マドラーの商品名に「ステンレス」が含まれていても、
+        # 素材だけの表現（サビに強い）ではなく、用途に沿った文章にする。
+        item = make_item(
+            name="味噌マドラー ステンレス 味噌漉し みそこし 味噌溶き 調理器具 キッチン雑貨"
+        )
+        description = dg.generate_description(item, category="キッチン", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("マドラー", description)
+        self.assertNotIn("サビに強い", description)
+        self.assertNotIn("ステンレス", description)
+
+    def test_door_stopper_is_not_described_as_floating_storage(self):
+        # ドアストッパーの商品名に「マグネット」が含まれていても、
+        # 収納用品向けの「マグネットで浮かせて設置できる」を紹介文の主役にしない。
+        item = make_item(name="ドアストッパー マグネット式 扉 固定 玄関 diy おしゃれ シンプル 傷防止")
+        description = dg.generate_description(item, category=dg.DEFAULT_CATEGORY, base_hashtags=BASE_HASHTAGS)
+        body = "\n".join(_body_lines(description))
+        self.assertIn("ドアストッパー", body)
+        self.assertNotIn("浮かせて設置", body)
+        self.assertNotIn("収納", body)
+
+    def test_stainless_material_clause_was_removed(self):
+        # 「ステンレス＝サビに強い」は、商品全体の用途に繋がりにくい素材だけの
+        # 表現のため、FEATURE_CLAUSESから削除されていることを確認する。
+        keywords = [keyword for keyword, _clause, _emoji in dg.FEATURE_CLAUSES]
+        self.assertNotIn("ステンレス", keywords)
+
+    def test_sentence1_never_headlines_with_structural_feature_alone(self):
+        # 商品の種類が特定できない商品では、構造・仕様の単語（マグネットなど）を
+        # 1文目（紹介文の主役）にせず、カテゴリ共通の用途ベースの文章を使う。
+        item = make_item(name="マグネット式 収納ラック")
+        sentence1, _emoji, product_type_matched = dg._build_sentence1(item["name"], "収納", seed=0)
+        self.assertFalse(product_type_matched)
+        self.assertIn(sentence1, dg.OPENING_FALLBACK_SENTENCES["収納"])
+
+    def test_structural_feature_appears_only_as_reason_in_sentence2(self):
+        # マグネット式の収納ラックのように商品の種類が特定できない場合でも、
+        # 特徴自体は2文目に「〜なので、」という理由として自然に組み込まれる。
+        item = make_item(name="マグネット式 収納ラック")
+        description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("マグネットで浮かせて設置できるので、", description)
+
+
 # 紹介文で使われうる絵文字をすべて集めた集合（テストでの絵文字カウント・検出に使う）。
 def _all_known_emojis() -> set[str]:
     emojis: set[str] = set()
@@ -403,6 +490,9 @@ def _all_known_emojis() -> set[str]:
             emojis.update(v for v in emoji_spec.values() if v)
         elif emoji_spec:
             emojis.add(emoji_spec)
+    for _keyword, _sentence, emoji in dg.PRODUCT_TYPE_HINTS:
+        if emoji:
+            emojis.add(emoji)
     return emojis
 
 

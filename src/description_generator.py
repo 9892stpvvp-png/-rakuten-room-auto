@@ -15,10 +15,11 @@
 - ハッシュタグは3〜5個程度、商品に合ったものを自動生成する。
   「#暮らしの便利グッズ」は基本的に入れる。ハッシュタグには絵文字を付けない
 - 500文字以内
-- 同じ定型文を全商品に使い回さない。商品名に明記されている特徴
-  （マグネット式、折りたたみ式など）があれば優先して文章に組み込み、
-  確実に読み取れない場合は無理に特徴を作らず、カテゴリ共通の安全な
-  言い回しで補う
+- 同じ定型文を全商品に使い回さない。商品名に明記されている構造・仕様の特徴
+  （マグネット式、折りたたみ式など）があれば文章に組み込むが、あくまで
+  「何に使う商品か」「使うと何がラクになるか」を主役にし、仕様の言葉を
+  紹介文の主題にしすぎない。確実に読み取れない場合は無理に特徴を作らず、
+  カテゴリ共通の安全な言い回しで補う
 
 注意（特徴抽出に商品説明・itemCaptionを使わない理由）：
 当初は商品説明（itemCaption）の最初の一文も検出対象にしていたが、実際の
@@ -33,6 +34,24 @@
 
 そのため、特徴語の検出は「商品名」だけに限定している。商品名は出品者自身が
 検索されるために正確に書くことが多く、上記のような混入が起きにくいため。
+
+注意（商品名の単語だけで特徴を決めつけない）：
+商品名はSEO対策で色々な単語が詰め込まれていることが多く、「商品名に単語が
+含まれる＝それが商品の主な特徴」とは限らない（例：三角コーナーの商品名に
+「吸盤」という単語が含まれていても、商品全体の用途は生ゴミの水切りであり、
+「吸盤で取り付けるタイプ」を紹介文の主役にすると不自然になる。同様に、
+味噌マドラーの「ステンレス」やドアストッパーの「マグネット」も、商品全体の
+用途とは異なる説明になってしまっていた）。
+
+この問題への対応として、次の2段構えにしている。
+
+1. `PRODUCT_TYPE_HINTS`：商品名から「この商品が何であるか」がほぼ確実に
+   分かる場合は、構造・仕様の単語一致より先にこちらを優先し、商品全体の
+   用途に沿った文章をそのまま1文目として使う。
+2. `FEATURE_CLAUSES`：商品全体の用途が特定できない場合のみ、構造・仕様の
+   特徴を2文目に「〜なので、」という理由として添える（1文目の主役にはしない）。
+   商品の素材だけを述べる表現（「ステンレス製＝サビに強い」等、使うと何が
+   ラクになるかに繋がらない表現）は対象から外している。
 """
 
 from __future__ import annotations
@@ -51,26 +70,6 @@ CATEGORY_EMOJIS: dict[str, list[str]] = {
     "キッチン": ["🍳", "🥣", "🥄", "✨", "😊", "♪"],
     "時短": ["⏱️", "⚡", "🍳", "✨", "😊", "♪"],
     DEFAULT_CATEGORY: ["🏠", "✨", "💡", "😊", "♪"],
-}
-
-# 特徴が見つからなかったときに文の主語として使う、カテゴリを表す名詞。
-CATEGORY_NOUNS: dict[str, str] = {
-    "掃除": "掃除グッズ",
-    "収納": "収納グッズ",
-    "キッチン": "キッチングッズ",
-    "時短": "時短家電",
-    DEFAULT_CATEGORY: "便利グッズ",
-}
-
-# 上のCATEGORY_NOUNSと同じ言葉が特徴の文言と重複しないようにするための、
-# カテゴリごとの中心となる言葉（例："収納できる"+"収納グッズ"のような
-# 重複を避けるために使う）。
-_CATEGORY_NOUN_CORE: dict[str, str] = {
-    "掃除": "掃除",
-    "収納": "収納",
-    "キッチン": "キッチン",
-    "時短": "時短",
-    DEFAULT_CATEGORY: "便利",
 }
 
 # 「暮らし全般」は基本ハッシュタグの「#暮らしの便利グッズ」と重複しないよう、
@@ -153,18 +152,43 @@ def _resolve_by_category(value: str | dict[str, str], category: str) -> str:
     return value
 
 
-# 商品名から検出できたときだけ使う、商品の設計・仕様に関する具体的な特徴の
-# 「節」（あとに名詞を直接続けられる形。例：「マグネットで浮かせて設置できる」＋
-# 「収納グッズです」）と、それに添える絵文字。検出したキーワードそのものではなく、
-# 商品情報から読み取れる客観的な特徴（構造・素材・使い方）だけを表す表現にとどめ、
-# 効果や体験談は含めない。
+# 商品名から「この商品が具体的に何であるか」がほぼ確実に分かる場合に使う、
+# 商品全体の用途に沿った1文目（そのまま文として使える完成した文）と絵文字。
+# FEATURE_CLAUSES（構造・仕様の単語一致）より必ず先に判定する。これは、
+# 商品名に「吸盤」「マグネット」「ステンレス」などの単語が含まれていても、
+# それが商品全体の用途ではないことがある（三角コーナーの「吸盤」、
+# ドアストッパーの「マグネット」等）ため、商品の種類そのものが分かって
+# いるならそちらの説明を優先するための仕組み。
+PRODUCT_TYPE_HINTS: list[tuple[str, str, str]] = [
+    ("三角コーナー", "生ゴミの水切りをラクにしてくれそうな三角コーナーです", "💧"),
+    ("ドアストッパー", "ドアを開けたままキープしやすいドアストッパーです", "🚪"),
+    ("ドアストップ", "ドアを開けたままキープしやすいドアストッパーです", "🚪"),
+    ("マドラー", "味噌などをなめらかに溶かしやすいマドラーです", "🥄"),
+]
+
+
+def _top_product_type_sentence(name: str) -> tuple[str, str]:
+    """商品名から、具体的な商品の種類が分かる1文目（文, 絵文字）を返す。無ければ空文字。"""
+    for keyword, sentence, emoji in PRODUCT_TYPE_HINTS:
+        if keyword in name:
+            return sentence, emoji
+    return "", ""
+
+
+# PRODUCT_TYPE_HINTSで商品の種類が特定できなかった場合のみ、2文目に理由として
+# 添える構造・仕様の特徴の「節」（「〜なので、」に続けられる形。例：
+# 「マグネットで浮かせて設置できる」＋「ので、〜」）と、それに添える絵文字。
+# 検出したキーワードそのものではなく、商品情報から読み取れる客観的な特徴
+# （構造・使い方）だけを表す表現にとどめ、効果や体験談は含めない。
+# 商品の素材だけを述べる表現（例：ステンレス＝サビに強い）は、商品全体の
+# 用途に繋がりにくく紹介文の主題として不自然になりやすいため対象にしていない。
 #
 # 文言・絵文字はどちらも、基本は固定値（str）だが、カテゴリによって自然な表現が
 # 変わるもの（例：「大容量」は収納用品なら「収納できる」だが、調理家電なら
 # 「調理しやすい」）は、カテゴリ名をキーにした辞書（dict）で指定できる。
 FEATURE_CLAUSES: list[tuple[str, str | dict[str, str], str | dict[str, str]]] = [
     ("マグネット", "マグネットで浮かせて設置できる", "🧲"),
-    ("吸盤", "吸盤で好きな場所に取り付けられる", "🧲"),
+    ("吸盤", "吸盤で好きな場所に取り付けられる", "✨"),
     (
         "吊り下げ",
         {
@@ -198,7 +222,6 @@ FEATURE_CLAUSES: list[tuple[str, str | dict[str, str], str | dict[str, str]]] = 
     ),
     ("軽量", "持ち運びしやすい", "🪶"),
     ("シリコン", "シリコン製で洗いやすい", "🧴"),
-    ("ステンレス", "サビに強い", "🔩"),
     ("蓋付き", "フタ付きでホコリを防ぎやすい", "📦"),
     ("フタ付き", "フタ付きでホコリを防ぎやすい", "📦"),
     ("引き出し", "引き出し式で取り出しやすい", "📦"),
@@ -210,26 +233,33 @@ FEATURE_CLAUSES: list[tuple[str, str | dict[str, str], str | dict[str, str]]] = 
 ]
 
 # 特徴が見つからなかったときに使う、導入文（1文目）のカテゴリ共通の言い回し。
+# 商品の種類が特定できない場合の「安全な言い回し」で、常に「何に使う商品か」を
+# 表すことを優先している。
 OPENING_FALLBACK_SENTENCES: dict[str, list[str]] = {
     "掃除": [
         "汚れが気になる場所のお手入れに使えそうな掃除グッズです",
         "普段の掃除をちょっとラクにしてくれそうなアイテムです",
+        "気になる汚れをサッと片付けたいときに使えそうです",
     ],
     "収納": [
         "散らかりがちな物をすっきりまとめられそうな収納グッズです",
         "収納スペースを有効に使えそうな便利アイテムです",
+        "身の回りの物を使いやすく整理できそうです",
     ],
     "キッチン": [
         "キッチンでの作業をスムーズにしてくれそうなキッチングッズです",
         "毎日の調理や片付けに取り入れやすそうなアイテムです",
+        "料理の下ごしらえや後片付けに使えそうです",
     ],
     "時短": [
         "日々のちょっとした作業を時短できそうなアイテムです",
         "忙しい日にも取り入れやすそうな時短家電です",
+        "手間のかかる作業をサッと済ませたいときに便利そうです",
     ],
     DEFAULT_CATEGORY: [
         "暮らしをちょっと快適にしてくれそうな便利グッズです",
         "日々の小さな不便を解消してくれそうなアイテムです",
+        "普段の生活にすっと取り入れやすそうなアイテムです",
     ],
 }
 
@@ -239,26 +269,36 @@ BENEFIT_SENTENCES: dict[str, list[str]] = {
         "気になる汚れをサッと落とせそうで、お手入れの時間を短くできそうです",
         "お手入れの手間を減らしたい人におすすめしたい掃除グッズです",
         "毎日のちょっとした掃除がラクになりそうです",
+        "毎日の家事の負担を少し減らしたい人にぴったりです",
+        "サッと使えて、忙しい日にも取り入れやすそうです",
     ],
     "収納": [
         "取り出しやすくて、お部屋がスッキリ見えそうです",
         "毎日の片付けをラクにしたい人におすすめしたい収納グッズです",
         "散らかりがちな物をまとめて、すっきり整理できそうです",
+        "見た目もすっきり整えたい人に向いていそうです",
+        "使いたい物をすぐ取り出せるようになりそうです",
     ],
     "キッチン": [
         "取り出しやすくて、キッチンがスッキリ見えそうです",
         "毎日の料理や後片付けをラクにしたい人におすすめです",
         "キッチン周りをすっきり整えたい人に便利そうです",
+        "調理や後片付けの手間を少し減らしたい人に向いていそうです",
+        "毎日のキッチン作業を快適にしてくれそうです",
     ],
     "時短": [
         "忙しい日の家事を少しでもラクにしたい人におすすめです",
         "毎日のちょっとした手間を減らせそうです",
         "時間に追われがちな日にも取り入れやすそうです",
+        "家事に取られる時間を少しでも減らしたい人に向いていそうです",
+        "毎日のちょっとした作業がスムーズになりそうです",
     ],
     DEFAULT_CATEGORY: [
         "暮らしのちょっとした不便を解消したい人におすすめです",
         "毎日の生活に取り入れやすそうなアイテムです",
         "ちょっとした場面で役立ちそうです",
+        "気になっていた小さな不便を解消してくれそうです",
+        "毎日の暮らしにそっと寄り添ってくれそうなアイテムです",
     ],
 }
 
@@ -267,6 +307,8 @@ CLOSING_SENTENCES: list[str] = [
     "暮らしをちょっとラクにしてくれる便利グッズです",
     "気になる方はチェックしてみてほしいアイテムです",
     "毎日にちょっとした余裕をプラスしてくれそうです",
+    "毎日を少しだけ快適にしてくれそうなアイテムです",
+    "気になる場面で活躍してくれそうです",
 ]
 
 # 商品名にこれらの言葉が含まれる場合、より具体的なハッシュタグを1つ追加する。
@@ -293,21 +335,23 @@ def generate_description(
 
     2〜3文程度の文章に、文末など自然な位置に絵文字を添える
     （1投稿あたり2〜4個程度）。レビュー評価・件数は本文に含めない。
+    1文目は常に「何に使う商品か」を表す文にし、構造・仕様の特徴（マグネット式・
+    大容量など）が商品名から分かる場合も、2文目に理由として添えるだけにとどめ、
+    仕様の言葉が紹介文の主役にならないようにする。
     """
-    category = category if category in CATEGORY_NOUNS else DEFAULT_CATEGORY
+    category = category if category in CATEGORY_EMOJIS else DEFAULT_CATEGORY
     name = item.get("name", "") or ""
 
     # 商品ごとに言い回しを変えるための目印（商品コードが無ければ商品名を使う）。
     seed_source = item.get("item_code") or name
     seed = sum(ord(c) for c in seed_source) if seed_source else 0
 
-    sentence1_text, sentence1_emoji = _build_sentence1(name, category, seed)
-    benefit_variants = BENEFIT_SENTENCES[category]
-    sentence2_text = benefit_variants[(seed // 3) % len(benefit_variants)]
-    pool = CATEGORY_EMOJIS[category]
-    sentence2_emoji = pool[(seed // 3 + 1) % len(pool)]
+    sentence1_text, sentence1_emoji, product_type_matched = _build_sentence1(name, category, seed)
+    sentence2_text, sentence2_emoji = _build_sentence2(name, category, seed, skip_feature=product_type_matched)
 
     parts = [(sentence1_text, sentence1_emoji), (sentence2_text, sentence2_emoji)]
+
+    pool = CATEGORY_EMOJIS[category]
 
     # 3文になることもある（2〜3文程度、のバリエーションを出すため）。
     if seed % 3 == 0:
@@ -343,19 +387,43 @@ def generate_description(
     return description
 
 
-def _build_sentence1(name: str, category: str, seed: int) -> tuple[str, str]:
-    """1文目（特徴を織り込んだ導入文）と、その文に添える絵文字を組み立てる。"""
-    clause, emoji = _top_feature_clause(name, category)
-    if clause:
-        noun = CATEGORY_NOUNS[category]
-        if _CATEGORY_NOUN_CORE[category] in clause:
-            noun = "アイテム"
-        return f"{clause}{noun}です", emoji
+def _build_sentence1(name: str, category: str, seed: int) -> tuple[str, str, bool]:
+    """1文目（商品全体の用途を表す導入文）と絵文字、商品の種類を特定できたかを返す。
+
+    商品の種類そのものが商品名から分かる場合（PRODUCT_TYPE_HINTS）を最優先し、
+    分からない場合はカテゴリ共通の安全な言い回し（OPENING_FALLBACK_SENTENCES）
+    を使う。どちらの場合も、構造・仕様の単語（マグネット・大容量など）だけを
+    根拠に1文目を作ることはしない。
+    """
+    product_type_sentence, product_type_emoji = _top_product_type_sentence(name)
+    if product_type_sentence:
+        return product_type_sentence, product_type_emoji, True
 
     variants = OPENING_FALLBACK_SENTENCES[category]
     text = variants[seed % len(variants)]
     pool = CATEGORY_EMOJIS[category]
-    return text, pool[seed % len(pool)]
+    return text, pool[seed % len(pool)], False
+
+
+def _build_sentence2(name: str, category: str, seed: int, skip_feature: bool) -> tuple[str, str]:
+    """2文目（おすすめ・メリット）を組み立てる。
+
+    商品の種類が1文目で特定できていない場合に限り、商品名から読み取れる
+    構造・仕様の特徴が見つかれば「〜なので、」という理由として添える
+    （あくまで2文目内の理由であり、文章全体の主役にはしない）。
+    """
+    benefit_variants = BENEFIT_SENTENCES[category]
+    benefit_text = benefit_variants[(seed // 3) % len(benefit_variants)]
+    pool = CATEGORY_EMOJIS[category]
+    benefit_emoji = pool[(seed // 3 + 1) % len(pool)]
+
+    if skip_feature:
+        return benefit_text, benefit_emoji
+
+    clause, clause_emoji = _top_feature_clause(name, category)
+    if clause:
+        return f"{clause}ので、{benefit_text}", clause_emoji
+    return benefit_text, benefit_emoji
 
 
 def _top_feature_clause(name: str, category: str) -> tuple[str, str]:
