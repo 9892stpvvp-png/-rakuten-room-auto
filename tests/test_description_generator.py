@@ -1,70 +1,32 @@
 """紹介文生成の回帰テスト。
 
-実際にGitHub Actionsの本番実行で見つかった「商品情報にない特徴が紹介文に
-混入する」バグの再発を防ぐためのテスト。ここで使っている商品名は、実際に
-楽天ウェブサービスから返ってきたレスポンス（本番のGitHub Actions実行ログ）を
-そのまま使っている。標準ライブラリのunittestのみを使い、追加のライブラリ
-（pytestなど）は必要ない。
+実際にGitHub Actionsの本番実行で見つかった問題の再発を防ぐためのテスト。
+ここで使っている商品名の一部は、実際に楽天ウェブサービスから返ってきた
+レスポンス（本番のGitHub Actions実行ログ）をそのまま使っている。標準
+ライブラリのunittestのみを使い、追加のライブラリ（pytestなど）は必要ない。
 
 実行方法:
     python -m unittest tests.test_description_generator -v
 または:
     python -m unittest discover -s tests
 
-## 見つかった問題と対応（経緯）
+## フォーマットの変遷（経緯）
 
-1回目の修正では、特徴語の検出対象を「商品名＋商品説明の最初の一文」に
-限定したが、それでも本番のSummaryには誤った特徴が残っていた。実際の
-レスポンスを確認したところ、原因は次の2点だった。
-
-- 商品説明（itemCaption）が句点（。）を含まない仕様一覧形式
-  （例：「素材/材質：エラストマー、ステンレス、…」）のことがあり、
-  「最初の一文」のつもりが説明文全体を拾ってしまっていた
-- まれに、その商品とは無関係な説明文が入っていた
-  （「スープメーカー」の説明文の冒頭が搾乳機の説明になっていた）
-
-このため、特徴語の検出は商品説明を一切使わず「商品名」だけに限定した。
-また、カテゴリ判定も「商品名に1語でも含まれていれば元のカテゴリのまま」
-という単純な判定だと、「掃除機不要」という言葉に含まれる『掃除』の1語
-だけで『収納』の商品（衣類圧縮袋）が『掃除』カテゴリのままになって
-しまうことが分かったため、キーワードの一致件数で比較するスコア方式に
-変更した。
-
-## 紹介文フォーマットの変更（導入文＋箇条書き → 自然な文章）
-
-紹介文の形式を「導入文＋箇条書き（・）＋レビュー行」から、箇条書きを
-使わない2〜3文程度の自然な文章に変更した。この変更に伴い、レビュー評価・
-件数は本文に含めなくなった（候補一覧には別項目として表示されるため）。
-絵文字も「各行の先頭に機械的に付ける」方式から「文末など意味の合う場所に
-自然に入れる」方式に変わり、1投稿あたりの個数も3〜6個から2〜4個に変更した。
-
-この書き換えの過程で、1文目に「余韻の2つ目の絵文字」を足す処理が、
-その行自身の絵文字とだけ重複を避けていて、他の文で既に使っている絵文字とは
-重複してしまう不具合が見つかった（例：1文目が「🧲😊」、2文目も「😊」で
-終わってしまう）。文章全体で既に使われている絵文字を避けるように修正した。
-
-## 商品名の単語だけで特徴を決めつける問題の修正
-
-上記の文章形式化のあと、実際のSummaryで次のような「商品名に含まれる単語と、
-商品全体の用途が食い違う」問題が見つかった。
-
-- 三角コーナー（生ゴミの水切り用）の商品名に「吸盤」が含まれ、紹介文が
-  「吸盤で好きな場所に取り付けられる」になっていた
-- 味噌マドラーの商品名に「ステンレス」が含まれ、紹介文が「サビに強い
-  キッチングッズです」になっていた（マドラーの本来の用途である
-  「味噌を溶かしやすい」ことが伝わらない）
-- ドアストッパーの商品名に「マグネット」が含まれ、紹介文が「マグネットで
-  浮かせて設置できる」になっていた（実際は扉を固定するための商品）
-
-原因は、商品名から見つかった構造・仕様の単語（マグネット・吸盤・ステンレス等）を
-そのまま1文目（紹介文の主役）にしていたこと。商品名はSEO対策で多くの単語が
-詰め込まれており、単語が含まれること＝それが商品全体の用途、とは限らない。
-
-対応として、`PRODUCT_TYPE_HINTS`（商品の種類そのものが分かる場合の、
-用途に沿った1文目）を`FEATURE_CLAUSES`（構造・仕様の単語一致）より優先させ、
-`FEATURE_CLAUSES`は見つかっても1文目の主役にはせず、2文目に「〜なので、」
-という理由として添えるだけにした。また、商品の用途に繋がりにくい「ステンレス
-＝サビに強い」という素材だけの表現は`FEATURE_CLAUSES`から削除した。
+1. 特徴語の検出を「商品説明」から「商品名だけ」に限定（商品説明は書式が
+   ばらつき、無関係な文章が混入することがあったため）。
+2. カテゴリ判定を「1語でも一致すれば元のカテゴリのまま」から「キーワード
+   一致件数のスコア方式」に変更（「掃除機不要」の『掃除』1語だけで収納品が
+   掃除カテゴリのままになる問題の対応）。
+3. 「導入文＋箇条書き」形式 → 箇条書きを使わない2〜3文の自然な文章形式に変更。
+4. 商品名に含まれる単語（マグネット・吸盤・ステンレス等）だけで特徴を
+   決めつけず、商品全体の用途を優先するよう修正（PRODUCT_TYPE_HINTS導入）。
+5. **現在の形式**：楽天ROOMで読んだ人が「これ便利そう」と感じやすい、
+   共感型の構成に変更。①絵文字＋キャッチコピー ②悩み・あるある（1〜2文）
+   ③商品がどう解決してくれそうか ④✔️メリット3項目 ⑤締めの一言
+   ⑥ハッシュタグ、という6ブロック構成になっている
+   （`PRODUCT_TYPE_TEMPLATES`で具体的な商品タイプ、`GENERIC_TEMPLATES`で
+   カテゴリ共通の安全な言い回しを用意し、✔️メリットの3項目目だけ
+   `FEATURE_CLAUSES`で商品名から読み取れる構造・仕様の特徴を反映する）。
 """
 
 from __future__ import annotations
@@ -79,6 +41,7 @@ def make_item(
     item_caption: str = "",
     review_average: float = 4.5,
     review_count: int = 200,
+    price: int = 1980,
     item_code: str = "",
 ) -> dict:
     return {
@@ -86,7 +49,7 @@ def make_item(
         "name": name,
         "catch_copy": "",
         "item_caption": item_caption,
-        "price": 1000,
+        "price": price,
         "review_average": review_average,
         "review_count": review_count,
         "item_url": "https://item.rakuten.co.jp/shop/example/",
@@ -200,7 +163,24 @@ REAL_AIR_FRYER = make_item(
         "---------------------------------------------------- 商品紹介 "
         "--------------------------"
     ),
+    price=7990,
 )
+
+ALL_REAL_ITEMS_AND_CATEGORIES = [
+    (REAL_SOUP_MAKER, "時短"),
+    (REAL_REFILL_MINI, "収納"),
+    (REAL_CARDBOARD_STOCKER, "収納"),
+    (REAL_MAGIC_TAPE, "収納"),
+    (REAL_COMPRESSION_BAG, "収納"),
+    (REAL_MAGNET_RACK, "収納"),
+    (REAL_MAGNET_HOOK, "収納"),
+    (REAL_AIR_FRYER, "時短"),
+]
+
+
+def _blocks(description: str) -> list[str]:
+    """紹介文を空行区切りの6ブロック（キャッチコピー・悩み・解決・メリット・締め・タグ）に分ける。"""
+    return description.split("\n\n")
 
 
 class RealDataRegressionTest(unittest.TestCase):
@@ -209,6 +189,12 @@ class RealDataRegressionTest(unittest.TestCase):
     def test_soup_maker_does_not_claim_rechargeable(self):
         description = dg.generate_description(REAL_SOUP_MAKER, category="時短", base_hashtags=BASE_HASHTAGS)
         self.assertNotIn("充電式", description)
+
+    def test_soup_maker_matches_its_product_type_template(self):
+        # 「スープメーカー」は商品タイプが特定できるはずなので、汎用の
+        # GENERIC_TEMPLATESではなく専用テンプレートを使う。
+        description = dg.generate_description(REAL_SOUP_MAKER, category="時短", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("スープ", _blocks(description)[0])
 
     def test_refill_mini_does_not_claim_stainless(self):
         description = dg.generate_description(REAL_REFILL_MINI, category="収納", base_hashtags=BASE_HASHTAGS)
@@ -247,11 +233,22 @@ class RealDataRegressionTest(unittest.TestCase):
         self.assertIn("#収納", description)
         self.assertNotIn("#掃除グッズ", description)
 
+    def test_compression_bag_matches_its_product_type_template(self):
+        category = dg.refine_category(REAL_COMPRESSION_BAG, "掃除")
+        description = dg.generate_description(REAL_COMPRESSION_BAG, category=category, base_hashtags=BASE_HASHTAGS)
+        self.assertIn("圧縮袋", _blocks(description)[0] + _blocks(description)[2])
+
     def test_magnet_rack_still_detects_magnet_from_name(self):
         # 商品説明を使わなくなった後も、商品名に明記されている特徴は
-        # 引き続き正しく検出できることを確認する。
+        # 引き続き✔️メリットの3項目目として正しく検出できることを確認する。
         description = dg.generate_description(REAL_MAGNET_RACK, category="収納", base_hashtags=BASE_HASHTAGS)
         self.assertIn("マグネット", description)
+
+    def test_magnet_rack_uses_bath_location(self):
+        # 商品名に「浴室」「お風呂収納」が含まれるため、汎用の「身の回り」ではなく
+        # 「浴室」という具体的な場所の言葉が使われることを確認する。
+        description = dg.generate_description(REAL_MAGNET_RACK, category="収納", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("浴室", description)
 
     def test_magnet_hook_is_reclassified_as_storage(self):
         # 本番実行では「掃除」カテゴリのまま#掃除グッズになっていた商品。
@@ -267,39 +264,43 @@ class RealDataRegressionTest(unittest.TestCase):
         self.assertIn("#収納", description)
         self.assertNotIn("#掃除グッズ", description)
 
-    def test_air_fryer_large_capacity_does_not_use_storage_wording(self):
+    def test_air_fryer_matches_its_product_type_template(self):
         # 本番実行では「大容量」が収納用品向けの「たっぷり収納できる大容量タイプ」に
-        # なってしまい、調理家電として不自然だった。カテゴリは「時短」のまま。
+        # なってしまい、調理家電として不自然だった。現在は専用テンプレートを使い、
+        # 「収納」という言葉自体が出ないことを確認する。
         category = dg.refine_category(REAL_AIR_FRYER, "時短")
         self.assertEqual(category, "時短")
         description = dg.generate_description(REAL_AIR_FRYER, category=category, base_hashtags=BASE_HASHTAGS)
-        self.assertNotIn("収納できる大容量タイプ", description)
+        self.assertIn("ノンフライヤー", _blocks(description)[0] + _blocks(description)[2])
         self.assertNotIn("収納", description)
 
     def test_real_items_never_use_experience_implying_phrases(self):
         # 「使ってみました」「買ってよかった」など、実際に使用したと誤解される
         # 表現は使わない、という生成ルールの回帰テスト。
-        real_items_and_categories = [
-            (REAL_SOUP_MAKER, "時短"),
-            (REAL_REFILL_MINI, "収納"),
-            (REAL_CARDBOARD_STOCKER, "収納"),
-            (REAL_MAGIC_TAPE, "収納"),
-            (REAL_COMPRESSION_BAG, "収納"),
-            (REAL_MAGNET_RACK, "収納"),
-            (REAL_MAGNET_HOOK, "収納"),
-            (REAL_AIR_FRYER, "時短"),
-        ]
-        for item, category in real_items_and_categories:
+        for item, category in ALL_REAL_ITEMS_AND_CATEGORIES:
             description = dg.generate_description(item, category=category, base_hashtags=BASE_HASHTAGS)
             for phrase in ("使ってみました", "買ってよかった", "使ってみて", "買ってみました"):
                 self.assertNotIn(phrase, description, f"{item['name'][:20]}: {description}")
 
     def test_real_items_body_does_not_contain_review_numbers(self):
-        # レビュー評価・レビュー件数は紹介文の本文には原則含めない、というルールの確認。
-        for item in (REAL_SOUP_MAKER, REAL_MAGNET_RACK, REAL_AIR_FRYER):
-            description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS)
+        # レビュー評価・レビュー件数は紹介文に入れない、というルールの確認。
+        for item, category in ALL_REAL_ITEMS_AND_CATEGORIES:
+            description = dg.generate_description(item, category=category, base_hashtags=BASE_HASHTAGS)
             self.assertNotIn("レビュー評価", description)
             self.assertNotIn("レビュー件数", description)
+
+    def test_real_items_do_not_contain_price(self):
+        # 価格も紹介文に入れない、というルールの確認。
+        for item, category in ALL_REAL_ITEMS_AND_CATEGORIES:
+            description = dg.generate_description(item, category=category, base_hashtags=BASE_HASHTAGS)
+            self.assertNotIn(str(item["price"]), description)
+
+    def test_real_items_do_not_copy_full_product_name(self):
+        # 商品名をそのまま長く転載しない、というルールの確認
+        # （商品名全体が紹介文にそのまま含まれていないこと）。
+        for item, category in ALL_REAL_ITEMS_AND_CATEGORIES:
+            description = dg.generate_description(item, category=category, base_hashtags=BASE_HASHTAGS)
+            self.assertNotIn(item["name"], description)
 
 
 class CategoryRefinementTest(unittest.TestCase):
@@ -334,64 +335,69 @@ class CategoryRefinementTest(unittest.TestCase):
         self.assertEqual(dg.refine_category(item, dg.DEFAULT_CATEGORY), "掃除")
 
 
-def _body_lines(description: str) -> list[str]:
-    """紹介文からハッシュタグ行を除いた、文章部分の行一覧を返す。"""
-    body = description.split("\n\n", 1)[0]
-    return body.splitlines()
-
-
-class DescriptionFormatTest(unittest.TestCase):
-    """紹介文の基本フォーマット（文字数・文の数・ハッシュタグ・禁止表現）を確認する。"""
+class DescriptionStructureTest(unittest.TestCase):
+    """紹介文の6ブロック構成（キャッチコピー・悩み・解決・メリット・締め・タグ）を確認する。"""
 
     def test_description_within_max_length(self):
         item = make_item(name="テスト商品")
         description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS, max_length=500)
         self.assertLessEqual(len(description), 500)
 
-    def test_description_has_no_bullet_markers(self):
-        # 箇条書き「・」は使わない、という生成ルールの確認。
+    def test_description_has_six_blocks(self):
         item = make_item(name="テスト商品")
-        for category in dg.CATEGORY_EMOJIS:
+        for category in dg.GENERIC_TEMPLATES:
             description = dg.generate_description(item, category=category, base_hashtags=BASE_HASHTAGS)
-            self.assertNotIn("・", description)
+            blocks = _blocks(description)
+            self.assertEqual(len(blocks), 6, f"category={category}: {blocks}")
 
-    def test_description_has_two_or_three_sentences(self):
+    def test_hook_line_starts_with_emoji_and_ends_with_sparkle(self):
         item = make_item(name="テスト商品")
-        for category in dg.CATEGORY_EMOJIS:
+        for category in dg.GENERIC_TEMPLATES:
             description = dg.generate_description(item, category=category, base_hashtags=BASE_HASHTAGS)
-            lines = _body_lines(description)
-            self.assertIn(len(lines), (2, 3), f"category={category}: {lines}")
+            hook_line = _blocks(description)[0]
+            self.assertTrue(hook_line.endswith("✨"), hook_line)
+            self.assertRegex(hook_line, r"^\S+ .+✨$")
 
-    def test_review_stats_are_not_included_in_body(self):
-        item = make_item(name="テスト商品", review_average=4.2, review_count=345)
-        description = dg.generate_description(item, category="キッチン", base_hashtags=BASE_HASHTAGS)
-        self.assertNotIn("4.2", description)
-        self.assertNotIn("345件", description)
-
-    def test_no_feature_hint_falls_back_to_safe_generic_points(self):
-        # 商品名に特徴語が無くても、無理に特徴を作らずカテゴリ共通の安全な
-        # 言い回しで埋められることを確認する（推測で特徴を作らないという条件の確認）。
-        item = make_item(name="なんの変哲もない商品")
-        description = dg.generate_description(item, category="時短", base_hashtags=BASE_HASHTAGS)
-        for _keyword, clause_spec, _emoji_spec in dg.FEATURE_CLAUSES:
-            resolved_clause = dg._resolve_by_category(clause_spec, "時短")
-            self.assertNotIn(resolved_clause, description)
-
-    def test_item_caption_is_not_used_for_feature_detection(self):
-        # 商品名には特徴語が無く、商品説明にだけ「ステンレス」がある場合、
-        # 商品説明は特徴抽出に使わないため、紹介文に出てこないことを確認する。
-        item = make_item(name="なんの変哲もない商品", item_caption="素材：ステンレス、ポリプロピレン")
-        description = dg.generate_description(item, category="キッチン", base_hashtags=BASE_HASHTAGS)
-        self.assertNotIn("ステンレス", description)
-
-    def test_hashtag_count_is_between_three_and_five(self):
+    def test_worry_block_ends_with_empathetic_emoji(self):
         item = make_item(name="テスト商品")
-        for category in dg.CATEGORY_EMOJIS:
+        for category in dg.GENERIC_TEMPLATES:
             description = dg.generate_description(item, category=category, base_hashtags=BASE_HASHTAGS)
-            hashtag_line = description.splitlines()[-1]
+            worry_block = _blocks(description)[1]
+            self.assertIn("😅", worry_block)
+
+    def test_solution_line_ends_with_maru(self):
+        item = make_item(name="テスト商品")
+        for category in dg.GENERIC_TEMPLATES:
+            description = dg.generate_description(item, category=category, base_hashtags=BASE_HASHTAGS)
+            solution_line = _blocks(description)[2]
+            self.assertTrue(solution_line.endswith("◎"), solution_line)
+
+    def test_checklist_has_exactly_three_checked_items(self):
+        item = make_item(name="テスト商品")
+        for category in dg.GENERIC_TEMPLATES:
+            description = dg.generate_description(item, category=category, base_hashtags=BASE_HASHTAGS)
+            checklist_lines = _blocks(description)[3].splitlines()
+            self.assertEqual(len(checklist_lines), 3, f"category={category}: {checklist_lines}")
+            for line in checklist_lines:
+                self.assertTrue(line.startswith("✔️ "), line)
+
+    def test_closing_line_ends_with_smile(self):
+        item = make_item(name="テスト商品")
+        for category in dg.GENERIC_TEMPLATES:
+            description = dg.generate_description(item, category=category, base_hashtags=BASE_HASHTAGS)
+            closing_line = _blocks(description)[4]
+            self.assertTrue(closing_line.endswith("☺️"), closing_line)
+
+    def test_hashtag_block_has_three_to_five_tags_and_no_emoji(self):
+        item = make_item(name="テスト商品")
+        for category in dg.GENERIC_TEMPLATES:
+            description = dg.generate_description(item, category=category, base_hashtags=BASE_HASHTAGS)
+            hashtag_line = _blocks(description)[5]
             hashtags = hashtag_line.split(" ")
             self.assertGreaterEqual(len(hashtags), 3, f"category={category}: {hashtag_line}")
             self.assertLessEqual(len(hashtags), 5, f"category={category}: {hashtag_line}")
+            for tag in hashtags:
+                self.assertTrue(tag.startswith("#"), tag)
 
     def test_default_hashtag_is_kept_when_passed_in(self):
         # 「#暮らしの便利グッズ」は基本的に入れる、というルールの確認
@@ -400,41 +406,57 @@ class DescriptionFormatTest(unittest.TestCase):
         description = dg.generate_description(item, category="キッチン", base_hashtags=BASE_HASHTAGS)
         self.assertIn("#暮らしの便利グッズ", description)
 
-    def test_no_category_noun_duplication_in_feature_sentence(self):
-        # 「大容量」→「収納」カテゴリでは「たっぷり収納できる収納グッズです」のような
-        # 重複した言い回しにならないことを確認する。
-        item = make_item(name="大容量 収納ボックス")
+    def test_no_price_in_description(self):
+        item = make_item(name="テスト商品", price=3980)
         description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS)
-        self.assertNotIn("収納できる収納グッズです", description)
+        self.assertNotIn("3980", description)
 
-    def test_same_category_produces_varied_sentences_across_products(self):
-        # 商品カテゴリだけで文章を決めず、商品名によって紹介文が変わることの確認。
-        item_a = make_item(name="マグネット式 キッチンラック", item_code="a")
-        item_b = make_item(name="折りたたみ式 水切りラック", item_code="b")
-        description_a = dg.generate_description(item_a, category="キッチン", base_hashtags=BASE_HASHTAGS)
-        description_b = dg.generate_description(item_b, category="キッチン", base_hashtags=BASE_HASHTAGS)
-        self.assertNotEqual(description_a, description_b)
+    def test_item_caption_is_not_used_for_feature_detection(self):
+        # 商品名には特徴語が無く、商品説明にだけ「ステンレス」がある場合、
+        # 商品説明は特徴抽出に使わないため、紹介文に出てこないことを確認する。
+        item = make_item(name="なんの変哲もない商品", item_caption="素材：ステンレス、ポリプロピレン")
+        description = dg.generate_description(item, category="キッチン", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("ステンレス", description)
+
+    def test_closing_line_varies_by_product_code(self):
+        # 締めの一言（⑤）が毎回同じ文章にならないことの確認。
+        item_a = make_item(name="テスト商品A", item_code="a")
+        item_b = make_item(name="テスト商品B", item_code="b")
+        description_a = dg.generate_description(item_a, category="収納", base_hashtags=BASE_HASHTAGS)
+        description_b = dg.generate_description(item_b, category="収納", base_hashtags=BASE_HASHTAGS)
+        closing_a = _blocks(description_a)[4]
+        closing_b = _blocks(description_b)[4]
+        # 同じテンプレート内のclosing_variantsは複数用意されているため、
+        # 十分な数のコードを試せば異なる締めが選ばれることを確認する。
+        closings = {
+            _blocks(dg.generate_description(make_item(name="テスト商品", item_code=str(i)), category="収納", base_hashtags=BASE_HASHTAGS))[4]
+            for i in range(10)
+        }
+        self.assertGreater(len(closings), 1)
 
 
-class ProductTypeMismatchRegressionTest(unittest.TestCase):
-    """商品名に含まれる単語だけで特徴を決めつけないことを確認する回帰テスト。
+class ProductTypeTemplateTest(unittest.TestCase):
+    """商品名の単語だけで特徴を決めつけず、商品全体の用途に合わせたテンプレートを
+    使うことを確認する回帰テスト。
 
     楽天の商品名はSEO対策で色々な単語が詰め込まれていることが多く、
-    「商品名に単語が含まれる＝それが商品全体の用途」とは限らない。
-    ここでは実際に報告された3つの不一致パターン（三角コーナー・味噌マドラー・
-    ドアストッパー）を、実際の商品名によく見られる形（色々な単語が
-    詰め込まれた商品名）で再現し、商品全体の用途に沿った文章になることを確認する。
+    「商品名に単語が含まれる＝それが商品全体の用途」とは限らない。ここでは
+    実際に報告された不一致パターン（三角コーナー・味噌マドラー・ドアストッパー）
+    を、実際の商品名によく見られる形で再現し、商品全体の用途に沿った
+    紹介文になることを確認する。
     """
 
-    def test_triangle_corner_is_not_described_as_suction_cup_item(self):
+    def test_triangle_corner_is_not_described_as_suction_cup_product(self):
         # 三角コーナー（生ゴミの水切り用）の商品名に「吸盤」が含まれていても、
-        # 「吸盤で好きな場所に取り付けられる」を紹介文の主役にしない。
+        # ①のキャッチコピー・③の解決文は「吸盤」ではなく生ゴミの水切りという
+        # 商品全体の用途になる（「吸盤」は検出されれば✔️メリットの3項目目に
+        # 補足として入ることはある）。
         item = make_item(
             name="水切り 三角コーナー キッチン ステンレス 吸盤 排水口ネット付き シンク こし器 送料無料"
         )
         description = dg.generate_description(item, category="キッチン", base_hashtags=BASE_HASHTAGS)
-        self.assertIn("三角コーナー", description)
-        self.assertNotIn("吸盤で好きな場所に取り付けられる", description)
+        blocks = _blocks(description)
+        self.assertIn("三角コーナー", blocks[0] + blocks[2])
         self.assertNotIn("サビに強い", description)
 
     def test_miso_muddler_is_not_described_as_rust_resistant(self):
@@ -444,19 +466,19 @@ class ProductTypeMismatchRegressionTest(unittest.TestCase):
             name="味噌マドラー ステンレス 味噌漉し みそこし 味噌溶き 調理器具 キッチン雑貨"
         )
         description = dg.generate_description(item, category="キッチン", base_hashtags=BASE_HASHTAGS)
-        self.assertIn("マドラー", description)
+        blocks = _blocks(description)
+        self.assertIn("マドラー", blocks[0] + blocks[2])
         self.assertNotIn("サビに強い", description)
         self.assertNotIn("ステンレス", description)
 
     def test_door_stopper_is_not_described_as_floating_storage(self):
         # ドアストッパーの商品名に「マグネット」が含まれていても、
-        # 収納用品向けの「マグネットで浮かせて設置できる」を紹介文の主役にしない。
+        # 収納用品向けの「マグネットで浮かせて設置できる」を①③の主役にしない。
         item = make_item(name="ドアストッパー マグネット式 扉 固定 玄関 diy おしゃれ シンプル 傷防止")
         description = dg.generate_description(item, category=dg.DEFAULT_CATEGORY, base_hashtags=BASE_HASHTAGS)
-        body = "\n".join(_body_lines(description))
-        self.assertIn("ドアストッパー", body)
-        self.assertNotIn("浮かせて設置", body)
-        self.assertNotIn("収納", body)
+        blocks = _blocks(description)
+        self.assertIn("ドアストッパー", blocks[0] + blocks[2])
+        self.assertNotIn("浮かせて設置", blocks[0] + blocks[1] + blocks[2])
 
     def test_stainless_material_clause_was_removed(self):
         # 「ステンレス＝サビに強い」は、商品全体の用途に繋がりにくい素材だけの
@@ -464,133 +486,30 @@ class ProductTypeMismatchRegressionTest(unittest.TestCase):
         keywords = [keyword for keyword, _clause, _emoji in dg.FEATURE_CLAUSES]
         self.assertNotIn("ステンレス", keywords)
 
-    def test_sentence1_never_headlines_with_structural_feature_alone(self):
-        # 商品の種類が特定できない商品では、構造・仕様の単語（マグネットなど）を
-        # 1文目（紹介文の主役）にせず、カテゴリ共通の用途ベースの文章を使う。
-        item = make_item(name="マグネット式 収納ラック")
-        sentence1, _emoji, product_type_matched = dg._build_sentence1(item["name"], "収納", seed=0)
-        self.assertFalse(product_type_matched)
-        self.assertIn(sentence1, dg.OPENING_FALLBACK_SENTENCES["収納"])
+    def test_unmatched_product_falls_back_to_generic_template(self):
+        # PRODUCT_TYPE_TEMPLATESに無い商品名では、カテゴリ共通の
+        # GENERIC_TEMPLATESが使われることを確認する。
+        item = make_item(name="なんの変哲もない商品")
+        self.assertIsNone(dg._match_product_type(item["name"]))
+        description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS)
+        blocks = _blocks(description)
+        self.assertEqual(blocks[0], f"{dg.GENERIC_TEMPLATES['収納'].topic_emoji} 身の回りの物の置き場所、決まってる？✨")
 
-    def test_structural_feature_appears_only_as_reason_in_sentence2(self):
-        # マグネット式の収納ラックのように商品の種類が特定できない場合でも、
-        # 特徴自体は2文目に「〜なので、」という理由として自然に組み込まれる。
+    def test_feature_clause_appears_as_third_checklist_item_when_no_type_match(self):
+        # 商品タイプが特定できない場合でも、マグネット式などの構造・仕様は
+        # ✔️メリットの3項目目として自然に組み込まれる。
         item = make_item(name="マグネット式 収納ラック")
         description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS)
-        self.assertIn("マグネットで浮かせて設置できるので、", description)
+        checklist_lines = _blocks(description)[3].splitlines()
+        self.assertIn("✔️ マグネットで浮かせて設置できる", checklist_lines)
 
-
-# 紹介文で使われうる絵文字をすべて集めた集合（テストでの絵文字カウント・検出に使う）。
-def _all_known_emojis() -> set[str]:
-    emojis: set[str] = set()
-    for pool in dg.CATEGORY_EMOJIS.values():
-        emojis.update(pool)
-    for _keyword, _clause_spec, emoji_spec in dg.FEATURE_CLAUSES:
-        if isinstance(emoji_spec, dict):
-            emojis.update(v for v in emoji_spec.values() if v)
-        elif emoji_spec:
-            emojis.add(emoji_spec)
-    for _keyword, _sentence, emoji in dg.PRODUCT_TYPE_HINTS:
-        if emoji:
-            emojis.add(emoji)
-    return emojis
-
-
-ALL_KNOWN_EMOJIS = _all_known_emojis()
-
-
-class EmojiFormatTest(unittest.TestCase):
-    """紹介文への絵文字の付け方を確認する。"""
-
-    def _count_known_emojis(self, text: str) -> int:
-        return sum(text.count(emoji) for emoji in ALL_KNOWN_EMOJIS)
-
-    def test_total_emoji_count_is_within_expected_range(self):
-        # 1投稿につき2〜4個程度、というルールの確認。
-        item = make_item(name="テスト商品")
-        for category in dg.CATEGORY_EMOJIS:
-            description = dg.generate_description(item, category=category, base_hashtags=BASE_HASHTAGS)
-            count = self._count_known_emojis(description)
-            self.assertGreaterEqual(count, 2, f"category={category}: {description}")
-            self.assertLessEqual(count, 4, f"category={category}: {description}")
-
-    def test_sentences_end_with_emoji_not_start_with_it(self):
-        # 絵文字は文末に自然に入れる。各行の先頭へ機械的に付けない、というルールの確認。
-        item = make_item(name="テスト商品")
-        for category in dg.CATEGORY_EMOJIS:
-            description = dg.generate_description(item, category=category, base_hashtags=BASE_HASHTAGS)
-            for line in _body_lines(description):
-                self.assertFalse(
-                    any(line.startswith(emoji) for emoji in ALL_KNOWN_EMOJIS),
-                    f"category={category}: {line!r}",
-                )
-                self.assertTrue(
-                    any(line.endswith(emoji) for emoji in ALL_KNOWN_EMOJIS),
-                    f"category={category}: {line!r}",
-                )
-
-    def test_hashtag_line_has_no_emoji(self):
-        item = make_item(name="テスト商品")
-        for category in dg.CATEGORY_EMOJIS:
-            description = dg.generate_description(item, category=category, base_hashtags=BASE_HASHTAGS)
-            hashtag_line = description.splitlines()[-1]
-            self.assertTrue(hashtag_line.startswith("#"), hashtag_line)
-            for emoji in ALL_KNOWN_EMOJIS:
-                self.assertNotIn(emoji, hashtag_line)
-
-    def test_magnet_rack_uses_magnet_emoji(self):
-        description = dg.generate_description(REAL_MAGNET_RACK, category="収納", base_hashtags=BASE_HASHTAGS)
-        self.assertIn("🧲", description)
-
-    def test_air_fryer_does_not_use_storage_emoji_for_capacity(self):
-        # 「大容量」の絵文字も、収納カテゴリ向けの絵文字を時短カテゴリでは使わない。
-        category = dg.refine_category(REAL_AIR_FRYER, "時短")
-        description = dg.generate_description(REAL_AIR_FRYER, category=category, base_hashtags=BASE_HASHTAGS)
-        self.assertNotIn("📦", description)
-
-    def test_dedupe_adjacent_emojis_avoids_back_to_back_repeats(self):
-        # 隣り合う文で同じ絵文字が続かないようにする_dedupe_adjacent_emojis()の確認。
-        pool = ["🧹", "🧽", "✨", "😊", "♪"]
-        parts = [("文1", "🧹"), ("文2", "🧹"), ("文3", "✨")]
-        result = dg._dedupe_adjacent_emojis(parts, pool)
-        emojis = [emoji for _text, emoji in result]
-        self.assertNotEqual(emojis[0], emojis[1])
-
-    def test_bulk_format_invariants_across_many_products(self):
-        # 商品名・カテゴリを幅広く変えても、フォーマットのルール（箇条書きなし・
-        # 文の数2〜3・絵文字数2〜4・ハッシュタグ行に絵文字なし）が常に守られることを
-        # 確認する回帰テスト（本番で見つかった絵文字の重複バグの再発防止も兼ねる）。
-        sample_names = [
-            "マグネット式 収納ラック",
-            "吸盤タイプ フック",
-            "折りたたみ式 水切りかご",
-            "スリムタイプ ゴミ箱",
-            "大容量 保存容器セット",
-            "軽量 掃除用モップ",
-            "シリコン製 キッチンツール",
-            "ステンレス製 調理器具",
-            "蓋付き 収納ボックス",
-            "充電式 コードレスクリーナー",
-            "なんの変哲もない商品",
-            "普通の便利グッズ",
-        ]
-        for category in dg.CATEGORY_EMOJIS:
-            for i, name in enumerate(sample_names):
-                item = make_item(name=name, item_code=f"{category}-{i}")
-                description = dg.generate_description(item, category=category, base_hashtags=BASE_HASHTAGS)
-
-                self.assertNotIn("・", description)
-
-                lines = _body_lines(description)
-                self.assertIn(len(lines), (2, 3), f"{category}/{name}: {lines}")
-
-                count = self._count_known_emojis(description)
-                self.assertGreaterEqual(count, 2, f"{category}/{name}: {description}")
-                self.assertLessEqual(count, 4, f"{category}/{name}: {description}")
-
-                hashtag_line = description.splitlines()[-1]
-                for emoji in ALL_KNOWN_EMOJIS:
-                    self.assertNotIn(emoji, hashtag_line, f"{category}/{name}: {hashtag_line}")
+    def test_bath_location_overrides_generic_topic_emoji(self):
+        # 「お風呂用品」であることが商品名から分かる場合、GENERIC_TEMPLATESの
+        # 既定の絵文字（🏠）ではなく、場所に合った絵文字（🛁）を使う。
+        item = make_item(name="お風呂 マグネット 収納ラック")
+        description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS)
+        hook_line = _blocks(description)[0]
+        self.assertTrue(hook_line.startswith("🛁 "), hook_line)
 
 
 if __name__ == "__main__":
