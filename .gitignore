@@ -1,0 +1,12 @@
+# 秘密情報
+.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# 自動生成される投稿候補ファイル（毎回作られるので履歴に残さない）
+data/candidates/*
+!data/candidates/.gitkeep

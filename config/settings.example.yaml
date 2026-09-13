@@ -1,0 +1,27 @@
+# 商品選定・紹介文作成のための設定サンプルです。
+# コピーして settings.yaml を作り、必要に応じて調整してください。
+#   cp config/settings.example.yaml config/settings.yaml
+
+# 楽天ウェブサービスAPIで検索するキーワード（テーマ：暮らしの便利グッズ）
+keywords:
+  - "掃除 便利グッズ"
+  - "収納 便利グッズ"
+  - "キッチン 時短グッズ"
+  - "時短家電"
+
+# 商品選定条件
+selection_criteria:
+  min_review_average: 4.0   # レビュー評価（この値以上）
+  min_review_count: 100     # レビュー件数（この値以上）
+
+# キーワード1件あたりの取得件数（多すぎるとAPIの負荷が上がるので控えめに）
+items_per_keyword: 10
+
+# 紹介文の最大文字数
+description_max_length: 500
+
+# 紹介文の末尾につけるハッシュタグ（商品ごとに合わないものは自動で調整予定）
+default_hashtags:
+  - "#暮らしの便利グッズ"
+  - "#時短アイテム"
+  - "#楽天ROOM"
