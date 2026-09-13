@@ -36,3 +36,7 @@ default_hashtags:
   - "#暮らしの便利グッズ"
   - "#時短アイテム"
   - "#楽天ROOM"
+
+# GitHub Actionsの実行結果画面（Summary）に表示する候補の件数
+# （スマートフォンでも見やすいように、多くても10件程度がおすすめ）
+summary_item_limit: 10
