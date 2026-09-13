@@ -58,7 +58,7 @@ def main() -> None:
     allowed_origin = settings.get("allowed_origin")
     ng_keywords = settings.get("ng_keywords", [])
     off_theme_keywords = settings.get("off_theme_keywords", [])
-    base_hashtags = settings.get("default_hashtags", ["#楽天ROOM", "#暮らしの便利グッズ"])
+    base_hashtags = settings.get("default_hashtags", ["#暮らしの便利グッズ"])
     posted_item_codes = dedupe.load_posted_item_codes(POSTED_ITEMS_PATH)
     seen_item_codes: set[str] = set()
 

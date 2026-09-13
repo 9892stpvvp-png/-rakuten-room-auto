@@ -1,18 +1,24 @@
 """楽天ROOMの紹介文欄にそのままコピペできる紹介文を作る部分。
 
 条件：
-- 押し売り感のない自然な日本語
-- 実際の商品データ（商品名・レビュー評価など）から確認できないことは書かない
-  （実際に使用したかのような表現や断定的な効果は書かない）
-- 商品紹介文＋箇条書き（2〜4個）＋ハッシュタグを1つのコピペ用ブロックにする
+- 箇条書き（・）は使わず、2〜3文程度の自然な文章にする
+- 押し売り感のない自然な日本語。「〜できそう」「〜に便利そう」「〜したい人に
+  おすすめ」など、実際に使用していない立場でも不自然にならない表現を使う
+- 「使ってみました」「買ってよかった」など、実際に使用したと誤解される
+  表現は使わない
+- 実際の商品データ（商品名など）から確認できないことは書かない
+- 絵文字は文章の終わりなど意味の合う場所に自然に入れる（各行の先頭に機械的に
+  付けない）。1投稿あたり2〜4個程度、😊✨♪なども使い楽天ROOMらしい柔らかい
+  雰囲気にする。商品と関係のない絵文字は使わない
+- レビュー評価・レビュー件数は紹介文の本文には原則含めない
+  （候補一覧には別項目として表示される）
+- ハッシュタグは3〜5個程度、商品に合ったものを自動生成する。
+  「#暮らしの便利グッズ」は基本的に入れる。ハッシュタグには絵文字を付けない
 - 500文字以内
 - 同じ定型文を全商品に使い回さない。商品名に明記されている特徴
-  （マグネット式、折りたたみ式など）があれば優先して使い、確実に読み取れない
-  場合は無理に特徴を作らず、カテゴリ共通の安全な言い回しで補う
-- 見やすさ・親しみやすさのために絵文字を使うが、1投稿あたり3〜6個程度に抑え、
-  商品名・商品説明にない特徴を絵文字から連想して追加しない
-  （絵文字はあくまで、すでに文章として決まった特徴・カテゴリに対する
-  「飾り」であり、絵文字を見て新しい情報を付け足すわけではない）
+  （マグネット式、折りたたみ式など）があれば優先して文章に組み込み、
+  確実に読み取れない場合は無理に特徴を作らず、カテゴリ共通の安全な
+  言い回しで補う
 
 注意（特徴抽出に商品説明・itemCaptionを使わない理由）：
 当初は商品説明（itemCaption）の最初の一文も検出対象にしていたが、実際の
@@ -35,77 +41,47 @@ from typing import Any
 
 DEFAULT_CATEGORY = "暮らし全般"
 
-INTRO_VARIANTS: dict[str, list[str]] = {
-    "掃除": [
-        "掃除のひと手間を軽くしてくれそうな便利アイテムです。",
-        "気になる汚れのお手入れをラクにしてくれそうなアイテムです。",
-    ],
-    "収納": [
-        "収納をすっきり整えたい方に取り入れやすいアイテムです。",
-        "散らかりがちな物の整理に役立ちそうなアイテムです。",
-    ],
-    "キッチン": [
-        "キッチンでの作業をちょっとラクにしてくれそうなアイテムです。",
-        "毎日の調理や片付けに取り入れやすいアイテムです。",
-    ],
-    "時短": [
-        "毎日のちょっとした時短につながりそうなアイテムです。",
-        "忙しい日々の家事をスムーズにしてくれそうなアイテムです。",
-    ],
-    DEFAULT_CATEGORY: [
-        "暮らしを少し快適にしてくれそうな便利アイテムです。",
-        "日々のちょっとした不便を解消してくれそうなアイテムです。",
-    ],
-}
-
-# 導入文・箇条書きの絵文字をここから選ぶ（カテゴリに合う絵文字を複数用意し、
-# 商品ごとにローテーションさせることで「自然に選べる」ようにしている）。
+# 導入文・箇条書きの絵文字をここから選ぶ。カテゴリに合う絵文字に加えて、
+# 楽天ROOMらしい柔らかい雰囲気を出すための絵文字（😊✨♪）をどのカテゴリでも
+# 使えるようにしている。商品ごとにローテーションさせることで「自然に選べる」
+# ようにしている。
 CATEGORY_EMOJIS: dict[str, list[str]] = {
-    "掃除": ["🧹", "🧽", "✨"],
-    "収納": ["🧺", "🧲", "🧴", "📦", "✨"],
-    "キッチン": ["🍳", "🥣", "🥄", "✨"],
-    "時短": ["⏱️", "⚡", "🍳", "✨"],
-    DEFAULT_CATEGORY: ["🏠", "✨", "💡"],
+    "掃除": ["🧹", "🧽", "✨", "😊", "♪"],
+    "収納": ["🧺", "🧲", "🧴", "📦", "✨", "😊", "♪"],
+    "キッチン": ["🍳", "🥣", "🥄", "✨", "😊", "♪"],
+    "時短": ["⏱️", "⚡", "🍳", "✨", "😊", "♪"],
+    DEFAULT_CATEGORY: ["🏠", "✨", "💡", "😊", "♪"],
 }
 
-# レビュー実績を表す箇条書きに使う絵文字（カテゴリによらず固定）。
-REVIEW_EMOJI = "⭐"
-
-# 箇条書きの言い回し（テキスト, 絵文字）のペア。絵文字は内容に合わせて選んでいる。
-POINT_VARIANTS: dict[str, list[tuple[str, str]]] = {
-    "掃除": [
-        ("サッと使えて掃除の手間を減らしやすい", "🧹"),
-        ("気になる場所のお手入れに取り入れやすい", "🧽"),
-        ("普段の掃除の流れに組み込みやすい", "✨"),
-    ],
-    "収納": [
-        ("散らかりがちな物をすっきり整理しやすい", "📦"),
-        ("限られたスペースを有効に使いやすい", "🧺"),
-        ("出し入れしやすく続けやすい", "🧴"),
-    ],
-    "キッチン": [
-        ("毎日の調理や片付けをスムーズにしやすい", "🍳"),
-        ("キッチン周りをすっきり保ちやすい", "🥣"),
-        ("作業スペースを整えやすい", "🥄"),
-    ],
-    "時短": [
-        ("日々のちょっとした作業を時短しやすい", "⏱️"),
-        ("忙しい日でも取り入れやすい", "⚡"),
-        ("手間を減らして自分の時間を増やしやすい", "✨"),
-    ],
-    DEFAULT_CATEGORY: [
-        ("暮らしの中の小さな不便を解消しやすい", "🏠"),
-        ("毎日の生活に取り入れやすい", "💡"),
-        ("気軽に使い始めやすい", "✨"),
-    ],
+# 特徴が見つからなかったときに文の主語として使う、カテゴリを表す名詞。
+CATEGORY_NOUNS: dict[str, str] = {
+    "掃除": "掃除グッズ",
+    "収納": "収納グッズ",
+    "キッチン": "キッチングッズ",
+    "時短": "時短家電",
+    DEFAULT_CATEGORY: "便利グッズ",
 }
 
+# 上のCATEGORY_NOUNSと同じ言葉が特徴の文言と重複しないようにするための、
+# カテゴリごとの中心となる言葉（例："収納できる"+"収納グッズ"のような
+# 重複を避けるために使う）。
+_CATEGORY_NOUN_CORE: dict[str, str] = {
+    "掃除": "掃除",
+    "収納": "収納",
+    "キッチン": "キッチン",
+    "時短": "時短",
+    DEFAULT_CATEGORY: "便利",
+}
+
+# 「暮らし全般」は基本ハッシュタグの「#暮らしの便利グッズ」と重複しないよう、
+# 別のハッシュタグを割り当てている（重複すると、サブトピックに一致しない商品では
+# ハッシュタグが2個（#暮らしの便利グッズ + #便利グッズ）しか付かなくなってしまうため）。
 HASHTAG_BY_CATEGORY: dict[str, str] = {
     "掃除": "#掃除グッズ",
     "収納": "#収納",
     "キッチン": "#キッチン便利グッズ",
     "時短": "#時短アイテム",
-    DEFAULT_CATEGORY: "#暮らしの便利グッズ",
+    DEFAULT_CATEGORY: "#暮らし雑貨",
 }
 
 # 商品名にこれらの言葉が含まれていれば、そのカテゴリに合っているとみなす。
@@ -170,38 +146,47 @@ def _contains_any(text: str, words: list[str]) -> bool:
     return any(word in text for word in words if word)
 
 
-# 商品名から検出できたときだけ使う、商品の設計・仕様に関する具体的な言い回しと、
-# それに添える絵文字。検出したキーワードそのものではなく、商品情報から読み取れる
-# 客観的な特徴（構造・素材・使い方）だけを表す表現にとどめ、効果や体験談は含めない。
+def _resolve_by_category(value: str | dict[str, str], category: str) -> str:
+    """固定文言、またはカテゴリ別の辞書から、カテゴリに応じた値を選ぶ。"""
+    if isinstance(value, dict):
+        return value.get(category, value.get(DEFAULT_CATEGORY, ""))
+    return value
+
+
+# 商品名から検出できたときだけ使う、商品の設計・仕様に関する具体的な特徴の
+# 「節」（あとに名詞を直接続けられる形。例：「マグネットで浮かせて設置できる」＋
+# 「収納グッズです」）と、それに添える絵文字。検出したキーワードそのものではなく、
+# 商品情報から読み取れる客観的な特徴（構造・素材・使い方）だけを表す表現にとどめ、
+# 効果や体験談は含めない。
 #
 # 文言・絵文字はどちらも、基本は固定値（str）だが、カテゴリによって自然な表現が
 # 変わるもの（例：「大容量」は収納用品なら「収納できる」だが、調理家電なら
 # 「調理しやすい」）は、カテゴリ名をキーにした辞書（dict）で指定できる。
-FEATURE_HINTS: list[tuple[str, str | dict[str, str], str | dict[str, str]]] = [
-    ("マグネット", "マグネットで浮かせて設置できるタイプ", "🧲"),
-    ("吸盤", "吸盤で好きな場所に取り付けられるタイプ", "🧲"),
+FEATURE_CLAUSES: list[tuple[str, str | dict[str, str], str | dict[str, str]]] = [
+    ("マグネット", "マグネットで浮かせて設置できる", "🧲"),
+    ("吸盤", "吸盤で好きな場所に取り付けられる", "🧲"),
     (
         "吊り下げ",
         {
-            "収納": "吊り下げて収納できるタイプ",
-            DEFAULT_CATEGORY: "吊り下げて使えるタイプ",
+            "収納": "吊り下げて収納できる",
+            DEFAULT_CATEGORY: "吊り下げて使える",
         },
         "🪝",
     ),
-    ("突っ張り", "つっぱり棒式で取り付けやすいタイプ", "📏"),
+    ("突っ張り", "つっぱり棒式で取り付けやすい", "📏"),
     ("折りたた", "使わないときはコンパクトに折りたためる", "📦"),
     ("折り畳み", "使わないときはコンパクトに折りたためる", "📦"),
-    ("水切り", "水切りしやすい設計", "💧"),
-    ("防水", "水回りでも使いやすい防水仕様", "☔"),
-    ("スリム", "省スペースに置きやすいスリム設計", "📏"),
+    ("水切り", "水切りしやすい", "💧"),
+    ("防水", "水回りでも使いやすい", "☔"),
+    ("スリム", "省スペースに置きやすい", "📏"),
     (
         "大容量",
         {
-            "収納": "たっぷり収納できる大容量タイプ",
-            "キッチン": "一度にたっぷり調理しやすい容量",
-            "時短": "一度にたっぷり使える大容量タイプ",
-            "掃除": "一度にたっぷり集められる大容量タイプ",
-            DEFAULT_CATEGORY: "たっぷり使える大容量タイプ",
+            "収納": "たっぷり収納できる",
+            "キッチン": "一度にたっぷり調理しやすい",
+            "時短": "一度にたっぷり使える",
+            "掃除": "一度にたっぷり集められる",
+            DEFAULT_CATEGORY: "たっぷり使える",
         },
         {
             "収納": "✨",
@@ -211,25 +196,91 @@ FEATURE_HINTS: list[tuple[str, str | dict[str, str], str | dict[str, str]]] = [
             DEFAULT_CATEGORY: "💡",
         },
     ),
-    ("軽量", "持ち運びしやすい軽量設計", "🪶"),
-    ("シリコン", "お手入れしやすいシリコン素材", "🧴"),
-    ("ステンレス", "サビに強いステンレス製", "🔩"),
-    ("蓋付き", "ホコリを防ぎやすい蓋付きタイプ", "📦"),
-    ("フタ付き", "ホコリを防ぎやすい蓋付きタイプ", "📦"),
+    ("軽量", "持ち運びしやすい", "🪶"),
+    ("シリコン", "シリコン製で洗いやすい", "🧴"),
+    ("ステンレス", "サビに強い", "🔩"),
+    ("蓋付き", "フタ付きでホコリを防ぎやすい", "📦"),
+    ("フタ付き", "フタ付きでホコリを防ぎやすい", "📦"),
     ("引き出し", "引き出し式で取り出しやすい", "📦"),
-    ("自立", "自立するので置き場所を選びにくい", "📦"),
-    ("食洗機", "食洗機に対応しているタイプ", "🍽️"),
-    ("電子レンジ", "電子レンジに対応しているタイプ", "🍽️"),
-    ("充電式", "繰り返し使える充電式タイプ", "⚡"),
-    ("コードレス", "コードレスで扱いやすいタイプ", "⚡"),
+    ("自立", "自立して置き場所を選びにくい", "📦"),
+    ("食洗機", "食洗機で洗える", "🍽️"),
+    ("電子レンジ", "電子レンジで使える", "🍽️"),
+    ("充電式", "充電式で繰り返し使える", "⚡"),
+    ("コードレス", "コードレスで扱いやすい", "⚡"),
 ]
 
+# 特徴が見つからなかったときに使う、導入文（1文目）のカテゴリ共通の言い回し。
+OPENING_FALLBACK_SENTENCES: dict[str, list[str]] = {
+    "掃除": [
+        "汚れが気になる場所のお手入れに使えそうな掃除グッズです",
+        "普段の掃除をちょっとラクにしてくれそうなアイテムです",
+    ],
+    "収納": [
+        "散らかりがちな物をすっきりまとめられそうな収納グッズです",
+        "収納スペースを有効に使えそうな便利アイテムです",
+    ],
+    "キッチン": [
+        "キッチンでの作業をスムーズにしてくれそうなキッチングッズです",
+        "毎日の調理や片付けに取り入れやすそうなアイテムです",
+    ],
+    "時短": [
+        "日々のちょっとした作業を時短できそうなアイテムです",
+        "忙しい日にも取り入れやすそうな時短家電です",
+    ],
+    DEFAULT_CATEGORY: [
+        "暮らしをちょっと快適にしてくれそうな便利グッズです",
+        "日々の小さな不便を解消してくれそうなアイテムです",
+    ],
+}
 
-def _resolve_by_category(value: str | dict[str, str], category: str) -> str:
-    """固定文言、またはカテゴリ別の辞書から、カテゴリに応じた値を選ぶ。"""
-    if isinstance(value, dict):
-        return value.get(category, value.get(DEFAULT_CATEGORY, ""))
-    return value
+# 2文目：ためらいのない断定を避けた、やわらかい「おすすめ・メリット」の一文。
+BENEFIT_SENTENCES: dict[str, list[str]] = {
+    "掃除": [
+        "気になる汚れをサッと落とせそうで、お手入れの時間を短くできそうです",
+        "お手入れの手間を減らしたい人におすすめしたい掃除グッズです",
+        "毎日のちょっとした掃除がラクになりそうです",
+    ],
+    "収納": [
+        "取り出しやすくて、お部屋がスッキリ見えそうです",
+        "毎日の片付けをラクにしたい人におすすめしたい収納グッズです",
+        "散らかりがちな物をまとめて、すっきり整理できそうです",
+    ],
+    "キッチン": [
+        "取り出しやすくて、キッチンがスッキリ見えそうです",
+        "毎日の料理や後片付けをラクにしたい人におすすめです",
+        "キッチン周りをすっきり整えたい人に便利そうです",
+    ],
+    "時短": [
+        "忙しい日の家事を少しでもラクにしたい人におすすめです",
+        "毎日のちょっとした手間を減らせそうです",
+        "時間に追われがちな日にも取り入れやすそうです",
+    ],
+    DEFAULT_CATEGORY: [
+        "暮らしのちょっとした不便を解消したい人におすすめです",
+        "毎日の生活に取り入れやすそうなアイテムです",
+        "ちょっとした場面で役立ちそうです",
+    ],
+}
+
+# 3文目（付くこともある）：カテゴリ共通の、やわらかい締めの一文。
+CLOSING_SENTENCES: list[str] = [
+    "暮らしをちょっとラクにしてくれる便利グッズです",
+    "気になる方はチェックしてみてほしいアイテムです",
+    "毎日にちょっとした余裕をプラスしてくれそうです",
+]
+
+# 商品名にこれらの言葉が含まれる場合、より具体的なハッシュタグを1つ追加する。
+SUBTOPIC_HASHTAGS: list[tuple[str, str | dict[str, str]]] = [
+    ("お風呂", {"掃除": "#お風呂掃除", "収納": "#お風呂収納", DEFAULT_CATEGORY: "#お風呂グッズ"}),
+    ("浴室", {"掃除": "#お風呂掃除", "収納": "#お風呂収納", DEFAULT_CATEGORY: "#お風呂グッズ"}),
+    ("バスルーム", {"掃除": "#お風呂掃除", "収納": "#お風呂収納", DEFAULT_CATEGORY: "#お風呂グッズ"}),
+    ("キッチン", {"収納": "#キッチン収納", "掃除": "#キッチン掃除", DEFAULT_CATEGORY: "#キッチングッズ"}),
+    ("トイレ", {"掃除": "#トイレ掃除", "収納": "#トイレ収納", DEFAULT_CATEGORY: "#トイレグッズ"}),
+    ("クローゼット", "#クローゼット収納"),
+    ("玄関", "#玄関収納"),
+    ("旅行", "#トラベルグッズ"),
+    ("トラベル", "#トラベルグッズ"),
+]
 
 
 def generate_description(
@@ -238,50 +289,53 @@ def generate_description(
     base_hashtags: list[str],
     max_length: int = 500,
 ) -> str:
-    """商品情報から、自然な紹介文＋箇条書き＋ハッシュタグの1ブロックを組み立てる。
+    """商品情報から、箇条書きを使わない自然な文章＋ハッシュタグの1ブロックを組み立てる。
 
-    絵文字は導入文の先頭に1つ、箇条書きの先頭にそれぞれ1つ（レビュー行は⭐固定）
-    付け、ハッシュタグ行には付けない。1投稿あたりの絵文字は3〜6個程度になる。
+    2〜3文程度の文章に、文末など自然な位置に絵文字を添える
+    （1投稿あたり2〜4個程度）。レビュー評価・件数は本文に含めない。
     """
-    category = category if category in INTRO_VARIANTS else DEFAULT_CATEGORY
+    category = category if category in CATEGORY_NOUNS else DEFAULT_CATEGORY
+    name = item.get("name", "") or ""
 
     # 商品ごとに言い回しを変えるための目印（商品コードが無ければ商品名を使う）。
-    seed_source = item.get("item_code") or item.get("name", "")
+    seed_source = item.get("item_code") or name
     seed = sum(ord(c) for c in seed_source) if seed_source else 0
 
-    intro_variants = INTRO_VARIANTS[category]
-    intro_text = intro_variants[seed % len(intro_variants)]
+    sentence1_text, sentence1_emoji = _build_sentence1(name, category, seed)
+    benefit_variants = BENEFIT_SENTENCES[category]
+    sentence2_text = benefit_variants[(seed // 3) % len(benefit_variants)]
+    pool = CATEGORY_EMOJIS[category]
+    sentence2_emoji = pool[(seed // 3 + 1) % len(pool)]
 
-    feature_points = _feature_hint_points(item.get("name", "") or "", category, max_hints=2)
+    parts = [(sentence1_text, sentence1_emoji), (sentence2_text, sentence2_emoji)]
 
-    point_variants = POINT_VARIANTS[category]
-    idx = seed
-    while len(feature_points) < 2:
-        candidate = point_variants[idx % len(point_variants)]
-        if candidate not in feature_points:
-            feature_points.append(candidate)
-        idx += 1
+    # 3文になることもある（2〜3文程度、のバリエーションを出すため）。
+    if seed % 3 == 0:
+        closing_text = CLOSING_SENTENCES[seed % len(CLOSING_SENTENCES)]
+        closing_emoji = pool[(seed // 5 + 2) % len(pool)]
+        parts.append((closing_text, closing_emoji))
 
-    review_text = (
-        f"レビュー評価{item.get('review_average', 0):.1f}・"
-        f"{item.get('review_count', 0)}件と、実際に使った人からの評価がある"
-    )
-    points = [*feature_points, (review_text, REVIEW_EMOJI)]
+    parts = _dedupe_adjacent_emojis(parts, pool)
 
-    # 導入文の絵文字は、箇条書きで使う絵文字と連続して被らないものをカテゴリの
-    # 候補から選ぶ（「同じ絵文字を不自然に連続使用しない」ための配慮）。
-    bullet_emojis = {emoji for _text, emoji in points}
-    intro_emoji = _pick_intro_emoji(category, seed, avoid=bullet_emojis)
+    # 最初の文に、余韻を添える2つ目の絵文字を付けることがある
+    # （例：「🛁✨」のように文末に絵文字を2つ重ねる、楽天ROOMでよくある表現）。
+    used_emojis = {emoji for _text, emoji in parts}
+    lines = []
+    for i, (text, emoji) in enumerate(parts):
+        line = f"{text}{emoji}"
+        if i == 0 and seed % 10 < 3:
+            # 文章全体（他の文で使う分も含めて）で被らない絵文字だけを候補にする。
+            bonus_pool = [e for e in pool if e not in used_emojis]
+            if bonus_pool:
+                bonus = bonus_pool[(seed // 7) % len(bonus_pool)]
+                line += bonus
+                used_emojis.add(bonus)
+        lines.append(line)
 
-    category_hashtag = HASHTAG_BY_CATEGORY.get(category, "")
-    hashtags = list(dict.fromkeys([*base_hashtags, category_hashtag]))
-    hashtags = [tag for tag in hashtags if tag]
+    body = "\n".join(lines)
+    hashtag_line = " ".join(_build_hashtags(category, name, base_hashtags))
 
-    intro = f"{intro_emoji} {intro_text}"
-    bullet_block = "\n".join(f"・{emoji} {text}" for text, emoji in points)
-    hashtag_line = " ".join(hashtags)
-
-    description = f"{intro}\n\n{bullet_block}\n\n{hashtag_line}"
+    description = f"{body}\n\n{hashtag_line}"
 
     if len(description) > max_length:
         description = description[: max_length - 1].rstrip() + "…"
@@ -289,32 +343,63 @@ def generate_description(
     return description
 
 
-def _pick_intro_emoji(category: str, seed: int, avoid: set[str]) -> str:
-    """導入文用の絵文字を、カテゴリの候補からローテーションで選ぶ。
+def _build_sentence1(name: str, category: str, seed: int) -> tuple[str, str]:
+    """1文目（特徴を織り込んだ導入文）と、その文に添える絵文字を組み立てる。"""
+    clause, emoji = _top_feature_clause(name, category)
+    if clause:
+        noun = CATEGORY_NOUNS[category]
+        if _CATEGORY_NOUN_CORE[category] in clause:
+            noun = "アイテム"
+        return f"{clause}{noun}です", emoji
 
-    箇条書きですでに使っている絵文字（avoid）とは、できるだけ被らないようにする。
-    """
-    pool = CATEGORY_EMOJIS.get(category) or CATEGORY_EMOJIS[DEFAULT_CATEGORY]
-    for offset in range(len(pool)):
-        candidate = pool[(seed + offset) % len(pool)]
-        if candidate not in avoid:
-            return candidate
-    # 候補すべてが箇条書きと被る場合（絵文字の種類が少ないカテゴリ等）は、
-    # やむを得ずローテーション通りの絵文字を使う。
-    return pool[seed % len(pool)]
+    variants = OPENING_FALLBACK_SENTENCES[category]
+    text = variants[seed % len(variants)]
+    pool = CATEGORY_EMOJIS[category]
+    return text, pool[seed % len(pool)]
 
 
-def _feature_hint_points(searchable_text: str, category: str, max_hints: int) -> list[tuple[str, str]]:
-    """商品名から、具体的な特徴の（言い回し, 絵文字）を検出する（カテゴリに応じた表現で）。"""
-    matched: list[tuple[str, str]] = []
-    matched_texts = set()
-    for keyword, phrase_spec, emoji_spec in FEATURE_HINTS:
-        if keyword in searchable_text:
-            phrase = _resolve_by_category(phrase_spec, category)
+def _top_feature_clause(name: str, category: str) -> tuple[str, str]:
+    """商品名から、最初に見つかった特徴の（節, 絵文字）を返す。見つからなければ空文字。"""
+    for keyword, clause_spec, emoji_spec in FEATURE_CLAUSES:
+        if keyword in name:
+            clause = _resolve_by_category(clause_spec, category)
             emoji = _resolve_by_category(emoji_spec, category)
-            if phrase and phrase not in matched_texts:
-                matched.append((phrase, emoji))
-                matched_texts.add(phrase)
-        if len(matched) >= max_hints:
+            if clause:
+                return clause, emoji
+    return "", ""
+
+
+def _dedupe_adjacent_emojis(
+    parts: list[tuple[str, str]], pool: list[str]
+) -> list[tuple[str, str]]:
+    """隣り合う文で同じ絵文字が続かないように調整する。"""
+    result: list[tuple[str, str]] = []
+    prev_emoji = None
+    for text, emoji in parts:
+        if emoji == prev_emoji:
+            alt = next((candidate for candidate in pool if candidate != prev_emoji), emoji)
+            emoji = alt
+        result.append((text, emoji))
+        prev_emoji = emoji
+    return result
+
+
+def _build_hashtags(category: str, name: str, base_hashtags: list[str]) -> list[str]:
+    """カテゴリ・商品名に応じて3〜5個程度のハッシュタグを組み立てる。"""
+    tags = list(base_hashtags)
+
+    category_tag = HASHTAG_BY_CATEGORY.get(category, "")
+    if category_tag and category_tag not in tags:
+        tags.append(category_tag)
+
+    for keyword, tag_spec in SUBTOPIC_HASHTAGS:
+        if keyword in name:
+            tag = _resolve_by_category(tag_spec, category)
+            if tag and tag not in tags:
+                tags.append(tag)
             break
-    return matched
+
+    if "#便利グッズ" not in tags:
+        tags.append("#便利グッズ")
+
+    return list(dict.fromkeys(tags))[:5]
