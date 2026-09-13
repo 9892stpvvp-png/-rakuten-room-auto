@@ -148,6 +148,79 @@ class RunPipelineTest(unittest.TestCase):
         self.assertNotIn("shop:tp_holder", codes)
         self.assertFalse(any("ホルダー" in name for name in names))
 
+    def test_posted_items_excluded_by_url_even_with_different_item_code(self):
+        # 楽天側の仕様変更等でitem_codeの取れ方が変わっても、商品URLが一致すれば
+        # 投稿済みとみなして除外できることを確認する（重複判定の優先順位2番目）。
+        shared_url = "https://item.rakuten.co.jp/shop/shared-product/"
+
+        def fake_search_specific(keyword: str, **kwargs):
+            if keyword == "掃除 便利グッズ":
+                item = _make_item("shop:new_code_for_shared_product", "掃除便利グッズX")
+                item["item_url"] = shared_url
+                return [item]
+            return _default_fake_search(keyword, **kwargs)
+
+        self.posted_items_path.parent.mkdir(parents=True, exist_ok=True)
+        with self.posted_items_path.open("w", encoding="utf-8") as f:
+            json.dump(
+                {
+                    "posted_items": [
+                        {
+                            "item_code": "shop:old_code_different_from_candidate",
+                            "item_url": shared_url + "?scid=tracking123",
+                        }
+                    ]
+                },
+                f,
+            )
+
+        candidates = self._run_main(fake_search_specific)
+        codes = [c["item_code"] for c in candidates]
+        self.assertNotIn("shop:new_code_for_shared_product", codes)
+
+    def test_posted_history_exclusion_triggers_fallback_to_reach_ten(self):
+        # 4つの便利グッズキーワードの商品をすべて投稿済み履歴に登録し、
+        # 便利グッズ枠を大きく不足させる（_default_fake_searchは同じキーワードから
+        # 似た名前の商品を3件返すため、フェーズ2の類似商品統合で1件に絞られる。
+        # つまり残る1キーワード分も最終的には1件になる）。
+        # 消耗品・飲料枠から補充されて合計10件になることを確認する。
+        excluded_keywords = ["収納 便利グッズ", "キッチン 時短グッズ", "時短家電", "生活雑貨 便利グッズ"]
+        excluded_codes = []
+        for kw in excluded_keywords:
+            slug = _slug(kw)
+            excluded_codes.extend(f"shop:{slug}_{i}" for i in range(3))
+
+        self.posted_items_path.parent.mkdir(parents=True, exist_ok=True)
+        with self.posted_items_path.open("w", encoding="utf-8") as f:
+            json.dump({"posted_item_codes": excluded_codes}, f)
+
+        candidates = self._run_main()
+        convenience = [c for c in candidates if c["_group"] == "convenience"]
+        consumable = [c for c in candidates if c["_group"] == "consumable"]
+
+        for code in excluded_codes:
+            self.assertNotIn(code, [c["item_code"] for c in candidates])
+        self.assertEqual(len(convenience), 1)
+        self.assertEqual(len(consumable), 9)
+        self.assertEqual(len(candidates), 10)
+
+    def test_github_step_summary_includes_posted_history_stats(self):
+        summary_path = Path(self.tmpdir.name) / "step_summary.md"
+        os.environ["GITHUB_STEP_SUMMARY"] = str(summary_path)
+        self.addCleanup(lambda: os.environ.pop("GITHUB_STEP_SUMMARY", None))
+
+        self.posted_items_path.parent.mkdir(parents=True, exist_ok=True)
+        with self.posted_items_path.open("w", encoding="utf-8") as f:
+            json.dump({"posted_item_codes": ["shop:some_old_code"]}, f)
+
+        self._run_main()
+
+        content = summary_path.read_text(encoding="utf-8")
+        self.assertIn("投稿済み履歴による重複防止", content)
+        self.assertIn("投稿済み履歴によって除外した件数", content)
+        self.assertIn("今回選ばれた新規候補", content)
+        self.assertIn("現在の投稿済み履歴の総数: 1件", content)
+
     def test_convenience_shortfall_is_filled_from_consumable(self):
         def fake_search_scarce_convenience(keyword: str, **kwargs):
             if keyword == "掃除 便利グッズ":

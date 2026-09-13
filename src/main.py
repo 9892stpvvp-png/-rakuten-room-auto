@@ -80,7 +80,10 @@ def main() -> None:
     alcohol_keywords = settings.get("alcohol_keywords", [])
     consumable_durable_accessory_keywords = settings.get("consumable_durable_accessory_keywords", [])
     base_hashtags = settings.get("default_hashtags", ["#暮らしの便利グッズ"])
-    posted_item_codes = dedupe.load_posted_item_codes(POSTED_ITEMS_PATH)
+    posted_items_history = dedupe.load_posted_items(POSTED_ITEMS_PATH)
+    posted_index = dedupe.build_posted_index(posted_items_history)
+    posted_history_total = len(posted_items_history)
+    posted_excluded_count = 0
     seen_item_codes: set[str] = set()
 
     # フェーズ1: キーワードごとに検索し、条件を満たさない商品・重複を取り除く。
@@ -115,7 +118,9 @@ def main() -> None:
             items = filters.filter_by_durable_accessory_keywords(
                 items, consumable_durable_accessory_keywords
             )
-        items = dedupe.remove_duplicates(items, posted_item_codes)
+        before_posted_filter = len(items)
+        items = dedupe.remove_duplicates(items, posted_index)
+        posted_excluded_count += before_posted_filter - len(items)
         items = dedupe.remove_within_run_duplicates(items, seen_item_codes)
 
         for item in items:
@@ -164,7 +169,18 @@ def main() -> None:
     print(f"  - 一覧（人間が見る用）: {markdown_path}")
     print(f"  - 一覧（データ用）: {json_path}")
     print("内容を確認し、良いものを選んで楽天ROOMに手動で投稿してください。")
+    print(
+        f"投稿済み履歴による除外: {posted_excluded_count}件"
+        f"（履歴の総数: {posted_history_total}件）"
+    )
 
+    write_github_step_summary(
+        storage.build_posted_history_summary_markdown(
+            excluded_count=posted_excluded_count,
+            new_candidate_count=len(candidates),
+            history_total=posted_history_total,
+        )
+    )
     write_github_step_summary(
         storage.build_summary_markdown(candidates, limit=settings.get("summary_item_limit", 10))
     )

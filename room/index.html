@@ -75,10 +75,13 @@
   }
   .filter-row {
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
     margin-bottom: 14px;
   }
-  #filterToggle {
+  #filterToggle,
+  #copyPostedBtn {
     background: #fff;
     border: 1px solid #bbb;
     border-radius: 20px;
@@ -89,6 +92,11 @@
   #filterToggle.active {
     background: #bf0000;
     border-color: #bf0000;
+    color: #fff;
+  }
+  #copyPostedBtn.copied {
+    background: #2e7d32;
+    border-color: #2e7d32;
     color: #fff;
   }
   #status {
@@ -239,6 +247,7 @@
 </div>
 
 <div class="filter-row">
+  <button id="copyPostedBtn" type="button">投稿済みデータをコピー</button>
   <button id="filterToggle" type="button">未投稿のみ表示</button>
 </div>
 
@@ -345,6 +354,33 @@
     }
   }
 
+  function buildPostedExportRecords() {
+    // 「投稿済みにする」で登録済みの商品を、data/posted_items.json へ取り込める
+    // 形式（item_code / item_url / product_name / posted_at）の配列にする。
+    return Object.keys(state.posted).map(function (itemCode) {
+      var raw = state.posted[itemCode];
+      if (raw && typeof raw === "object") {
+        return {
+          item_code: raw.item_code || itemCode,
+          item_url: raw.item_url || "",
+          product_name: raw.product_name || "",
+          posted_at: raw.posted_at || "",
+        };
+      }
+      // 以前のバージョン（真偽値のみ保存）で登録された商品への互換対応。
+      // 今表示中の候補に同じ商品があれば、そこから商品URL・商品名を補う。
+      var matched = state.items.filter(function (item) {
+        return item.item_code === itemCode;
+      })[0];
+      return {
+        item_code: itemCode,
+        item_url: (matched && matched.item_url) || "",
+        product_name: (matched && matched.name) || "",
+        posted_at: "",
+      };
+    });
+  }
+
   function applyFilter() {
     var cards = document.querySelectorAll(".card");
     cards.forEach(function (card) {
@@ -357,10 +393,17 @@
     });
   }
 
-  function togglePosted(itemCode, card, toggleButton) {
+  function togglePosted(itemCode, card, toggleButton, item) {
     var nowPosted = !isPosted(itemCode);
     if (nowPosted) {
-      state.posted[itemCode] = true;
+      // 投稿済み履歴（data/posted_items.json）へそのまま取り込める形で、
+      // 商品情報とタイムスタンプを一緒に記録しておく。
+      state.posted[itemCode] = {
+        item_code: itemCode,
+        item_url: (item && item.item_url) || "",
+        product_name: (item && item.name) || "",
+        posted_at: new Date().toISOString(),
+      };
     } else {
       delete state.posted[itemCode];
     }
@@ -497,7 +540,7 @@
     postedBtn.className = "btn btn-posted-toggle" + (isPosted(item.item_code) ? " is-posted" : "");
     postedBtn.textContent = isPosted(item.item_code) ? "投稿済み ✓（タップで戻す）" : "投稿済みにする";
     postedBtn.addEventListener("click", function () {
-      togglePosted(item.item_code, card, postedBtn);
+      togglePosted(item.item_code, card, postedBtn, item);
     });
     card.appendChild(postedBtn);
 
@@ -520,6 +563,20 @@
       this.classList.toggle("active", state.showUnpostedOnly);
       this.textContent = state.showUnpostedOnly ? "すべて表示" : "未投稿のみ表示";
       applyFilter();
+    });
+
+    var copyPostedBtn = document.getElementById("copyPostedBtn");
+    copyPostedBtn.addEventListener("click", function () {
+      var records = buildPostedExportRecords();
+      if (records.length === 0) {
+        window.alert("まだ「投稿済みにする」で登録した商品がありません。");
+        return;
+      }
+      copyToClipboard(JSON.stringify(records, null, 2)).then(function () {
+        flashCopied(copyPostedBtn, "投稿済みデータをコピー");
+      }).catch(function () {
+        window.alert("コピーできませんでした。");
+      });
     });
 
     var statusEl = document.getElementById("status");
