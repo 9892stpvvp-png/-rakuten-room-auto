@@ -753,3 +753,72 @@ GitHub Actionsの既定の`GITHUB_TOKEN`が「Actions」への書き込み権限
 Settings → Actions → General → Workflow permissionsが「Read and write
 permissions」になっていることを確認してほしい（読み取り専用に設定されている
 場合、`search_candidates.yml`の自動起動が失敗する）。
+
+## 17. スマホから楽天ROOMへ投稿しやすい専用ページ（`room/`）
+
+毎日の検索結果（上位10件）を、Artifactのダウンロードや候補一覧ファイルを
+開かなくても、スマートフォンのSafariから固定URLを開くだけで確認・
+コピー・リンクを開けるようにするための専用ページを追加した。
+
+**URL: <https://9892stpvvp-png.github.io/-rakuten-room-auto/room/>**
+
+既存のGitHub Pages（リポジトリ直下の`index.html`、楽天ウェブサービスの
+「アプリケーションURL」「許可されたWebサイト」として登録しているページ）は
+一切変更していない。今回追加した`room/index.html`はその下の別パス
+（`/room/`）に置いているだけなので、登録済みのURL
+（`https://9892stpvvp-png.github.io/-rakuten-room-auto/`）には影響しない。
+
+### 仕組み
+
+商品検索・条件判定・重複チェック・紹介文生成（`src/main.py`以下）は
+一切変更していない。`search_candidates.yml`の既存ステップ（検索・Artifact保存）
+の後ろに、次の2ステップを追加しただけ。
+
+1. `python -m src.publish_room_page`：`src/main.py`がすでに`data/candidates/`
+   に保存した最新の候補一覧（`candidates_*.json`、すでに上位10件に絞り込み
+   済み）を読み込み、投稿ページに必要な項目（商品名・価格・レビュー評価/
+   件数・商品URL・画像URL・紹介文・生成日時）だけを取り出して
+   `room/data/candidates.json`に書き出す。紹介文は一切加工しない。
+2. 変化があれば`room/data/candidates.json`をコミット・プッシュする
+   （変化がなければ何もしない）。GitHub Pagesは対象ブランチへのpushで
+   自動的に再公開されるため、これだけでページの内容が更新される。
+
+ページ側（`room/index.html`）は、開かれるたびに`data/candidates.json`を
+`fetch`で読み込んで表示するだけの静的ページ。前日以前のデータは
+`room/data/candidates.json`が**上書き**されるため混ざらない（追記ではない）。
+
+### 楽天ROOM投稿ボタンのリンク先について（重要・正直な注意点）
+
+「商品URLを渡して直接ROOMの投稿画面に遷移できる、公式で安定したURL仕様」が
+ないか調査したが、確認できなかった。調査で分かったのは次の点。
+
+- 楽天ROOMの公式ヘルプ・ガイドによれば、商品をROOMに投稿する公式な方法は
+  （a）楽天市場の商品ページ上のシェアメニューから「ROOMに投稿」を選ぶ、
+  （b）ROOMアプリ／サイト内の検索で商品名を検索して投稿する、の2通りで、
+  いずれもROOM側のアプリ内UI操作が必要であり、URLのクエリパラメータで
+  商品を指定して投稿画面に直接遷移する、というURL仕様は見当たらなかった
+  （参考：[どうやって投稿するの？｜基本的な使い方 - ROOM](https://room.rakuten.co.jp/info/guide/utilization/02how_room/02.html)）。
+- このため、「楽天ROOMで投稿する」ボタンは、商品URLを渡さずROOMのトップ
+  ページ（`https://room.rakuten.co.jp/`）を開くだけの仕様にした。
+  ユーザーが依頼時に挙げていた`https://room.rakuten.co.jp/signup/agreement`
+  は、実際にはROOMの利用規約ページであり「商品URL検索画面」ではなかった
+  ため、そのまま使うと混乱を招くと判断し、確実に実在するROOMのトップ
+  ページに差し替えた。
+- 非公式なURLスキーム（アプリ専用の`rakuten-room://`等）は一切使用していない。
+- ページ側では、先に「紹介文をコピー」→「商品URLをコピー」した上でROOMを
+  開き、ROOM内の検索で貼り付けて投稿する、という手順を想定している
+  （ページの説明文にもその旨を記載）。
+
+### 投稿済み管理
+
+「投稿済みにする」は、この端末のブラウザの`localStorage`
+（キー: `rakutenRoomPostedItems`、値: `{商品コード: true, ...}`）に
+保存するだけで、GitHubへの書き戻しや楽天側への送信は一切行わない。
+別の端末やブラウザには引き継がれない。
+
+### 安全性
+
+楽天ID・パスワード・Cookie・セッション情報は一切保存・送信しない。
+ROOMへの自動投稿は実装しておらず、各ボタンは公式ページ／自分のクリップ
+ボードを開く・操作するところまでにとどめている。既存のGitHub Repository
+Secrets（`RAKUTEN_APP_ID`・`RAKUTEN_ACCESS_KEY`）には一切触れていない。

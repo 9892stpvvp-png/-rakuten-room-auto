@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>楽天ROOM 投稿ページ</title>
+<style>
+  :root {
+    color-scheme: light;
+  }
+  * {
+    box-sizing: border-box;
+  }
+  html, body {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
+    background: #f5f3ef;
+    color: #222;
+    margin: 0;
+    padding: 12px 12px 48px;
+    line-height: 1.6;
+  }
+  h1 {
+    font-size: 1.25em;
+    margin: 4px 0 2px;
+    color: #bf0000;
+  }
+  .updated {
+    font-size: 0.82em;
+    color: #666;
+    margin-bottom: 12px;
+  }
+  .progress {
+    background: #fff;
+    border: 1px solid #e3ddd2;
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 14px;
+    font-size: 0.92em;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+  }
+  .progress b {
+    font-size: 1.05em;
+  }
+  .filter-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 14px;
+  }
+  #filterToggle {
+    background: #fff;
+    border: 1px solid #bbb;
+    border-radius: 20px;
+    padding: 8px 16px;
+    font-size: 0.88em;
+    color: #444;
+  }
+  #filterToggle.active {
+    background: #bf0000;
+    border-color: #bf0000;
+    color: #fff;
+  }
+  #status {
+    text-align: center;
+    color: #777;
+    padding: 40px 10px;
+  }
+  .card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    margin-bottom: 20px;
+    padding: 16px;
+    transition: opacity 0.2s;
+  }
+  .card.posted {
+    opacity: 0.45;
+  }
+  .card.hidden-by-filter {
+    display: none;
+  }
+  .card-image {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: contain;
+    background: #fafafa;
+    border-radius: 10px;
+    margin-bottom: 12px;
+    display: block;
+  }
+  .card-name {
+    font-size: 1.05em;
+    font-weight: 600;
+    margin: 0 0 8px;
+    word-break: break-word;
+  }
+  .card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    font-size: 0.92em;
+    color: #444;
+    margin-bottom: 12px;
+  }
+  .card-price {
+    font-weight: 700;
+    color: #bf0000;
+    font-size: 1.05em;
+  }
+  .card-review {
+    color: #555;
+  }
+  .posted-badge {
+    display: inline-block;
+    background: #2e7d32;
+    color: #fff;
+    font-size: 0.8em;
+    padding: 2px 10px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+  }
+  .card-description {
+    background: #fbf8f2;
+    border: 1px solid #ece4d6;
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 0.94em;
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin-bottom: 14px;
+    max-height: 260px;
+    overflow-y: auto;
+  }
+  .btn {
+    display: block;
+    width: 100%;
+    text-align: center;
+    text-decoration: none;
+    border: none;
+    border-radius: 12px;
+    padding: 15px 10px;
+    font-size: 1em;
+    font-weight: 700;
+    margin-bottom: 12px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-primary {
+    background: #bf0000;
+    color: #fff;
+  }
+  .btn-secondary {
+    background: #1e6fd9;
+    color: #fff;
+  }
+  .btn-outline {
+    background: #fff;
+    color: #333;
+    border: 1px solid #ccc;
+    font-weight: 600;
+    font-size: 0.95em;
+    padding: 12px 10px;
+  }
+  .btn-copy-small {
+    background: #fff;
+    color: #333;
+    border: 1px solid #ccc;
+    font-weight: 600;
+    font-size: 0.9em;
+    padding: 12px 10px;
+  }
+  .btn.copied {
+    background: #2e7d32;
+    color: #fff;
+    border-color: #2e7d32;
+  }
+  .btn-posted-toggle {
+    background: #fff;
+    color: #444;
+    border: 2px solid #999;
+    font-weight: 700;
+    padding: 13px 10px;
+    margin-top: 4px;
+  }
+  .btn-posted-toggle.is-posted {
+    background: #2e7d32;
+    border-color: #2e7d32;
+    color: #fff;
+  }
+</style>
+</head>
+<body>
+
+<h1>楽天ROOM 投稿ページ</h1>
+<div class="updated" id="updatedAt">最終更新：読み込み中…</div>
+
+<div class="progress" id="progress">
+  <span>今日の投稿候補：<b id="totalCount">-</b>件</span>
+  <span>投稿済み：<b id="postedCount">-</b>件</span>
+  <span>残り：<b id="remainingCount">-</b>件</span>
+</div>
+
+<div class="filter-row">
+  <button id="filterToggle" type="button">未投稿のみ表示</button>
+</div>
+
+<div id="status">読み込み中…</div>
+<div id="cards"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  var STORAGE_KEY = "rakutenRoomPostedItems";
+  var ROOM_URL = "https://room.rakuten.co.jp/";
+
+  var state = {
+    items: [],
+    posted: loadPosted(),
+    showUnpostedOnly: false,
+  };
+
+  function loadPosted() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function savePosted() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.posted));
+    } catch (e) {
+      // localStorageが使えない環境（プライベートブラウズ等）では、
+      // ページを閉じるまでの間だけ状態が保持される。
+    }
+  }
+
+  function isPosted(itemCode) {
+    return !!state.posted[itemCode];
+  }
+
+  function escapeHtml(text) {
+    return String(text == null ? "" : text).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  function formatPrice(price) {
+    var n = Number(price) || 0;
+    return n.toLocaleString("ja-JP") + "円";
+  }
+
+  function copyToClipboard(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text);
+    }
+    // クリップボードAPIが使えない古い環境向けのフォールバック。
+    return new Promise(function (resolve, reject) {
+      var textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      try {
+        var ok = document.execCommand("copy");
+        document.body.removeChild(textarea);
+        ok ? resolve() : reject(new Error("execCommand failed"));
+      } catch (err) {
+        document.body.removeChild(textarea);
+        reject(err);
+      }
+    });
+  }
+
+  function flashCopied(button, originalLabel) {
+    button.textContent = "コピーしました ✓";
+    button.classList.add("copied");
+    window.setTimeout(function () {
+      button.textContent = originalLabel;
+      button.classList.remove("copied");
+    }, 1600);
+  }
+
+  function updateProgress() {
+    var total = state.items.length;
+    var posted = state.items.filter(function (item) {
+      return isPosted(item.item_code);
+    }).length;
+    document.getElementById("totalCount").textContent = total;
+    document.getElementById("postedCount").textContent = posted;
+    document.getElementById("remainingCount").textContent = total - posted;
+  }
+
+  function applyFilter() {
+    var cards = document.querySelectorAll(".card");
+    cards.forEach(function (card) {
+      var posted = card.classList.contains("posted");
+      if (state.showUnpostedOnly && posted) {
+        card.classList.add("hidden-by-filter");
+      } else {
+        card.classList.remove("hidden-by-filter");
+      }
+    });
+  }
+
+  function togglePosted(itemCode, card, toggleButton) {
+    var nowPosted = !isPosted(itemCode);
+    if (nowPosted) {
+      state.posted[itemCode] = true;
+    } else {
+      delete state.posted[itemCode];
+    }
+    savePosted();
+
+    card.classList.toggle("posted", nowPosted);
+    toggleButton.classList.toggle("is-posted", nowPosted);
+    toggleButton.textContent = nowPosted ? "投稿済み ✓（タップで戻す）" : "投稿済みにする";
+
+    var badge = card.querySelector(".posted-badge");
+    if (nowPosted && !badge) {
+      badge = document.createElement("div");
+      badge.className = "posted-badge";
+      badge.textContent = "投稿済み ✓";
+      card.insertBefore(badge, card.firstChild);
+    } else if (!nowPosted && badge) {
+      badge.remove();
+    }
+
+    updateProgress();
+    applyFilter();
+  }
+
+  function renderCard(item) {
+    var card = document.createElement("div");
+    card.className = "card" + (isPosted(item.item_code) ? " posted" : "");
+
+    if (isPosted(item.item_code)) {
+      var badge = document.createElement("div");
+      badge.className = "posted-badge";
+      badge.textContent = "投稿済み ✓";
+      card.appendChild(badge);
+    }
+
+    var img = document.createElement("img");
+    img.className = "card-image";
+    img.loading = "lazy";
+    img.src = item.image_url || "";
+    img.alt = item.name || "商品画像";
+    card.appendChild(img);
+
+    var name = document.createElement("p");
+    name.className = "card-name";
+    name.textContent = item.name || "(商品名不明)";
+    card.appendChild(name);
+
+    var meta = document.createElement("div");
+    meta.className = "card-meta";
+    meta.innerHTML =
+      '<span class="card-price">' + escapeHtml(formatPrice(item.price)) + "</span>" +
+      '<span class="card-review">⭐ ' + escapeHtml((Number(item.review_average) || 0).toFixed(1)) +
+      "（" + escapeHtml(item.review_count || 0) + "件）</span>";
+    card.appendChild(meta);
+
+    var desc = document.createElement("div");
+    desc.className = "card-description";
+    desc.textContent = item.description || "";
+    card.appendChild(desc);
+
+    // ① 紹介文をコピー
+    var copyDescBtn = document.createElement("button");
+    copyDescBtn.type = "button";
+    copyDescBtn.className = "btn btn-primary";
+    copyDescBtn.textContent = "紹介文をコピー";
+    copyDescBtn.addEventListener("click", function () {
+      copyToClipboard(item.description || "").then(function () {
+        flashCopied(copyDescBtn, "紹介文をコピー");
+      }).catch(function () {
+        window.alert("コピーできませんでした。紹介文を長押しして手動でコピーしてください。");
+      });
+    });
+    card.appendChild(copyDescBtn);
+
+    // ② 楽天ROOMで投稿する
+    var roomLink = document.createElement("a");
+    roomLink.className = "btn btn-secondary";
+    roomLink.href = ROOM_URL;
+    roomLink.target = "_blank";
+    roomLink.rel = "noopener";
+    roomLink.textContent = "楽天ROOMで投稿する";
+    card.appendChild(roomLink);
+
+    // ③ 楽天商品ページを開く
+    var itemLink = document.createElement("a");
+    itemLink.className = "btn btn-outline";
+    itemLink.href = item.item_url || "#";
+    itemLink.target = "_blank";
+    itemLink.rel = "noopener";
+    itemLink.textContent = "楽天商品ページを開く";
+    card.appendChild(itemLink);
+
+    // ④ 商品URLをコピー
+    var copyUrlBtn = document.createElement("button");
+    copyUrlBtn.type = "button";
+    copyUrlBtn.className = "btn btn-copy-small";
+    copyUrlBtn.textContent = "商品URLをコピー";
+    copyUrlBtn.addEventListener("click", function () {
+      copyToClipboard(item.item_url || "").then(function () {
+        flashCopied(copyUrlBtn, "商品URLをコピー");
+      }).catch(function () {
+        window.alert("コピーできませんでした。商品URLを長押しして手動でコピーしてください。");
+      });
+    });
+    card.appendChild(copyUrlBtn);
+
+    // 投稿済みにする（チェック的トグル）
+    var postedBtn = document.createElement("button");
+    postedBtn.type = "button";
+    postedBtn.className = "btn btn-posted-toggle" + (isPosted(item.item_code) ? " is-posted" : "");
+    postedBtn.textContent = isPosted(item.item_code) ? "投稿済み ✓（タップで戻す）" : "投稿済みにする";
+    postedBtn.addEventListener("click", function () {
+      togglePosted(item.item_code, card, postedBtn);
+    });
+    card.appendChild(postedBtn);
+
+    return card;
+  }
+
+  function render() {
+    var container = document.getElementById("cards");
+    container.innerHTML = "";
+    state.items.forEach(function (item) {
+      container.appendChild(renderCard(item));
+    });
+    updateProgress();
+    applyFilter();
+  }
+
+  function init() {
+    document.getElementById("filterToggle").addEventListener("click", function () {
+      state.showUnpostedOnly = !state.showUnpostedOnly;
+      this.classList.toggle("active", state.showUnpostedOnly);
+      this.textContent = state.showUnpostedOnly ? "すべて表示" : "未投稿のみ表示";
+      applyFilter();
+    });
+
+    var statusEl = document.getElementById("status");
+
+    fetch("data/candidates.json?_=" + Date.now(), { cache: "no-store" })
+      .then(function (res) {
+        if (!res.ok) {
+          throw new Error("HTTP " + res.status);
+        }
+        return res.json();
+      })
+      .then(function (data) {
+        state.items = (data && data.items) || [];
+        document.getElementById("updatedAt").textContent =
+          "最終更新：" + ((data && data.generated_at_jst) || "不明") + " JST";
+
+        if (state.items.length === 0) {
+          statusEl.textContent = "本日の候補データがまだありません。しばらくしてから再度開いてください。";
+          updateProgress();
+          return;
+        }
+
+        statusEl.style.display = "none";
+        render();
+      })
+      .catch(function (err) {
+        statusEl.textContent =
+          "候補データの読み込みに失敗しました（" + err.message + "）。時間をおいて再読み込みしてください。";
+      });
+  }
+
+  init();
+})();
+</script>
+
+</body>
+</html>
