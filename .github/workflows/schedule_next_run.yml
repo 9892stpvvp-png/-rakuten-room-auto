@@ -1,0 +1,51 @@
+name: 翌日の自動実行時刻を決める
+
+# 毎日 日本時間19:30（UTC 10:30）に、「翌日」に商品候補検索を自動実行する
+# 時刻を、日本時間19:30〜21:00の範囲から1分単位でランダムに1つ選んで
+# data/schedule/schedule_log.json に記録するワークフロー。
+#
+# ここでは商品候補検索そのものは行わない。実際に検索を実行するのは
+# 「商品候補を検索する」ワークフロー（search_candidates.yml）で、
+# それを起動するのは run_scheduled_search.yml の役目。
+on:
+  schedule:
+    - cron: "30 10 * * *" # 毎日 UTC 10:30 = 日本時間19:30
+  workflow_dispatch: {} # 手動でも「翌日の時刻を決め直す」ことができる
+
+permissions:
+  contents: write
+
+# 同時に2つ動いてschedule_log.jsonへの書き込みが競合しないようにする。
+concurrency:
+  group: rakuten-room-schedule-decide
+  cancel-in-progress: false
+
+jobs:
+  decide:
+    runs-on: ubuntu-latest
+    steps:
+      - name: リポジトリを取得
+        uses: actions/checkout@v4
+
+      - name: Pythonをセットアップ
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 翌日のランダムな実行時刻を決める
+        id: decide
+        run: python -m src.scheduler decide
+
+      # Summaryへの表示（「次回自動実行予定：...」）は、上の
+      # 「python -m src.scheduler decide」の中で直接 $GITHUB_STEP_SUMMARY に
+      # 書き込んでいる（src/scheduler.py の _write_github_step_summary）。
+
+      - name: 変更をコミットしてプッシュ
+        if: steps.decide.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/schedule/schedule_log.json
+          git commit -m "翌日(${{ steps.decide.outputs.date }})の自動実行時刻を決定: ${{ steps.decide.outputs.time_jst }} JST"
+          git pull --rebase origin "${{ github.ref_name }}"
+          git push origin "HEAD:${{ github.ref_name }}"

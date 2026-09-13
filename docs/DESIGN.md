@@ -707,3 +707,114 @@ Run #12のSummaryを確認したところ、カテゴリ判定は改善してい
 
 共感型の6ブロック構成・現在のトーン、ハッシュタグ3〜5個のルールは
 変更していない。
+
+## 16. 毎日「日本時間19:30〜21:00のランダムな1分」に自動実行する仕組み
+
+これまでGitHub Actionsは手動（「Run workflow」）でのみ実行していたが、
+毎日1回、日本時間19:30〜21:00の範囲から1分単位でランダムに選んだ時刻に
+自動実行されるようにした。毎日まったく同じ時刻に実行すると機械的な投稿に
+見えやすいため、時刻にランダム性を持たせている。
+
+### 検討した方式と、採用しなかった理由
+
+- **1つのジョブが90分sleepして待つ方式**：Runnerを90分間専有し続け、
+  途中で失敗した場合のリカバリーもしにくいため採用しなかった（ユーザーからも
+  明示的に避けるよう指定された）。
+- **cronの中身を毎日書き換える方式**（例：`.github/workflows/*.yml`の
+  `cron:`の値をその日ごとに動的に生成し直す）：ワークフローファイル自体の
+  変更が「次回の実行」に反映されるタイミングの扱いが複雑になりやすく、
+  安定性の面で避けた。
+- **採用した方式**：GitHub Actionsの`schedule`（cron）トリガーを**1分刻み**
+  で設定し、日本時間19:30〜21:00の間、短時間で終わる「確認だけ」のジョブを
+  繰り返し実行する。対象の時刻でなければ数秒で何もせず終了するため、
+  sleep方式のようにRunnerを長時間専有しない。
+
+### 仕組みの全体像
+
+```
+[毎日 日本時間19:30]                          [日本時間19:30〜21:00、1分おき]
+schedule_next_run.yml                          run_scheduled_search.yml
+「翌日の自動実行時刻を決める」                   「商品候補検索の自動実行チェック」
+        │                                              │
+        │ 翌日19:30〜21:00の範囲から                     │ 本日の予定時刻に
+        │ 1分単位でランダムに1つ選ぶ                     │ 達しているか確認
+        ▼                                              ▼
+  data/schedule/schedule_log.json  ─────読み込み───▶  達していれば…
+  に追記してコミット・プッシュ                          1. 実行済みとして記録
+  （Summaryに次回予定を表示）                           2. search_candidates.yml
+                                                          （既存の商品候補検索）
+                                                          をworkflow_dispatchで起動
+```
+
+- `.github/workflows/schedule_next_run.yml`（新規）：毎日UTC 10:30
+  （日本時間19:30）に実行。`python -m src.scheduler decide`で翌日の実行時刻を
+  決め、`data/schedule/schedule_log.json`に追記してコミット・プッシュする。
+  Summaryに「次回自動実行予定：2026-09-14 20:17 JST」のように表示する。
+- `.github/workflows/run_scheduled_search.yml`（新規）：UTC 10:30〜12:00
+  （日本時間19:30〜21:00）の間、1分おきに実行。`python -m src.scheduler check`
+  で本日の予定時刻に達しているか確認し、達していれば
+  `python -m src.scheduler mark-fired`で実行済みとして記録・コミットしてから、
+  `gh workflow run search_candidates.yml`で既存の商品候補検索ワークフローを
+  起動する（`search_candidates.yml`自体は一切変更していない）。
+- `src/scheduler.py`（新規）：上記のスケジュール決定・発火判定のロジック。
+  GitHub Actionsにもファイルシステムにも依存しない純粋な日時計算の関数
+  （`pick_random_time_jst`・`decide_next_run`・`find_due_entry`・
+  `mark_fired`等）として実装し、単体テストしやすくしている。
+
+### 「翌日の実行時刻を決める」処理と「本日の実行判定」処理が同じ19:30に
+　重なっても壊れない設計
+
+19:30には毎日、`schedule_next_run.yml`（翌日分の決定）と
+`run_scheduled_search.yml`（本日分の判定）の**両方**が動く可能性がある。
+このとき、前日に決めた「本日の実行予定時刻」が19:30より後（例：20:52）で
+まだ発火していない状態のことがある。もし1つの値（「次の実行予定」）だけを
+使い回していると、19:30に翌日分を決める処理が、本日のまだ発火していない
+予定を上書きして消してしまう可能性があった。
+
+これを避けるため、`data/schedule/schedule_log.json`は単一の値ではなく
+**日付ごとのエントリの配列**にしている。「翌日分を決める」処理は該当日の
+エントリを追記するだけで、他の日（今日を含む）のエントリには触れない。
+「本日の実行判定」処理は、日本時間の今日の日付と一致し、かつ未発火の
+エントリだけを見るため、翌日分が新しく追加されていても混同しない。
+この設計は`tests/test_scheduler.py`の
+`test_does_not_disturb_todays_still_pending_entry`で確認している。
+
+### 同じ日に2回自動実行しない仕組み
+
+各エントリは`fired`（発火済みかどうか）を持つ。`run_scheduled_search.yml`は、
+実際に`search_candidates.yml`を起動する**前に**`fired`をtrueにして
+コミット・プッシュし、それが確実に成功してから起動する
+（起動を先にして記録を後にすると、記録に失敗したときに次の1分後の実行で
+二重に起動してしまうおそれがあるため）。一度`fired`がtrueになった
+エントリは、その日のうちに何度確認しても二度と「実行すべき」と
+判定されない（`find_due_entry`が`fired`なエントリを除外するため）。
+
+なお、GitHub Actionsのスケジュール実行にはプラットフォーム側の遅延
+（高負荷時に数分程度ずれることがある）があり得るため、`find_due_entry`は
+「ちょうどその分」だけでなく「予定時刻を過ぎていて未発火」であれば
+「実行すべき」と判定するようにしてある。これにより、多少の実行遅延が
+あっても取りこぼさず、かつ`fired`による二重発火防止は保たれる。
+
+### 手動実行への影響
+
+`search_candidates.yml`（既存の商品候補検索ワークフロー）は一切変更して
+いないため、Actionsタブからの手動「Run workflow」は今までどおりこの
+スケジュール管理と無関係に、いつでもすぐに実行できる。
+
+### 変更していないもの
+
+商品候補検索・重複チェック・紹介文生成（`description_generator.py`）・
+Artifact保存・Summary表示のロジック、およびGitHub Repository Secrets
+（`RAKUTEN_APP_ID`・`RAKUTEN_ACCESS_KEY`）は変更していない。
+
+### 前提条件（実際に動かす前の確認事項）
+
+- `run_scheduled_search.yml`が`search_candidates.yml`をAPI経由で起動する
+  ためには、GitHub Actionsの既定の`GITHUB_TOKEN`が「Read and write
+  permissions」を持っている必要がある（リポジトリの
+  Settings → Actions → General → Workflow permissions）。
+  読み取り専用に設定されている場合、`data/schedule/schedule_log.json`への
+  自動コミットや、`search_candidates.yml`の自動起動が失敗する。
+- GitHub Actionsのスケジュール実行は、リポジトリに60日間なんの活動もないと
+  自動的に無効化される仕様がある（GitHub側の一般的な仕様）。定期的に
+  リポジトリへの操作があれば問題ない。
