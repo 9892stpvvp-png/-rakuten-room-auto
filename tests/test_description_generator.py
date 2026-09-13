@@ -139,6 +139,19 @@ REAL_MAGNET_RACK = make_item(
     ),
 )
 
+REAL_MAGNET_HOOK = make_item(
+    name=(
+        "tower 《 山崎実業 マグネットバスルームフック タワー ラージ 》 5連フック 幅広タイプ "
+        "壁付けマグネット収納 浮かせる収納 掃除用具 掃除道具 壁掛け マグネット 磁石 引っ掛け "
+        "お風呂収納 すっきり おしゃれ 公式 シンプル 白 黒 YAMAZAKI"
+    ),
+    item_caption=(
+        "■Detail -商品説明- 大人気のtowerの磁石がくっつく浴室壁面収納、マグネットバスルーム"
+        "シリーズに、towerとコラボして生まれた当社オリジナル別注アイテムが仲間入り。"
+        "便利な5連フックを幅広にすることでより様々なアイテムに対応で"
+    ),
+)
+
 
 class RealDataRegressionTest(unittest.TestCase):
     """本番のGitHub Actions実行で実際に取得された商品データを使った回帰テスト。"""
@@ -150,6 +163,18 @@ class RealDataRegressionTest(unittest.TestCase):
     def test_refill_mini_does_not_claim_stainless(self):
         description = dg.generate_description(REAL_REFILL_MINI, category="収納", base_hashtags=BASE_HASHTAGS)
         self.assertNotIn("ステンレス", description)
+
+    def test_refill_mini_is_reclassified_as_storage(self):
+        # 本番実行では「掃除」カテゴリのまま#掃除グッズになっていた商品。
+        # 商品名には「空中収納」「吊り下げ」「浮かせる収納」など収納の言葉が多い。
+        refined = dg.refine_category(REAL_REFILL_MINI, "掃除")
+        self.assertEqual(refined, "収納")
+
+    def test_refill_mini_hashtag_is_storage_not_cleaning(self):
+        category = dg.refine_category(REAL_REFILL_MINI, "掃除")
+        description = dg.generate_description(REAL_REFILL_MINI, category=category, base_hashtags=BASE_HASHTAGS)
+        self.assertIn("#収納", description)
+        self.assertNotIn("#掃除グッズ", description)
 
     def test_cardboard_stocker_does_not_claim_stainless(self):
         description = dg.generate_description(REAL_CARDBOARD_STOCKER, category="収納", base_hashtags=BASE_HASHTAGS)
@@ -178,6 +203,20 @@ class RealDataRegressionTest(unittest.TestCase):
         description = dg.generate_description(REAL_MAGNET_RACK, category="収納", base_hashtags=BASE_HASHTAGS)
         self.assertIn("マグネット", description)
 
+    def test_magnet_hook_is_reclassified_as_storage(self):
+        # 本番実行では「掃除」カテゴリのまま#掃除グッズになっていた商品。
+        # 商品名に「掃除用具」「掃除道具」という言葉があるが、これらは
+        # クリーナー・モップ等の掃除道具そのものではないため掃除カテゴリの
+        # キーワードには一致せず、「収納」「フック」の方が優先されるべき。
+        refined = dg.refine_category(REAL_MAGNET_HOOK, "掃除")
+        self.assertEqual(refined, "収納")
+
+    def test_magnet_hook_hashtag_is_storage_not_cleaning(self):
+        category = dg.refine_category(REAL_MAGNET_HOOK, "掃除")
+        description = dg.generate_description(REAL_MAGNET_HOOK, category=category, base_hashtags=BASE_HASHTAGS)
+        self.assertIn("#収納", description)
+        self.assertNotIn("#掃除グッズ", description)
+
 
 class CategoryRefinementTest(unittest.TestCase):
     """refine_category()の基本的な挙動を確認する。"""
@@ -191,10 +230,24 @@ class CategoryRefinementTest(unittest.TestCase):
         self.assertEqual(dg.refine_category(item, dg.DEFAULT_CATEGORY), dg.DEFAULT_CATEGORY)
 
     def test_tie_prefers_assigned_category(self):
-        # 「洗剤」(掃除)と「収納」が1件ずつで同点の場合は、元のカテゴリを優先する。
-        item = make_item(name="洗剤パック 空中収納ホルダー")
+        # 「モップ」(掃除)と「ケース」(収納)が1件ずつで同点の場合は、元のカテゴリを優先する。
+        item = make_item(name="モップ ケース")
         self.assertEqual(dg.refine_category(item, "掃除"), "掃除")
         self.assertEqual(dg.refine_category(item, "収納"), "収納")
+
+    def test_cleaning_tool_word_is_required_not_just_kanji(self):
+        # 「掃除」という言葉だけでは掃除カテゴリと判定しない
+        # （「掃除機不要」等の宣伝文句に頻出するため）。
+        item = make_item(name="お掃除がラクになる 収納ラック")
+        self.assertEqual(dg.refine_category(item, "掃除"), "収納")
+
+    def test_negated_vacuum_cleaner_phrase_does_not_count_as_cleaning(self):
+        item = make_item(name="衣類圧縮袋 掃除機不要 収納ケース")
+        self.assertEqual(dg.refine_category(item, "掃除"), "収納")
+
+    def test_actual_vacuum_cleaner_still_counts_as_cleaning(self):
+        item = make_item(name="コードレス掃除機 ハンディクリーナー")
+        self.assertEqual(dg.refine_category(item, dg.DEFAULT_CATEGORY), "掃除")
 
 
 class DescriptionFormatTest(unittest.TestCase):
