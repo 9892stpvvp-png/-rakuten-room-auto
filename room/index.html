@@ -200,6 +200,12 @@
     font-size: 0.9em;
     padding: 12px 10px;
   }
+  .btn-caption {
+    text-align: center;
+    font-size: 0.78em;
+    color: #666;
+    margin: -6px 0 14px;
+  }
   .btn.copied {
     background: #2e7d32;
     color: #fff;
@@ -244,7 +250,6 @@
   "use strict";
 
   var STORAGE_KEY = "rakutenRoomPostedItems";
-  var ROOM_URL = "https://room.rakuten.co.jp/";
 
   var state = {
     items: [],
@@ -442,23 +447,35 @@
     });
     card.appendChild(copyDescBtn);
 
-    // ② 楽天ROOMで投稿する
+    // ② 楽天市場からROOM投稿へ（APIの正式な商品URLをそのまま開く。楽天市場の
+    // 商品ページに用意されている「ROOMに投稿する」をタップしてもらう想定）。
     var roomLink = document.createElement("a");
     roomLink.className = "btn btn-secondary";
-    roomLink.href = ROOM_URL;
+    roomLink.href = item.item_url || "#";
     roomLink.target = "_blank";
     roomLink.rel = "noopener";
-    roomLink.textContent = "楽天ROOMで投稿する";
+    roomLink.textContent = "楽天市場からROOM投稿へ";
     card.appendChild(roomLink);
 
-    // ③ 楽天商品ページを開く
-    var itemLink = document.createElement("a");
-    itemLink.className = "btn btn-outline";
-    itemLink.href = item.item_url || "#";
-    itemLink.target = "_blank";
-    itemLink.rel = "noopener";
-    itemLink.textContent = "楽天商品ページを開く";
-    card.appendChild(itemLink);
+    var roomLinkCaption = document.createElement("p");
+    roomLinkCaption.className = "btn-caption";
+    roomLinkCaption.textContent = "楽天市場の商品ページで「ROOMに投稿する」をタップ";
+    card.appendChild(roomLinkCaption);
+
+    // ③ ROOM検索ワードをコピー（予備手段：商品ページに「ROOMに投稿する」が
+    // 表示されない場合に、ROOM内の検索で投稿するための商品名コピー）。
+    var copyKeywordBtn = document.createElement("button");
+    copyKeywordBtn.type = "button";
+    copyKeywordBtn.className = "btn btn-copy-small";
+    copyKeywordBtn.textContent = "ROOM検索ワードをコピー";
+    copyKeywordBtn.addEventListener("click", function () {
+      copyToClipboard(item.name || "").then(function () {
+        flashCopied(copyKeywordBtn, "ROOM検索ワードをコピー");
+      }).catch(function () {
+        window.alert("コピーできませんでした。商品名を長押しして手動でコピーしてください。");
+      });
+    });
+    card.appendChild(copyKeywordBtn);
 
     // ④ 商品URLをコピー
     var copyUrlBtn = document.createElement("button");
