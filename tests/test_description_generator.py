@@ -298,8 +298,8 @@ class DescriptionFormatTest(unittest.TestCase):
         # 言い回しで埋められることを確認する（推測で特徴を作らないという条件の確認）。
         item = make_item(name="なんの変哲もない商品")
         description = dg.generate_description(item, category="時短", base_hashtags=BASE_HASHTAGS)
-        for _hint_keyword, hint_phrase in dg.FEATURE_HINTS:
-            resolved_phrase = dg._resolve_hint_phrase(hint_phrase, "時短")
+        for _hint_keyword, hint_phrase, _hint_emoji in dg.FEATURE_HINTS:
+            resolved_phrase = dg._resolve_by_category(hint_phrase, "時短")
             self.assertNotIn(resolved_phrase, description)
 
     def test_item_caption_is_not_used_for_feature_detection(self):
@@ -308,6 +308,85 @@ class DescriptionFormatTest(unittest.TestCase):
         item = make_item(name="なんの変哲もない商品", item_caption="素材：ステンレス、ポリプロピレン")
         description = dg.generate_description(item, category="キッチン", base_hashtags=BASE_HASHTAGS)
         self.assertNotIn("ステンレス", description)
+
+
+# 紹介文で使われうる絵文字をすべて集めた集合（テストでの絵文字カウント・検出に使う）。
+def _all_known_emojis() -> set[str]:
+    emojis: set[str] = {dg.REVIEW_EMOJI}
+    for pool in dg.CATEGORY_EMOJIS.values():
+        emojis.update(pool)
+    for points in dg.POINT_VARIANTS.values():
+        for _text, emoji in points:
+            emojis.add(emoji)
+    for _keyword, _phrase_spec, emoji_spec in dg.FEATURE_HINTS:
+        if isinstance(emoji_spec, dict):
+            emojis.update(emoji_spec.values())
+        else:
+            emojis.add(emoji_spec)
+    return emojis
+
+
+ALL_KNOWN_EMOJIS = _all_known_emojis()
+
+
+class EmojiFormatTest(unittest.TestCase):
+    """紹介文への絵文字の付け方を確認する。"""
+
+    def _count_known_emojis(self, text: str) -> int:
+        return sum(text.count(emoji) for emoji in ALL_KNOWN_EMOJIS)
+
+    def test_total_emoji_count_is_within_expected_range(self):
+        item = make_item(name="テスト商品")
+        for category in dg.CATEGORY_EMOJIS:
+            description = dg.generate_description(item, category=category, base_hashtags=BASE_HASHTAGS)
+            count = self._count_known_emojis(description)
+            self.assertGreaterEqual(count, 3, f"category={category}: {description}")
+            self.assertLessEqual(count, 6, f"category={category}: {description}")
+
+    def test_intro_line_starts_with_category_emoji(self):
+        item = make_item(name="テスト商品")
+        for category, pool in dg.CATEGORY_EMOJIS.items():
+            description = dg.generate_description(item, category=category, base_hashtags=BASE_HASHTAGS)
+            intro_line = description.split("\n", 1)[0]
+            first_token = intro_line.split(" ", 1)[0]
+            self.assertIn(first_token, pool, f"category={category}: {intro_line!r}")
+
+    def test_review_line_uses_star_emoji(self):
+        item = make_item(name="テスト商品", review_average=4.6, review_count=999)
+        description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS)
+        review_line = next(line for line in description.splitlines() if "レビュー評価" in line)
+        self.assertTrue(review_line.startswith(f"・{dg.REVIEW_EMOJI} "), review_line)
+
+    def test_hashtag_line_has_no_emoji(self):
+        item = make_item(name="テスト商品")
+        for category in dg.CATEGORY_EMOJIS:
+            description = dg.generate_description(item, category=category, base_hashtags=BASE_HASHTAGS)
+            hashtag_line = description.splitlines()[-1]
+            self.assertTrue(hashtag_line.startswith("#"), hashtag_line)
+            for emoji in ALL_KNOWN_EMOJIS:
+                self.assertNotIn(emoji, hashtag_line)
+
+    def test_magnet_rack_bullet_uses_magnet_emoji(self):
+        description = dg.generate_description(REAL_MAGNET_RACK, category="収納", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("・🧲 マグネット", description)
+
+    def test_air_fryer_bullet_does_not_use_storage_emoji_for_capacity(self):
+        # 「大容量」の絵文字も、収納カテゴリ向けの📦を時短カテゴリでは使わない。
+        category = dg.refine_category(REAL_AIR_FRYER, "時短")
+        description = dg.generate_description(REAL_AIR_FRYER, category=category, base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("📦", description)
+
+    def test_no_emoji_repeated_back_to_back_in_bullets(self):
+        # 特徴を検出できない商品でも、箇条書き2件の絵文字が同じにならないことを確認する
+        # （POINT_VARIANTSの各カテゴリ内で絵文字が重複していないことの確認）。
+        item = make_item(name="なんの変哲もない商品")
+        for category in dg.CATEGORY_EMOJIS:
+            description = dg.generate_description(item, category=category, base_hashtags=BASE_HASHTAGS)
+            bullet_lines = [line for line in description.splitlines() if line.startswith("・")]
+            bullet_emojis = [line.split(" ", 1)[0].removeprefix("・") for line in bullet_lines]
+            self.assertEqual(
+                len(bullet_emojis), len(set(bullet_emojis)), f"category={category}: {bullet_emojis}"
+            )
 
 
 if __name__ == "__main__":
