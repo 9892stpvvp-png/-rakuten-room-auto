@@ -53,19 +53,16 @@
 ├── .github/
 │   └── workflows/
 │       ├── search_candidates.yml   GitHub Actionsから手動実行するための設定
-│       ├── schedule_next_run.yml    翌日の自動実行時刻を決めるワークフロー
-│       └── run_scheduled_search.yml 決まった時刻に自動実行するワークフロー
+│       └── run_scheduled_search.yml 毎日決まった時刻に自動実行するワークフロー
 ├── data/
 │   ├── posted_items.json     過去に投稿した商品を記録しておくファイル（重複チェック用）
-│   ├── candidates/            実行結果（候補一覧）が保存される場所
-│   └── schedule/               自動実行のスケジュールが記録される場所
+│   └── candidates/            実行結果（候補一覧）が保存される場所
 └── src/
     ├── main.py                 実行の入り口（このファイルを動かして候補一覧を作る）
     ├── rakuten_api.py          楽天ウェブサービスから商品データを取得する部分
     ├── filters.py              レビュー評価・件数などで商品を絞り込む部分
     ├── dedupe.py               過去の投稿と重複していないかチェックする部分
     ├── description_generator.py  紹介文を自動で組み立てる部分
-    ├── scheduler.py             毎日の自動実行時刻を決める・判定する部分
     └── storage.py              候補一覧をファイルに保存・読み込みする部分
 ```
 
@@ -134,18 +131,11 @@
 
 ### 毎日自動で実行される仕組み
 
-手動で「Run workflow」を押さなくても、**毎日1回、日本時間19:30〜21:00の間の
-ランダムな時刻（5分単位：19:30, 19:35, 19:40, ..., 20:55, 21:00の19通りから1つ）**
-に自動で商品候補検索が実行されます。
-（`.github/workflows/schedule_next_run.yml` と `run_scheduled_search.yml`。
-仕組みの詳細は [docs/DESIGN.md](docs/DESIGN.md) を参照してください。）
+手動で「Run workflow」を押さなくても、**毎日1回、日本時間15:30**に自動で
+商品候補検索が実行されます（`.github/workflows/run_scheduled_search.yml`）。
 
-- 毎日 日本時間19:30に、「翌日」の実行時刻をランダムに1つ決め、
-  `data/schedule/schedule_log.json` に記録します。次回の予定時刻は、この
-  ワークフロー（「翌日の自動実行時刻を決める」）の実行結果ページの
-  **Summary** に「次回自動実行予定：2026-09-14 20:17 JST」のように表示されます。
-- 決まった時刻になると自動で「商品候補を検索する」が起動し、その日はもう
-  自動実行されません（同じ日に2回実行されることはありません）。
+- cronは1日1回しか予定時刻に一致しないため、同じ日に自動実行が重複することは
+  ありません。
 - 手動での「Run workflow」（上の「実行方法」）は、この自動実行とは関係なく
   いつでもすぐに実行できます。
 
@@ -170,8 +160,7 @@ python -m src.main
 
 ### テスト（開発者向け）
 
-紹介文生成・自動実行スケジュールに問題がないかを確認する自動テストがあります
-（楽天APIへのアクセスは不要）。
+紹介文生成に問題がないかを確認する自動テストがあります（楽天APIへのアクセスは不要）。
 
 ```bash
 python -m unittest discover -s tests -v

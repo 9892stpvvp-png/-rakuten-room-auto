@@ -1,76 +1,31 @@
-name: 商品候補検索の自動実行チェック
+name: 商品候補検索の自動実行
 
-# 日本時間19:30〜21:00（UTC 10:30〜12:00）の間、5分おきに実行され、
-# 「本日の自動実行予定時刻」に達していれば、既存の「商品候補を検索する」
-# ワークフロー（search_candidates.yml）を1回だけ起動する。
+# 毎日 日本時間15:30（UTC 06:30）に、既存の「商品候補を検索する」
+# ワークフロー（search_candidates.yml）を1回起動する。
 #
-# sleepして待つのではなく、短時間で終わる「確認だけ」のジョブを
-# 5分刻みのcronで繰り返し実行する方式にしている（対象時刻でなければ
-# 数秒で何もせず終了する。sleepは一切使わない）。
+# cronは1日1回しか予定時刻に一致しないため、同じ日に自動実行が重複することは
+# ない。sleepや、時刻をランダムに決めて事前に記録しておくような仕組みは
+# 使っていない、シンプルな構成にしている。
 #
 # 商品候補検索そのもの・重複チェック・紹介文生成・Artifact保存・Summary表示は
 # search_candidates.yml 側の処理のまま変更しない。このワークフローは
 # 「いつ起動するか」だけを担当する。
 on:
   schedule:
-    - cron: "30-55/5 10 * * *" # UTC 10:30,10:35,...,10:55 = 日本時間19:30〜19:55
-    - cron: "*/5 11 * * *" # UTC 11:00,11:05,...,11:55 = 日本時間20:00〜20:55
-    - cron: "0 12 * * *" # UTC 12:00 = 日本時間21:00
-  workflow_dispatch: {} # 動作確認・デバッグ用に手動でも判定処理だけ実行できるようにしておく
+    - cron: "30 6 * * *" # 毎日 UTC 06:30 = 日本時間15:30
+  workflow_dispatch: {} # 手動実行時は即座に起動する
 
 permissions:
-  contents: write
   actions: write # search_candidates.yml をworkflow_dispatchで起動するために必要
 
-# 前回の確認がまだ終わっていないうちに次の確認が重ならないようにする
-# （schedule_log.jsonへの書き込みが競合しないようにするため）。
-concurrency:
-  group: rakuten-room-schedule-checker
-  cancel-in-progress: false
-
 jobs:
-  check:
+  trigger:
     runs-on: ubuntu-latest
     steps:
       - name: リポジトリを取得
         uses: actions/checkout@v4
 
-      - name: Pythonをセットアップ
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: 本日の実行予定時刻に達しているか確認
-        id: check
-        run: python -m src.scheduler check
-
-      # 「実行済みとして記録」を先に行い、それが確実にコミット・プッシュできて
-      # からはじめて次のステップで起動する。逆の順番（先に起動してから記録）
-      # にすると、記録に失敗した場合に次の5分後の実行で二重に起動してしまう
-      # おそれがあるため。
-      - name: 実行済みとして記録
-        id: mark
-        if: steps.check.outputs.due == 'true'
-        run: |
-          python -m src.scheduler mark-fired --date "${{ steps.check.outputs.date }}"
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/schedule/schedule_log.json
-          git commit -m "本日(${{ steps.check.outputs.date }})の自動実行を記録"
-          git pull --rebase origin "${{ github.ref_name }}"
-          git push origin "HEAD:${{ github.ref_name }}"
-
       - name: 商品候補検索ワークフローを起動
-        if: steps.check.outputs.due == 'true' && steps.mark.outcome == 'success'
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run search_candidates.yml --ref "${{ github.ref_name }}"
-
-      - name: Summaryに表示
-        if: steps.check.outputs.due == 'true' && steps.mark.outcome == 'success'
-        run: |
-          {
-            echo "## 商品候補検索の自動実行"
-            echo ""
-            echo "本日（${{ steps.check.outputs.date }} ${{ steps.check.outputs.time_jst }} JST）の自動実行を開始しました。"
-          } >> "$GITHUB_STEP_SUMMARY"
