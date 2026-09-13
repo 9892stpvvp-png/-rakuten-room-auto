@@ -15,7 +15,14 @@
 - 商品名をそのまま長く転載しない
 - 広告っぽすぎる文章にしない。実際に使った・購入したと誤解される表現
   （「使ってみました」「買ってよかった」等）は使わない
-- 商品情報にない効果・性能を作らない（存在しない機能を書かない）
+- 商品名、APIから取得した情報、明示された仕様だけを根拠にする。確認できない
+  性能・使用感・効果は作らない（例：「マグネット式」だけが確認できる情報の
+  場合、「マグネットで浮かせて設置できる」のように用途まで推測しない。
+  「油不使用」と明示されていない調理家電を「油を使わない」と断定しない）
+- 断定が危険な表現は「〜できそう」「〜しやすそう」「〜に便利そう」など、
+  ためらいのある言い回しにする
+- 悩み（②）も、商品から自然に想定できる一般的な悩みだけにする
+  （その商品固有の欠点や、確認できない使用感を悩みとして書かない）
 - 同じ定型文を全商品に使い回さない。商品ごとの具体的な用途・悩みを優先する
 - 絵文字は商品内容に合うものを自然に使う
 - 500文字以内。読みやすいよう適度に改行する
@@ -292,8 +299,8 @@ PRODUCT_TYPE_TEMPLATES: list[tuple[str, _PostTemplate]] = [
                 "掃除機をかけなきゃと思いつつ、",
                 "毎日となると地味に手間ですよね…😅",
             ],
-            solution_text="毎日の床掃除をおまかせできるロボット掃除機",
-            checklist_core=["スイッチひとつで床掃除をおまかせできる", "毎日の掃除の手間を減らせそう"],
+            solution_text="毎日の床掃除をおまかせしやすいロボット掃除機",
+            checklist_core=["床掃除をおまかせしやすい", "毎日の掃除の手間を減らせそう"],
             checklist_fallback="忙しい日でも部屋をきれいに保ちやすい",
             closing_variants=[
                 "床掃除の時間を減らしたい人におすすめ",
@@ -304,14 +311,14 @@ PRODUCT_TYPE_TEMPLATES: list[tuple[str, _PostTemplate]] = [
     (
         "スープメーカー",
         _PostTemplate(
-            hook_text="スープ作り、材料入れるだけで完成したら嬉しくない？",
+            hook_text="スープ作り、手間をかけずにできたら嬉しくない？",
             topic_emoji="🥣",
             worry_lines=[
                 "スープを一から作るのは、",
                 "地味に手間がかかりますよね…😅",
             ],
-            solution_text="材料を入れてスープ作りをおまかせできる調理家電",
-            checklist_core=["材料を入れるだけでスープ作りをおまかせできる", "忙しい日でも手軽に使えそう"],
+            solution_text="材料を入れてスープ作りをおまかせしやすい調理家電",
+            checklist_core=["材料を入れてスープ作りをおまかせしやすい", "忙しい日でも手軽に使えそう"],
             checklist_fallback="毎日の調理の手間を減らしてくれそう",
             closing_variants=[
                 "手軽にスープを楽しみたい人におすすめ",
@@ -322,17 +329,17 @@ PRODUCT_TYPE_TEMPLATES: list[tuple[str, _PostTemplate]] = [
     (
         "ノンフライヤー",
         _PostTemplate(
-            hook_text="揚げ物、油を使わずに作れたらラクじゃない？",
+            hook_text="揚げ物、油を控えて作れたら嬉しくない？",
             topic_emoji="🍟",
             worry_lines=[
                 "揚げ物って美味しいけど、",
                 "油の後片付けが地味に面倒ですよね…😅",
             ],
-            solution_text="揚げ物を手軽に作れるノンフライヤー",
-            checklist_core=["油を使わずに揚げ物を作れる", "後片付けの手間を減らせそう"],
+            solution_text="揚げ物風の調理が楽しめるノンフライヤー",
+            checklist_core=["油を控えて揚げ物風の調理がしやすい", "油の後片付けを減らしやすい"],
             checklist_fallback="毎日の料理の幅を広げてくれそう",
             closing_variants=[
-                "油を使わずに揚げ物を楽しみたい人におすすめ",
+                "油を控えて揚げ物を楽しみたい人におすすめ",
                 "後片付けの手間を減らしたい人に便利そう",
             ],
         ),
@@ -343,12 +350,12 @@ PRODUCT_TYPE_TEMPLATES: list[tuple[str, _PostTemplate]] = [
             hook_text="毎日使うフライパン、使いやすさで選びたくない？",
             topic_emoji="🍳",
             worry_lines=[
-                "焦げつきやすいフライパンだと、",
-                "料理のたびにちょっとストレスですよね…😅",
+                "毎日使うものだから、",
+                "扱いやすさや使い勝手が気になりますよね…😅",
             ],
             solution_text="焼く・煮るなど毎日の料理に使いやすそうなフライパン",
             checklist_core=["毎日の料理に使いやすそう", "普段の調理の幅を広げてくれそう"],
-            checklist_fallback="後片付けもしやすくなりそう",
+            checklist_fallback="毎日の調理に取り入れやすそう",
             closing_variants=[
                 "毎日の料理をもう少しラクにしたい人におすすめ",
                 "使いやすいフライパンを探している人に便利そう",
@@ -382,8 +389,8 @@ PRODUCT_TYPE_TEMPLATES: list[tuple[str, _PostTemplate]] = [
                 "食器を洗ったあと、",
                 "乾かす場所に地味に困りますよね…😅",
             ],
-            solution_text="洗った食器をしっかり乾かせる水切りかご",
-            checklist_core=["洗った食器を乾かせる", "キッチンの水回りをすっきり使いやすい"],
+            solution_text="洗った食器を乾かしやすい水切りかご",
+            checklist_core=["洗った食器を乾かしやすい", "キッチンの水回りをすっきり使いやすい"],
             checklist_fallback="洗い物のあとの片付けがラクになりそう",
             closing_variants=[
                 "洗い物のあとの片付けを楽にしたい人におすすめ",
@@ -400,8 +407,8 @@ PRODUCT_TYPE_TEMPLATES: list[tuple[str, _PostTemplate]] = [
                 "衣替えのたびに、",
                 "収納スペースの確保に困りますよね…😅",
             ],
-            solution_text="かさばる衣類をコンパクトにまとめられる圧縮袋",
-            checklist_core=["衣類をコンパクトに圧縮できる", "収納スペースを有効に使える"],
+            solution_text="かさばる衣類をコンパクトにまとめやすい圧縮袋",
+            checklist_core=["衣類をコンパクトに圧縮しやすい", "収納スペースを有効に使いやすい"],
             checklist_fallback="衣替えや持ち運びがラクになりそう",
             closing_variants=[
                 "衣替えの収納をラクにしたい人におすすめ",
@@ -419,7 +426,7 @@ PRODUCT_TYPE_TEMPLATES: list[tuple[str, _PostTemplate]] = [
                 "地味にストレスですよね…😅",
             ],
             solution_text="ドアを開けたままキープしやすいドアストッパー",
-            checklist_core=["扉を開けたままキープできる", "玄関まわりなどで使いやすい"],
+            checklist_core=["扉を開けたままキープしやすい", "玄関まわりなどで使いやすい"],
             checklist_fallback="扉が不意に動いて困る場面を減らせそう",
             closing_variants=[
                 "扉の開閉にちょっと困っている人におすすめ",
@@ -437,7 +444,7 @@ PRODUCT_TYPE_TEMPLATES: list[tuple[str, _PostTemplate]] = [
                 "地味にストレスですよね…😅",
             ],
             solution_text="ドアを開けたままキープしやすいドアストッパー",
-            checklist_core=["扉を開けたままキープできる", "玄関まわりなどで使いやすい"],
+            checklist_core=["扉を開けたままキープしやすい", "玄関まわりなどで使いやすい"],
             checklist_fallback="扉が不意に動いて困る場面を減らせそう",
             closing_variants=[
                 "扉の開閉にちょっと困っている人におすすめ",
@@ -448,14 +455,14 @@ PRODUCT_TYPE_TEMPLATES: list[tuple[str, _PostTemplate]] = [
     (
         "マドラー",
         _PostTemplate(
-            hook_text="味噌を溶かすの、地味に時間がかからない？",
+            hook_text="味噌を溶かすの、地味に手間じゃない？",
             topic_emoji="🥄",
             worry_lines=[
                 "味噌汁を作るとき、",
                 "味噌を溶くのに地味に手間取りますよね…😅",
             ],
             solution_text="味噌などをなめらかに溶かしやすいマドラー",
-            checklist_core=["味噌をなめらかに溶かせる", "毎日の味噌汁作りに使いやすい"],
+            checklist_core=["味噌をなめらかに溶かしやすい", "毎日の味噌汁作りに使いやすい"],
             checklist_fallback="調理の手間をちょっと減らせそう",
             closing_variants=[
                 "味噌汁作りをラクにしたい人におすすめ",
@@ -472,8 +479,8 @@ PRODUCT_TYPE_TEMPLATES: list[tuple[str, _PostTemplate]] = [
                 "掃除機を出すほどじゃないけど、",
                 "床のホコリって地味に気になりますよね…😅",
             ],
-            solution_text="床のホコリや汚れをサッと拭き取れるモップ",
-            checklist_core=["床のホコリや汚れをサッと拭き取れる", "かがまずに掃除がしやすい"],
+            solution_text="床のホコリや汚れをサッと拭き取りやすいモップ",
+            checklist_core=["床のホコリや汚れをサッと拭き取りやすい", "かがまずに掃除がしやすい"],
             checklist_fallback="毎日の床掃除の手間を減らせそう",
             closing_variants=[
                 "サッと使える掃除グッズを探している人におすすめ",
@@ -490,8 +497,8 @@ PRODUCT_TYPE_TEMPLATES: list[tuple[str, _PostTemplate]] = [
                 "掃除機を出すほどじゃないけど、",
                 "床のホコリって地味に気になりますよね…😅",
             ],
-            solution_text="床のホコリや汚れをサッと拭き取れるフロアワイパー",
-            checklist_core=["床のホコリや汚れをサッと拭き取れる", "かがまずに掃除がしやすい"],
+            solution_text="床のホコリや汚れをサッと拭き取りやすいフロアワイパー",
+            checklist_core=["床のホコリや汚れをサッと拭き取りやすい", "かがまずに掃除がしやすい"],
             checklist_fallback="毎日の床掃除の手間を減らせそう",
             closing_variants=[
                 "サッと使える掃除グッズを探している人におすすめ",
@@ -518,7 +525,7 @@ GENERIC_TEMPLATES: dict[str, _PostTemplate] = {
         topic_emoji="🧹",
         worry_lines=["掃除しなきゃと思いつつ、", "つい後回しにしがちですよね…😅"],
         solution_text="そんな掃除の手間を減らしてくれそうな掃除グッズ",
-        checklist_core=["気になる汚れのお手入れに使える", "サッと使えて手軽"],
+        checklist_core=["気になる汚れのお手入れに使いやすい", "サッと使えて手軽そう"],
         checklist_fallback="普段のお掃除がちょっとラクになりそう",
         closing_variants=[
             "お手入れの手間を減らしたい人に便利そう",
@@ -530,7 +537,7 @@ GENERIC_TEMPLATES: dict[str, _PostTemplate] = {
         topic_emoji="🏠",
         worry_lines=["気づけば物が増えて、", "収納場所に困りがちですよね…😅"],
         solution_text="{location}の物をすっきりまとめられそうな収納グッズ",
-        checklist_core=["{location}の物をすっきりまとめられる", "必要な物をすぐ取り出しやすい"],
+        checklist_core=["{location}の物をすっきりまとめやすい", "必要な物をすぐ取り出しやすい"],
         checklist_fallback="見た目もすっきり整いそう",
         closing_variants=[
             "片付けの手間を減らしたい人に便利そう",
@@ -542,8 +549,8 @@ GENERIC_TEMPLATES: dict[str, _PostTemplate] = {
         topic_emoji="🍳",
         worry_lines=["毎日のことだから、", "小さな手間が積み重なりますよね…😅"],
         solution_text="そんなキッチンでの家事をラクにしてくれそうなキッチングッズ",
-        checklist_core=["毎日の料理や後片付けに使いやすい", "キッチン作業がスムーズになる"],
-        checklist_fallback="使いたいときにサッと取り出せる",
+        checklist_core=["毎日の料理や後片付けに使いやすい", "キッチン作業がスムーズになりそう"],
+        checklist_fallback="使いたいときにサッと取り出しやすい",
         closing_variants=[
             "毎日の家事をちょっとラクにしたい人におすすめ",
             "キッチン作業を快適にしたい人に便利そう",
@@ -554,7 +561,7 @@ GENERIC_TEMPLATES: dict[str, _PostTemplate] = {
         topic_emoji="⏱️",
         worry_lines=["毎日のことだから、", "地味に時間がかかりますよね…😅"],
         solution_text="そんな家事の時間を短くしてくれそうな時短家電",
-        checklist_core=["毎日の家事にかかる時間を減らせる", "忙しい日にも取り入れやすい"],
+        checklist_core=["毎日の家事にかかる時間を減らせそう", "忙しい日にも取り入れやすい"],
         checklist_fallback="手間のかかる家事をおまかせしやすい",
         closing_variants=[
             "家事の時間を短くしたい人におすすめ",
@@ -566,7 +573,7 @@ GENERIC_TEMPLATES: dict[str, _PostTemplate] = {
         topic_emoji="🏠",
         worry_lines=["小さなことだけど、", "積み重なると気になりますよね…😅"],
         solution_text="そんな暮らしの小さな不便を解消してくれそうな便利グッズ",
-        checklist_core=["日々のちょっとした不便を解消できる", "普段の生活に取り入れやすい"],
+        checklist_core=["日々のちょっとした不便を解消しやすい", "普段の生活に取り入れやすい"],
         checklist_fallback="使うたびに便利さを感じられそう",
         closing_variants=[
             "暮らしを少しラクにしたい人におすすめ",
@@ -582,7 +589,11 @@ GENERIC_TEMPLATES: dict[str, _PostTemplate] = {
 # 商品の素材だけを述べる表現（例：ステンレス＝サビに強い）は、商品全体の
 # 用途に繋がりにくいため対象にしていない。
 FEATURE_CLAUSES: list[tuple[str, str | dict[str, str], str | dict[str, str]]] = [
-    ("マグネット", "マグネットで浮かせて設置できる", "🧲"),
+    # 「マグネットで浮かせて設置できる」は、商品名から確認できる「マグネット式」
+    # という事実を超えて「浮かせて設置する」という具体的な用途まで推測して
+    # しまう（ドアストッパー等では用途と合わない）ため、商品名から確認できる
+    # 「マグネットで取り付けられる」という事実だけにとどめている。
+    ("マグネット", "マグネットで取り付けられる", "🧲"),
     ("吸盤", "吸盤で好きな場所に取り付けられる", "✨"),
     (
         "吊り下げ",
@@ -601,11 +612,11 @@ FEATURE_CLAUSES: list[tuple[str, str | dict[str, str], str | dict[str, str]]] = 
     (
         "大容量",
         {
-            "収納": "たっぷり収納できる",
+            "収納": "たっぷり収納しやすい",
             "キッチン": "一度にたっぷり調理しやすい",
-            "時短": "一度にたっぷり使える",
-            "掃除": "一度にたっぷり集められる",
-            DEFAULT_CATEGORY: "たっぷり使える",
+            "時短": "一度にたっぷり使いやすい",
+            "掃除": "一度にたっぷり集めやすい",
+            DEFAULT_CATEGORY: "たっぷり使いやすい",
         },
         {
             "収納": "✨",
@@ -623,7 +634,7 @@ FEATURE_CLAUSES: list[tuple[str, str | dict[str, str], str | dict[str, str]]] = 
     ("自立", "自立して置き場所を選びにくい", "📦"),
     ("食洗機", "食洗機で洗える", "🍽️"),
     ("電子レンジ", "電子レンジで使える", "🍽️"),
-    ("充電式", "充電式で繰り返し使える", "⚡"),
+    ("充電式", "充電式で繰り返し使いやすい", "⚡"),
     ("コードレス", "コードレスで扱いやすい", "⚡"),
 ]
 

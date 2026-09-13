@@ -473,12 +473,38 @@ class ProductTypeTemplateTest(unittest.TestCase):
 
     def test_door_stopper_is_not_described_as_floating_storage(self):
         # ドアストッパーの商品名に「マグネット」が含まれていても、
-        # 収納用品向けの「マグネットで浮かせて設置できる」を①③の主役にしない。
+        # 収納用品向けの「マグネットで浮かせて設置できる」をどのブロックにも
+        # 書かない（✔️メリットの3項目目にも「浮かせて設置」という、商品名から
+        # 確認できない用途を推測して書かないことを含む）。
         item = make_item(name="ドアストッパー マグネット式 扉 固定 玄関 diy おしゃれ シンプル 傷防止")
         description = dg.generate_description(item, category=dg.DEFAULT_CATEGORY, base_hashtags=BASE_HASHTAGS)
         blocks = _blocks(description)
         self.assertIn("ドアストッパー", blocks[0] + blocks[2])
-        self.assertNotIn("浮かせて設置", blocks[0] + blocks[1] + blocks[2])
+        self.assertNotIn("浮かせて設置", description)
+        self.assertIn("✔️ マグネットで取り付けられる", blocks[3].splitlines())
+
+    def test_air_fryer_does_not_claim_zero_oil(self):
+        # ノンフライヤーの商品名に「油不使用」等の明示がなくても、
+        # 「油を使わずに揚げ物を作れる」のように油ゼロを断定しない。
+        category = dg.refine_category(REAL_AIR_FRYER, "時短")
+        description = dg.generate_description(REAL_AIR_FRYER, category=category, base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("油を使わずに", description)
+        self.assertIn("油を控えて", description)
+
+    def test_frying_pan_does_not_infer_unconfirmed_performance(self):
+        # フライパンの商品情報に明示されていない「焦げつきやすい」
+        # 「後片付けしやすい」のような性能を勝手に推測しない。
+        item = make_item(name="鉄製フライパン IH対応 26cm")
+        description = dg.generate_description(item, category="キッチン", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("焦げつきやすい", description)
+        self.assertNotIn("後片付けしやすい", description)
+
+    def test_robot_vacuum_does_not_assume_specific_operation_method(self):
+        # ロボット掃除機の商品名・データに明示されていない
+        # 「スイッチひとつで」のような操作方法を勝手に限定しない。
+        item = make_item(name="ロボット掃除機 全自動 マッピング機能")
+        description = dg.generate_description(item, category="時短", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("スイッチひとつで", description)
 
     def test_stainless_material_clause_was_removed(self):
         # 「ステンレス＝サビに強い」は、商品全体の用途に繋がりにくい素材だけの
@@ -497,11 +523,14 @@ class ProductTypeTemplateTest(unittest.TestCase):
 
     def test_feature_clause_appears_as_third_checklist_item_when_no_type_match(self):
         # 商品タイプが特定できない場合でも、マグネット式などの構造・仕様は
-        # ✔️メリットの3項目目として自然に組み込まれる。
+        # ✔️メリットの3項目目として自然に組み込まれる。ただし、商品名から
+        # 確認できる「マグネットで取り付けられる」という事実だけにとどめ、
+        # 「浮かせて設置」のような確認できない用途までは推測しない。
         item = make_item(name="マグネット式 収納ラック")
         description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS)
         checklist_lines = _blocks(description)[3].splitlines()
-        self.assertIn("✔️ マグネットで浮かせて設置できる", checklist_lines)
+        self.assertIn("✔️ マグネットで取り付けられる", checklist_lines)
+        self.assertNotIn("浮かせて設置", description)
 
     def test_bath_location_overrides_generic_topic_emoji(self):
         # 「お風呂用品」であることが商品名から分かる場合、GENERIC_TEMPLATESの
