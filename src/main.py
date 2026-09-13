@@ -107,13 +107,6 @@ def main() -> None:
             base_hashtags=base_hashtags,
             max_length=settings.get("description_max_length", 500),
         )
-        # 一時的な診断ログ（原因調査用）。秘密情報は含まない。
-        print(
-            "[DEBUG] "
-            f"name={item.get('name', '')!r} "
-            f"category={item['_category']!r} "
-            f"caption_head={(item.get('item_caption') or '')[:120]!r}"
-        )
 
     # フェーズ4: レビュー実績順に並べたうえで、上位のカテゴリが偏りすぎないようにする。
     candidates = ranking.sort_by_quality(unique_items)

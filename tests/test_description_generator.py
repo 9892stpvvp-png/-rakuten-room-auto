@@ -1,13 +1,34 @@
 """紹介文生成の回帰テスト。
 
-実際にGitHub Actionsの上位10件で見つかった「商品情報にない特徴が紹介文に
-混入する」バグの再発を防ぐためのテスト。標準ライブラリのunittestのみを使い、
-追加のライブラリ（pytestなど）は必要ない。
+実際にGitHub Actionsの本番実行で見つかった「商品情報にない特徴が紹介文に
+混入する」バグの再発を防ぐためのテスト。ここで使っている商品名は、実際に
+楽天ウェブサービスから返ってきたレスポンス（本番のGitHub Actions実行ログ）を
+そのまま使っている。標準ライブラリのunittestのみを使い、追加のライブラリ
+（pytestなど）は必要ない。
 
 実行方法:
     python -m unittest tests.test_description_generator -v
 または:
     python -m unittest discover -s tests
+
+## 見つかった問題と対応（経緯）
+
+1回目の修正では、特徴語の検出対象を「商品名＋商品説明の最初の一文」に
+限定したが、それでも本番のSummaryには誤った特徴が残っていた。実際の
+レスポンスを確認したところ、原因は次の2点だった。
+
+- 商品説明（itemCaption）が句点（。）を含まない仕様一覧形式
+  （例：「素材/材質：エラストマー、ステンレス、…」）のことがあり、
+  「最初の一文」のつもりが説明文全体を拾ってしまっていた
+- まれに、その商品とは無関係な説明文が入っていた
+  （「スープメーカー」の説明文の冒頭が搾乳機の説明になっていた）
+
+このため、特徴語の検出は商品説明を一切使わず「商品名」だけに限定した。
+また、カテゴリ判定も「商品名に1語でも含まれていれば元のカテゴリのまま」
+という単純な判定だと、「掃除機不要」という言葉に含まれる『掃除』の1語
+だけで『収納』の商品（衣類圧縮袋）が『掃除』カテゴリのままになって
+しまうことが分かったため、キーワードの一致件数で比較するスコア方式に
+変更した。
 """
 
 from __future__ import annotations
@@ -40,118 +61,152 @@ def make_item(
 
 BASE_HASHTAGS = ["#楽天ROOM", "#暮らしの便利グッズ"]
 
+# 以下は実際にGitHub Actionsの本番実行(2026-09-13)で取得された商品名・商品説明。
+REAL_SOUP_MAKER = make_item(
+    name=(
+        "【限定価格+特典あり】◆楽天1位3冠◆ スープメーカー 時短家電 ポタージュ スムージー "
+        "冷製スープ 離乳食 豆乳 ブレンダー 自動調理ポット 全自動調理器 ミキサー おかゆ おから "
+        "タイパ ミキサー シャーベット アイス 氷OK カレー 育児 出産祝い ギフト プレゼント LARUTAN"
+    ),
+    item_caption=(
+        "ロングヒット！人気アイテム 片胸・両胸派も！充電式でラクラク搾乳 "
+        "メーカー希望小売価格はメーカーサイトに基づいて掲載していますLARUTAN ポットクッカー "
+        "ロングヒット！人気アイテム 【おいしくお使いいただくために】 本製品は、公式レシピ"
+    ),
+)
 
-class FeatureHintFalsePositiveRegressionTest(unittest.TestCase):
-    """商品情報から確認できない特徴が紹介文に混入しないことを確認する。
+REAL_REFILL_MINI = make_item(
+    name=(
+        "【メーカー公式】詰め替えそのまま MINI3個組み セット MS-6W ホワイト 国産 日本産 "
+        "メーカー直営 シャンプー コンディショナー リンス 詰め替えボトル 詰替 ディスペンサー "
+        "ぶら下げ 洗剤パック 空中収納 吊り下げ お風呂 浮かせる収納"
+    ),
+    item_caption=(
+        "商品情報素材/材質ポンプ：エラストマー、ポリアセタール、シリコーンゴム、ステンレス、"
+        "ポリプロピレン、ホルダー：ポリアセタール、ステンレス、ポリプロピレン、"
+        "ABS樹脂サイズ/寸法約5.1×3.5×9.6(長さ)cm、ホルダー：約4.1×3.4"
+    ),
+)
 
-    商品説明（itemCaption）の後半に、他商品との比較や付属品の説明として
-    無関係な単語（充電式・ステンレス・透明など）が含まれていても、
-    それを商品自体の特徴として誤って拾ってはいけない。
-    """
+REAL_CARDBOARD_STOCKER = make_item(
+    name=(
+        "【当日発送】段ボールストッカー ダンボールストッカー 白 【段ボールを定位置まとめる】 "
+        "ダンボールラック ダンボール収納 キャスター付き おしゃれ 段ボールストッカー スタンド "
+        "収納 ラック 段ボール置き 段ボール立て"
+    ),
+    item_caption=(
+        "■サイズ・容量 ■商品名：ダンボールストッカー ■カラー：ホワイト / ブラック "
+        "■耐荷重：5kg ■収納部外寸：約W30×D25×H44.5cm（キャスター含む） "
+        "■収納目安：約10～15枚 ■商品紹介 ■【段ボールを定位置に】収納場所・"
+    ),
+)
+
+REAL_MAGIC_TAPE = make_item(
+    name=(
+        "【雑誌＆TV等紹介】魔法のテープ 正規品 高品質 はがせる 水洗い 両面テープ ナノテープ "
+        "透明両面テープ 強力両面テープ 超強力 魔法のテープ極 粘着 強力 固定 防災 地震対策 "
+        "（幅3cm 長さ1M）万能 送料無料 SNSでも話題! あす楽 便利グッズ 浮かせる収納 壁紙 車 DIY 多用途"
+    ),
+    item_caption=(
+        "商品情報　商品名 iHouse all 両面テープ 魔法のテープ 極 粘着テープ 両面テープ 強力 "
+        "両面テープ 剥がせる 両面テープ はがせる 両面テープ 超強力 強力両面テープ 透明 強力 "
+        "防水 耐熱 超強力 張り替え あと残らない 便"
+    ),
+)
+
+REAL_COMPRESSION_BAG = make_item(
+    name=(
+        "＼雑誌に掲載されました！／＼楽天ランキング1位獲得！／ 圧縮袋 圧縮 衣類 押すだけ "
+        "掃除機不要 2枚セット 衣類圧縮袋 立体圧縮袋 手押し 衣類 収納 圧縮ボックス 衣類ケース "
+        "カビ対策 防カビ ポンプ不要 衣類収納 衣替え 旅行 vc-bag-02"
+    ),
+    item_caption=(
+        "テストする女性誌「LDK」 Best Buy 受賞 立体圧縮袋 2枚入り｜ポンプ不要 サイクロン排気 "
+        "大容量 透明窓付き 防湿・防虫 jiangオリジナルの立体圧縮袋（2枚入り）。"
+    ),
+)
+
+REAL_MAGNET_RACK = make_item(
+    name=(
+        "tower 《 山崎実業 マグネットバスルームラック タワー ワイド 》 幅27cm バスラック "
+        "ディスペンサー シャンプーボトル フック4個付き お風呂収納 壁面 浴室 壁掛け 収納棚 "
+        "浮かせる マグネットラック 磁石 公式 白 黒 おしゃれ 別注 9776 9777 YAMAZAKI"
+    ),
+    item_caption=(
+        "■Detail -商品説明- 大人気のtowerの磁石がくっつく浴室壁面収納、マグネットバスルーム"
+        "シリーズに、towerとコラボして生まれた当社オリジナル別注サイズのマグネットバスルーム"
+        "ラックワイドが登場！"
+    ),
+)
+
+
+class RealDataRegressionTest(unittest.TestCase):
+    """本番のGitHub Actions実行で実際に取得された商品データを使った回帰テスト。"""
 
     def test_soup_maker_does_not_claim_rechargeable(self):
-        # 「スープメーカー」自体は充電式ではないが、説明文の後半に
-        # 比較対象として「充電式」という単語が登場するケースを再現する。
-        item = make_item(
-            name="スープメーカー",
-            item_caption=(
-                "毎日の食卓に温かいスープを手軽に。"
-                "充電式のハンディブレンダーと比較されることも多いですが、"
-                "本製品はコンセントに差し込んで使うタイプです。"
-            ),
-        )
-        description = dg.generate_description(item, category="キッチン", base_hashtags=BASE_HASHTAGS)
+        description = dg.generate_description(REAL_SOUP_MAKER, category="時短", base_hashtags=BASE_HASHTAGS)
         self.assertNotIn("充電式", description)
 
     def test_refill_mini_does_not_claim_stainless(self):
-        # 「詰め替えそのまま MINI」自体はステンレス製ではないが、説明文の後半に
-        # 対応するボトルの説明として「ステンレス」という単語が登場するケースを再現する。
-        item = make_item(
-            name="詰め替えそのまま MINI",
-            item_caption=(
-                "ボトルに直接ジョイントして詰め替えができるミニサイズです。"
-                "ステンレスボトルの口径にも対応しています。"
-            ),
-        )
-        description = dg.generate_description(item, category="キッチン", base_hashtags=BASE_HASHTAGS)
+        description = dg.generate_description(REAL_REFILL_MINI, category="収納", base_hashtags=BASE_HASHTAGS)
         self.assertNotIn("ステンレス", description)
 
     def test_cardboard_stocker_does_not_claim_stainless(self):
-        # 「段ボールストッカー」自体はステンレス製ではないが、説明文の後半に
-        # 付属フックの素材として「ステンレス」という単語が登場するケースを再現する。
-        item = make_item(
-            name="段ボールストッカー",
-            item_caption=(
-                "たたんだ段ボールをすっきりまとめて置けるストッカーです。"
-                "持ち手はステンレス素材のフックに掛けることもできます。"
-            ),
-        )
-        description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS)
+        description = dg.generate_description(REAL_CARDBOARD_STOCKER, category="収納", base_hashtags=BASE_HASHTAGS)
         self.assertNotIn("ステンレス", description)
 
-    def test_magic_tape_does_not_claim_transparent(self):
-        # 「魔法のテープ」自体は透明な収納ケースではないが、説明文の後半に
-        # 一緒に使うと便利な組み合わせ商品として「透明」という単語が登場するケースを再現する。
-        item = make_item(
-            name="魔法のテープ",
-            item_caption=(
-                "貼ってはがせる便利な両面テープです。"
-                "透明な収納ケースと一緒に使うのもおすすめです。"
-            ),
-        )
-        description = dg.generate_description(item, category=dg.DEFAULT_CATEGORY, base_hashtags=BASE_HASHTAGS)
+    def test_magic_tape_does_not_claim_waterproof_or_transparent_contents(self):
+        description = dg.generate_description(REAL_MAGIC_TAPE, category="収納", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("防水仕様", description)
         self.assertNotIn("中身が見えてわかりやすいタイプ", description)
 
-
-class FeatureHintTruePositiveTest(unittest.TestCase):
-    """商品名・商品説明の最初の一文に明記されている特徴は、引き続き正しく反映されることを確認する。"""
-
-    def test_magnet_rack_still_detects_magnet_from_name(self):
-        item = make_item(
-            name="tower マグネットバスルームラック",
-            item_caption="マグネットで壁面に浮かせて設置できるバスルームラックです。水はねが多い浴室でも使いやすい設計です。",
-        )
-        description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS)
-        self.assertIn("マグネット", description)
-
-
-class CategoryRefinementRegressionTest(unittest.TestCase):
-    """検索キーワード由来のカテゴリが商品内容と合わない場合に、商品名から補正されることを確認する。"""
-
-    def test_clothes_compression_bag_is_reclassified_as_storage(self):
-        item = make_item(name="衣類圧縮袋 トラベル用 8枚セット")
-        # 「掃除 便利グッズ」での検索結果に混ざった、という想定。
-        refined = dg.refine_category(item, "掃除")
+    def test_compression_bag_is_reclassified_as_storage(self):
+        # 商品名に「掃除機不要」という言葉が含まれるため、単純な1語一致の判定だと
+        # 「掃除」カテゴリのままになってしまっていた（実際に本番で起きた問題）。
+        refined = dg.refine_category(REAL_COMPRESSION_BAG, "掃除")
         self.assertEqual(refined, "収納")
 
-    def test_clothes_compression_bag_hashtag_is_storage_not_cleaning(self):
-        item = make_item(name="衣類圧縮袋 トラベル用 8枚セット")
-        category = dg.refine_category(item, "掃除")
-        description = dg.generate_description(item, category=category, base_hashtags=BASE_HASHTAGS)
+    def test_compression_bag_hashtag_is_storage_not_cleaning(self):
+        category = dg.refine_category(REAL_COMPRESSION_BAG, "掃除")
+        description = dg.generate_description(REAL_COMPRESSION_BAG, category=category, base_hashtags=BASE_HASHTAGS)
         self.assertIn("#収納", description)
         self.assertNotIn("#掃除グッズ", description)
 
+    def test_magnet_rack_still_detects_magnet_from_name(self):
+        # 商品説明を使わなくなった後も、商品名に明記されている特徴は
+        # 引き続き正しく検出できることを確認する。
+        description = dg.generate_description(REAL_MAGNET_RACK, category="収納", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("マグネット", description)
+
+
+class CategoryRefinementTest(unittest.TestCase):
+    """refine_category()の基本的な挙動を確認する。"""
+
     def test_category_matching_own_keywords_is_not_changed(self):
         item = make_item(name="フロアワイパー 掃除用モップ")
-        refined = dg.refine_category(item, "掃除")
-        self.assertEqual(refined, "掃除")
+        self.assertEqual(dg.refine_category(item, "掃除"), "掃除")
 
     def test_category_with_no_keyword_match_is_unchanged(self):
         item = make_item(name="何にでも使える便利グッズX")
-        refined = dg.refine_category(item, dg.DEFAULT_CATEGORY)
-        self.assertEqual(refined, dg.DEFAULT_CATEGORY)
+        self.assertEqual(dg.refine_category(item, dg.DEFAULT_CATEGORY), dg.DEFAULT_CATEGORY)
+
+    def test_tie_prefers_assigned_category(self):
+        # 「洗剤」(掃除)と「収納」が1件ずつで同点の場合は、元のカテゴリを優先する。
+        item = make_item(name="洗剤パック 空中収納ホルダー")
+        self.assertEqual(dg.refine_category(item, "掃除"), "掃除")
+        self.assertEqual(dg.refine_category(item, "収納"), "収納")
 
 
 class DescriptionFormatTest(unittest.TestCase):
     """紹介文の基本フォーマット（文字数・箇条書きの数・ハッシュタグ）を確認する。"""
 
     def test_description_within_max_length(self):
-        item = make_item(name="テスト商品", item_caption="これはテスト用の商品説明です。")
+        item = make_item(name="テスト商品")
         description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS, max_length=500)
         self.assertLessEqual(len(description), 500)
 
     def test_description_has_two_to_four_bullet_points(self):
-        item = make_item(name="テスト商品", item_caption="")
+        item = make_item(name="テスト商品")
         description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS)
         bullet_count = description.count("・")
         self.assertGreaterEqual(bullet_count, 2)
@@ -164,12 +219,19 @@ class DescriptionFormatTest(unittest.TestCase):
         self.assertIn("345件", description)
 
     def test_no_feature_hint_falls_back_to_safe_generic_points(self):
-        # 商品説明が空でも、無理に特徴を作らずカテゴリ共通の安全な言い回しで
-        # 埋められることを確認する（推測で特徴を作らないという条件3の確認）。
-        item = make_item(name="なんの変哲もない商品", item_caption="")
+        # 商品名に特徴語が無くても、無理に特徴を作らずカテゴリ共通の安全な
+        # 言い回しで埋められることを確認する（推測で特徴を作らないという条件の確認）。
+        item = make_item(name="なんの変哲もない商品")
         description = dg.generate_description(item, category="時短", base_hashtags=BASE_HASHTAGS)
-        for hint_keyword, hint_phrase in dg.FEATURE_HINTS:
+        for _hint_keyword, hint_phrase in dg.FEATURE_HINTS:
             self.assertNotIn(hint_phrase, description)
+
+    def test_item_caption_is_not_used_for_feature_detection(self):
+        # 商品名には特徴語が無く、商品説明にだけ「ステンレス」がある場合、
+        # 商品説明は特徴抽出に使わないため、紹介文に出てこないことを確認する。
+        item = make_item(name="なんの変哲もない商品", item_caption="素材：ステンレス、ポリプロピレン")
+        description = dg.generate_description(item, category="キッチン", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("ステンレス", description)
 
 
 if __name__ == "__main__":
