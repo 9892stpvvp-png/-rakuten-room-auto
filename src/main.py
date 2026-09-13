@@ -78,6 +78,7 @@ def main() -> None:
     ng_keywords = settings.get("ng_keywords", [])
     off_theme_keywords = settings.get("off_theme_keywords", [])
     alcohol_keywords = settings.get("alcohol_keywords", [])
+    consumable_durable_accessory_keywords = settings.get("consumable_durable_accessory_keywords", [])
     base_hashtags = settings.get("default_hashtags", ["#暮らしの便利グッズ"])
     posted_item_codes = dedupe.load_posted_item_codes(POSTED_ITEMS_PATH)
     seen_item_codes: set[str] = set()
@@ -110,6 +111,10 @@ def main() -> None:
         items = filters.filter_by_off_theme_keywords(items, off_theme_keywords)
         if category in ranking.BEVERAGE_CATEGORIES:
             items = filters.filter_by_alcohol_keywords(items, alcohol_keywords)
+        if group == ranking.CONSUMABLE_GROUP:
+            items = filters.filter_by_durable_accessory_keywords(
+                items, consumable_durable_accessory_keywords
+            )
         items = dedupe.remove_duplicates(items, posted_item_codes)
         items = dedupe.remove_within_run_duplicates(items, seen_item_codes)
 

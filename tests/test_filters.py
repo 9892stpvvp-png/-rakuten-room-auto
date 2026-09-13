@@ -52,5 +52,30 @@ class FilterByAlcoholKeywordsTest(unittest.TestCase):
         self.assertEqual(result, [water])
 
 
+DURABLE_ACCESSORY_KEYWORDS = ["ホルダー", "スタンド", "ラック", "カバー", "ケース", "トレー", "フック", "ディスペンサー", "収納"]
+
+
+class FilterByDurableAccessoryKeywordsTest(unittest.TestCase):
+    def test_removes_toilet_paper_holder(self):
+        items = [make_item("トイレットペーパーホルダー おしゃれ 2連 アイアン")]
+        result = filters.filter_by_durable_accessory_keywords(items, DURABLE_ACCESSORY_KEYWORDS)
+        self.assertEqual(result, [])
+
+    def test_removes_tissue_case(self):
+        items = [make_item("日本製ティッシュケース ペーパーポット おしゃれ")]
+        result = filters.filter_by_durable_accessory_keywords(items, DURABLE_ACCESSORY_KEYWORDS)
+        self.assertEqual(result, [])
+
+    def test_keeps_actual_consumable_product(self):
+        items = [make_item("トイレットペーパー 12ロール ダブル まとめ買い")]
+        result = filters.filter_by_durable_accessory_keywords(items, DURABLE_ACCESSORY_KEYWORDS)
+        self.assertEqual(len(result), 1)
+
+    def test_empty_keyword_list_keeps_all_items(self):
+        items = [make_item("トイレットペーパーホルダー")]
+        result = filters.filter_by_durable_accessory_keywords(items, [])
+        self.assertEqual(len(result), 1)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -63,6 +63,26 @@ def filter_by_alcohol_keywords(
     return [item for item in items if not _contains_any(_searchable_text(item), alcohol_keywords)]
 
 
+def filter_by_durable_accessory_keywords(
+    items: list[dict[str, Any]],
+    durable_accessory_keywords: list[str],
+) -> list[dict[str, Any]]:
+    """ホルダー・スタンド・ケースなど、消耗品そのものではなく「消耗品を置く/収納する
+    ための耐久雑貨」とみられる商品を除外する。
+
+    「消耗品・飲料」枠は、Rakuten検索が「トイレットペーパー」のようなキーワードに
+    対して、トイレットペーパー本体だけでなく「トイレットペーパーホルダー」のような
+    関連アクセサリ（一度買えば長期間使う耐久品）も返してくることがあるため、
+    消耗品を「消費して再購入される可能性が高い商品」に絞り込むために使う。
+    商品名・キャッチコピー・商品説明にこれらの言葉が含まれているかどうかで判定する。
+    """
+    if not durable_accessory_keywords:
+        return items
+    return [
+        item for item in items if not _contains_any(_searchable_text(item), durable_accessory_keywords)
+    ]
+
+
 def _searchable_text(item: dict[str, Any]) -> str:
     return f"{item.get('name', '')} {item.get('catch_copy', '')} {item.get('item_caption', '')}"
 

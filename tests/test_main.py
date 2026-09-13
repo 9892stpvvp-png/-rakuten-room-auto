@@ -130,6 +130,24 @@ class RunPipelineTest(unittest.TestCase):
         codes = [c["item_code"] for c in second_run]
         self.assertNotIn(already_posted_code, codes)
 
+    def test_durable_accessory_items_are_excluded_from_consumable_group(self):
+        # 実際の本番実行で、「トイレットペーパー」キーワードの検索結果に
+        # トイレットペーパー本体ではなく「トイレットペーパーホルダー」
+        # （消耗品ではなく耐久品）が混ざる問題が見つかったため、その再発防止テスト。
+        def fake_search_with_holder(keyword: str, **kwargs):
+            items = _default_fake_search(keyword, **kwargs)
+            if keyword == "トイレットペーパー":
+                items.append(
+                    _make_item("shop:tp_holder", "トイレットペーパーホルダー おしゃれ 2連", review_count=9000)
+                )
+            return items
+
+        candidates = self._run_main(fake_search_with_holder)
+        codes = [c["item_code"] for c in candidates]
+        names = [c["name"] for c in candidates]
+        self.assertNotIn("shop:tp_holder", codes)
+        self.assertFalse(any("ホルダー" in name for name in names))
+
     def test_convenience_shortfall_is_filled_from_consumable(self):
         def fake_search_scarce_convenience(keyword: str, **kwargs):
             if keyword == "掃除 便利グッズ":
