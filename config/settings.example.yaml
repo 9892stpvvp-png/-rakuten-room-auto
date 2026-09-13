@@ -4,7 +4,14 @@
 
 # 楽天市場 商品検索APIのエンドポイント。
 # 楽天側の仕様変更でURLが変わった場合は、コードを書き換えずここだけ直せばよい。
-api_endpoint: "https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20260701"
+api_endpoint: "https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20260401"
+
+# 楽天ウェブサービスのアプリ設定「許可されたWebサイト」に登録したURL。
+# 2026年のAPI基盤刷新後は、このURLをOrigin/Refererヘッダーとして送らないと
+# HTTP 403（アクセス拒否）になる。GitHub Pagesの案内ページ（index.html）のURLを
+# 登録した場合は、そのURLをそのまま指定する。
+# 登録したURLと1文字でも違うと403になるので注意（末尾のスラッシュやhttp/httpsの違いも含む）。
+allowed_origin: "https://9892stpvvp-png.github.io/-rakuten-room-auto/"
 
 # 楽天ウェブサービスAPIで検索するキーワード（テーマ：暮らしの便利グッズ）
 keywords:
