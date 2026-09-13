@@ -134,6 +134,8 @@ def _extract_item(raw_item: dict[str, Any]) -> dict[str, Any]:
         "item_code": raw_item.get("itemCode", ""),
         "name": raw_item.get("itemName", ""),
         "catch_copy": raw_item.get("catchcopy", ""),
+        # 商品説明。テーマとの関連性判定や紹介文を具体化するための材料として使う。
+        "item_caption": raw_item.get("itemCaption", ""),
         "price": raw_item.get("itemPrice", 0),
         "review_average": float(raw_item.get("reviewAverage", 0) or 0),
         "review_count": int(raw_item.get("reviewCount", 0) or 0),

@@ -2,11 +2,13 @@
 
 条件：
 - 押し売り感のない自然な日本語
-- 実際の商品データ（レビュー評価・件数など）から確認できないことは書かない
+- 実際の商品データ（商品名・キャッチコピー・商品説明・レビュー評価など）から
+  確認できないことは書かない（実際に使用したかのような表現や断定的な効果は書かない）
 - 商品紹介文＋箇条書き（2〜4個）＋ハッシュタグを1つのコピペ用ブロックにする
 - 500文字以内
-- 同じ定型文を全商品に使い回さない（カテゴリごとに複数の言い回しを用意し、
-  商品ごとに変化するデータ（商品コード）に応じてローテーションさせる）
+- 同じ定型文を全商品に使い回さない。商品名・キャッチコピー・商品説明から
+  読み取れる特徴（マグネット式、折りたたみ式など）があれば優先して使い、
+  読み取れない場合のみカテゴリ共通の言い回しで補う
 """
 
 from __future__ import annotations
@@ -74,6 +76,34 @@ HASHTAG_BY_CATEGORY: dict[str, str] = {
     DEFAULT_CATEGORY: "#暮らしの便利グッズ",
 }
 
+# 商品名・キャッチコピー・商品説明から検出できたときだけ使う、商品の設計・仕様に関する
+# 具体的な言い回し。検出したキーワードそのものではなく、商品情報から読み取れる
+# 客観的な特徴（構造・素材・使い方）だけを表す表現にとどめ、効果や体験談は含めない。
+FEATURE_HINTS: list[tuple[str, str]] = [
+    ("マグネット", "マグネットで浮かせて設置できるタイプ"),
+    ("吸盤", "吸盤で好きな場所に取り付けられるタイプ"),
+    ("吊り下げ", "吊り下げて収納できるタイプ"),
+    ("突っ張り", "つっぱり棒式で取り付けやすいタイプ"),
+    ("折りたた", "使わないときはコンパクトに折りたためる"),
+    ("折り畳み", "使わないときはコンパクトに折りたためる"),
+    ("水切り", "水切りしやすい設計"),
+    ("防水", "水回りでも使いやすい防水仕様"),
+    ("スリム", "省スペースに置きやすいスリム設計"),
+    ("大容量", "たっぷり収納できる大容量タイプ"),
+    ("軽量", "持ち運びしやすい軽量設計"),
+    ("シリコン", "お手入れしやすいシリコン素材"),
+    ("ステンレス", "サビに強いステンレス製"),
+    ("蓋付き", "ホコリを防ぎやすい蓋付きタイプ"),
+    ("フタ付き", "ホコリを防ぎやすい蓋付きタイプ"),
+    ("透明", "中身が見えてわかりやすいタイプ"),
+    ("引き出し", "引き出し式で取り出しやすい"),
+    ("自立", "自立するので置き場所を選びにくい"),
+    ("食洗機", "食洗機に対応しているタイプ"),
+    ("電子レンジ", "電子レンジに対応しているタイプ"),
+    ("充電式", "繰り返し使える充電式タイプ"),
+    ("コードレス", "コードレスで扱いやすいタイプ"),
+]
+
 
 def generate_description(
     item: dict[str, Any],
@@ -91,14 +121,24 @@ def generate_description(
     intro_variants = INTRO_VARIANTS[category]
     intro = intro_variants[seed % len(intro_variants)]
 
+    searchable_text = (
+        f"{item.get('name', '')} {item.get('catch_copy', '')} {item.get('item_caption', '')}"
+    )
+    feature_points = _feature_hint_points(searchable_text, max_hints=2)
+
     point_variants = POINT_VARIANTS[category]
-    point_a = point_variants[seed % len(point_variants)]
-    point_b = point_variants[(seed + 1) % len(point_variants)]
+    idx = seed
+    while len(feature_points) < 2:
+        candidate = point_variants[idx % len(point_variants)]
+        if candidate not in feature_points:
+            feature_points.append(candidate)
+        idx += 1
+
     review_point = (
         f"レビュー評価{item.get('review_average', 0):.1f}・"
         f"{item.get('review_count', 0)}件と、実際に使った人からの評価がある"
     )
-    points = [point_a, point_b, review_point]
+    points = [*feature_points, review_point]
 
     category_hashtag = HASHTAG_BY_CATEGORY.get(category, "")
     hashtags = list(dict.fromkeys([*base_hashtags, category_hashtag]))
@@ -113,3 +153,14 @@ def generate_description(
         description = description[: max_length - 1].rstrip() + "…"
 
     return description
+
+
+def _feature_hint_points(searchable_text: str, max_hints: int) -> list[str]:
+    """商品名・キャッチコピー・商品説明から、具体的な特徴の言い回しを検出する。"""
+    matched: list[str] = []
+    for keyword, phrase in FEATURE_HINTS:
+        if keyword in searchable_text and phrase not in matched:
+            matched.append(phrase)
+        if len(matched) >= max_hints:
+            break
+    return matched

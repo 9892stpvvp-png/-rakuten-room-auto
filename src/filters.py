@@ -28,36 +28,29 @@ def filter_by_ng_keywords(
 ) -> list[dict[str, Any]]:
     """福袋・ランダム・訳あり詰め合わせなど、ROOMで紹介しにくい商品を除外する。
 
-    商品名や商品説明にNGワードが含まれているかどうかで簡易的に判定する。
+    商品名・キャッチコピー・商品説明にNGワードが含まれているかどうかで簡易的に判定する。
     """
     if not ng_keywords:
         return items
-    return [
-        item
-        for item in items
-        if not _contains_any(_searchable_text(item), ng_keywords)
-    ]
+    return [item for item in items if not _contains_any(_searchable_text(item), ng_keywords)]
 
 
-def filter_by_theme_relevance(
+def filter_by_off_theme_keywords(
     items: list[dict[str, Any]],
-    theme_keywords: list[str],
+    off_theme_keywords: list[str],
 ) -> list[dict[str, Any]]:
-    """「暮らしの便利グッズ」というテーマから大きく外れる商品を除外する。
+    """耳かき・パスケース・ファッション小物など、テーマから明らかに外れる商品を除外する。
 
-    商品名や商品説明にテーマ関連の言葉が1つも含まれない場合は除外する簡易的な判定。
+    「暮らしの便利グッズ」というテーマにそぐわないことが分かっているジャンルの商品を、
+    商品名・キャッチコピー・商品説明から検出して強制的に弾くためのフィルタ。
     """
-    if not theme_keywords:
+    if not off_theme_keywords:
         return items
-    return [
-        item
-        for item in items
-        if _contains_any(_searchable_text(item), theme_keywords)
-    ]
+    return [item for item in items if not _contains_any(_searchable_text(item), off_theme_keywords)]
 
 
 def _searchable_text(item: dict[str, Any]) -> str:
-    return f"{item.get('name', '')} {item.get('catch_copy', '')}"
+    return f"{item.get('name', '')} {item.get('catch_copy', '')} {item.get('item_caption', '')}"
 
 
 def _contains_any(text: str, words: list[str]) -> bool:

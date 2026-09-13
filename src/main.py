@@ -12,7 +12,7 @@ from pathlib import Path
 import yaml
 from dotenv import load_dotenv
 
-from . import dedupe, description_generator, filters, rakuten_api, storage
+from . import dedupe, description_generator, filters, ranking, rakuten_api, storage
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 SETTINGS_PATH = PROJECT_ROOT / "config" / "settings.yaml"
@@ -57,12 +57,13 @@ def main() -> None:
     endpoint = settings.get("api_endpoint")
     allowed_origin = settings.get("allowed_origin")
     ng_keywords = settings.get("ng_keywords", [])
-    theme_keywords = settings.get("theme_keywords", [])
+    off_theme_keywords = settings.get("off_theme_keywords", [])
     base_hashtags = settings.get("default_hashtags", ["#楽天ROOM", "#暮らしの便利グッズ"])
     posted_item_codes = dedupe.load_posted_item_codes(POSTED_ITEMS_PATH)
     seen_item_codes: set[str] = set()
 
-    candidates = []
+    # フェーズ1: キーワードごとに検索し、条件を満たさない商品・重複を取り除く。
+    filtered_items = []
     for entry in settings["keywords"]:
         keyword, category = _parse_keyword_entry(entry)
 
@@ -84,23 +85,35 @@ def main() -> None:
             min_review_count=criteria["min_review_count"],
         )
         items = filters.filter_by_ng_keywords(items, ng_keywords)
-        items = filters.filter_by_theme_relevance(items, theme_keywords)
+        items = filters.filter_by_off_theme_keywords(items, off_theme_keywords)
         items = dedupe.remove_duplicates(items, posted_item_codes)
         items = dedupe.remove_within_run_duplicates(items, seen_item_codes)
 
         for item in items:
-            item["description"] = description_generator.generate_description(
-                item,
-                category=category,
-                base_hashtags=base_hashtags,
-                max_length=settings.get("description_max_length", 500),
-            )
-            candidates.append(item)
+            item["_category"] = category
+        filtered_items.extend(items)
 
-    # レビュー件数が多い商品（購入・利用されている実績が多い商品）を優先して並べる。
-    candidates.sort(
-        key=lambda item: (item.get("review_count", 0), item.get("review_average", 0)),
-        reverse=True,
+    # フェーズ2: 同じカテゴリ内で用途がほぼ同じ類似商品を1件に絞る。
+    unique_items = ranking.deduplicate_similar_items(
+        filtered_items,
+        similarity_threshold=settings.get("similarity_threshold", 0.55),
+    )
+
+    # フェーズ3: 紹介文を生成する（商品固有の特徴が分かればそれを反映する）。
+    for item in unique_items:
+        item["description"] = description_generator.generate_description(
+            item,
+            category=item["_category"],
+            base_hashtags=base_hashtags,
+            max_length=settings.get("description_max_length", 500),
+        )
+
+    # フェーズ4: レビュー実績順に並べたうえで、上位のカテゴリが偏りすぎないようにする。
+    candidates = ranking.sort_by_quality(unique_items)
+    candidates = ranking.diversify_top(
+        candidates,
+        top_n=settings.get("summary_item_limit", 10),
+        max_per_category=settings.get("summary_max_per_category", 3),
     )
 
     json_path, markdown_path = storage.save_candidates(candidates, CANDIDATES_DIR)
