@@ -85,6 +85,24 @@ def main() -> None:
     print(f"  - 一覧（データ用）: {json_path}")
     print("内容を確認し、良いものを選んで楽天ROOMに手動で投稿してください。")
 
+    write_github_step_summary(
+        storage.build_summary_markdown(candidates, limit=settings.get("summary_item_limit", 10))
+    )
+
+
+def write_github_step_summary(markdown: str) -> None:
+    """GitHub ActionsのSummary欄に候補一覧を書き出す。
+
+    GITHUB_STEP_SUMMARY が設定されていない環境（自分のパソコンでの実行など）では何もしない。
+    スマートフォンでもGitHubの実行結果ページを開くだけで候補を確認できるようにするためのもの。
+    """
+    summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
+    if not summary_path:
+        return
+
+    with open(summary_path, "a", encoding="utf-8") as f:
+        f.write(markdown)
+
 
 if __name__ == "__main__":
     main()
