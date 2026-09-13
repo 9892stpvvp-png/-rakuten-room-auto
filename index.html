@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>楽天ROOM 商品候補ツールについて</title>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
+    line-height: 1.8;
+    color: #222;
+    background: #fafafa;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 24px 20px 60px;
+  }
+  h1 {
+    font-size: 1.5em;
+    border-bottom: 2px solid #bf0000;
+    padding-bottom: 8px;
+  }
+  h2 {
+    font-size: 1.15em;
+    margin-top: 2em;
+    color: #bf0000;
+  }
+  .badge {
+    display: inline-block;
+    background: #eee;
+    color: #555;
+    font-size: 0.85em;
+    padding: 2px 10px;
+    border-radius: 12px;
+    margin-bottom: 1em;
+  }
+  footer {
+    margin-top: 3em;
+    padding-top: 1em;
+    border-top: 1px solid #ddd;
+    font-size: 0.85em;
+    color: #777;
+  }
+  a { color: #bf0000; }
+</style>
+</head>
+<body>
+
+<span class="badge">個人利用ツール・非商用</span>
+<h1>楽天ROOM 商品候補ツールについて</h1>
+
+<p>
+  このページは、楽天市場API（楽天ウェブサービス）を利用して開発している
+  個人利用ツールの案内ページです。
+</p>
+
+<h2>このツールは何をするものですか？</h2>
+<p>
+  楽天ROOMへ投稿する商品候補を探す作業を補助するための、個人利用の小さなツールです。
+  具体的には次のような処理を行います。
+</p>
+<ul>
+  <li>楽天市場APIを使って「暮らしの便利グッズ」などのキーワードで商品情報を検索する</li>
+  <li>レビュー評価やレビュー件数など、あらかじめ決めた条件で商品を絞り込む</li>
+  <li>過去に紹介した商品と重複していないかを確認する</li>
+  <li>楽天ROOMの紹介文欄に貼り付けやすい形の紹介文を自動で作成する</li>
+</ul>
+
+<h2>楽天ROOMへの自動投稿は行いません</h2>
+<p>
+  このツールは商品候補を探して紹介文の下書きを作るところまでを行うものであり、
+  楽天ROOMへの自動投稿や、自動ログインは一切行いません。
+  最終的な内容の確認と投稿は、必ず利用者本人が手動で行います。
+</p>
+
+<h2>個人情報・秘密情報について</h2>
+<p>
+  このページ自体には、APIキーやアプリID、アクセスキーなどの秘密情報、
+  および利用者個人を特定する情報は一切含まれていません。
+  このページは静的な説明のみのページであり、入力フォームや外部への送信機能もありません。
+</p>
+
+<h2>開発について</h2>
+<p>
+  このツールは個人が学習・自己利用の目的で開発しているものであり、
+  商用サービスではありません。ソースコードは以下のリポジトリで公開しています。
+</p>
+<p>
+  <a href="https://github.com/9892stpvvp-png/-rakuten-room-auto" target="_blank" rel="noopener noreferrer">
+    GitHubリポジトリを見る
+  </a>
+</p>
+
+<footer>
+  <p>本ページは楽天ウェブサービスの申請用に用意した案内ページです。</p>
+</footer>
+
+</body>
+</html>
