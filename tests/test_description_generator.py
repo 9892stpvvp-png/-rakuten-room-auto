@@ -152,6 +152,19 @@ REAL_MAGNET_HOOK = make_item(
     ),
 )
 
+REAL_AIR_FRYER = make_item(
+    name=(
+        "【9/13 限定セール★最安値⇒7,990円】SAMKYO ノンフライヤー 4.2L 可視窓 大容量 1-4人用 "
+        "エアフライヤー タッチパネル レシピ付き ノンフライヤー機 電気フライヤー 揚げ物 惣菜 "
+        "1年保証 F40"
+    ),
+    item_caption=(
+        "メーカー希望小売価格はメーカーサイトに基づいて掲載しています 商品説明 "
+        "---------------------------------------------------- 商品紹介 "
+        "--------------------------"
+    ),
+)
+
 
 class RealDataRegressionTest(unittest.TestCase):
     """本番のGitHub Actions実行で実際に取得された商品データを使った回帰テスト。"""
@@ -217,6 +230,15 @@ class RealDataRegressionTest(unittest.TestCase):
         self.assertIn("#収納", description)
         self.assertNotIn("#掃除グッズ", description)
 
+    def test_air_fryer_large_capacity_does_not_use_storage_wording(self):
+        # 本番実行では「大容量」が収納用品向けの「たっぷり収納できる大容量タイプ」に
+        # なってしまい、調理家電として不自然だった。カテゴリは「時短」のまま。
+        category = dg.refine_category(REAL_AIR_FRYER, "時短")
+        self.assertEqual(category, "時短")
+        description = dg.generate_description(REAL_AIR_FRYER, category=category, base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("収納できる大容量タイプ", description)
+        self.assertNotIn("収納", description)
+
 
 class CategoryRefinementTest(unittest.TestCase):
     """refine_category()の基本的な挙動を確認する。"""
@@ -277,7 +299,8 @@ class DescriptionFormatTest(unittest.TestCase):
         item = make_item(name="なんの変哲もない商品")
         description = dg.generate_description(item, category="時短", base_hashtags=BASE_HASHTAGS)
         for _hint_keyword, hint_phrase in dg.FEATURE_HINTS:
-            self.assertNotIn(hint_phrase, description)
+            resolved_phrase = dg._resolve_hint_phrase(hint_phrase, "時短")
+            self.assertNotIn(resolved_phrase, description)
 
     def test_item_caption_is_not_used_for_feature_detection(self):
         # 商品名には特徴語が無く、商品説明にだけ「ステンレス」がある場合、

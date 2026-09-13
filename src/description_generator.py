@@ -155,17 +155,36 @@ def _contains_any(text: str, words: list[str]) -> bool:
 # 商品名から検出できたときだけ使う、商品の設計・仕様に関する具体的な言い回し。
 # 検出したキーワードそのものではなく、商品情報から読み取れる客観的な特徴
 # （構造・素材・使い方）だけを表す表現にとどめ、効果や体験談は含めない。
-FEATURE_HINTS: list[tuple[str, str]] = [
+#
+# 値は基本的に固定の文言（str）だが、カテゴリによって自然な表現が変わる言葉
+# （例：「大容量」は収納用品なら「収納できる」だが、調理家電なら「調理しやすい」）
+# は、カテゴリ名をキーにした辞書（dict）にして、カテゴリに応じた文言を選べるようにしている。
+FEATURE_HINTS: list[tuple[str, str | dict[str, str]]] = [
     ("マグネット", "マグネットで浮かせて設置できるタイプ"),
     ("吸盤", "吸盤で好きな場所に取り付けられるタイプ"),
-    ("吊り下げ", "吊り下げて収納できるタイプ"),
+    (
+        "吊り下げ",
+        {
+            "収納": "吊り下げて収納できるタイプ",
+            DEFAULT_CATEGORY: "吊り下げて使えるタイプ",
+        },
+    ),
     ("突っ張り", "つっぱり棒式で取り付けやすいタイプ"),
     ("折りたた", "使わないときはコンパクトに折りたためる"),
     ("折り畳み", "使わないときはコンパクトに折りたためる"),
     ("水切り", "水切りしやすい設計"),
     ("防水", "水回りでも使いやすい防水仕様"),
     ("スリム", "省スペースに置きやすいスリム設計"),
-    ("大容量", "たっぷり収納できる大容量タイプ"),
+    (
+        "大容量",
+        {
+            "収納": "たっぷり収納できる大容量タイプ",
+            "キッチン": "一度にたっぷり調理しやすい容量",
+            "時短": "一度にたっぷり使える大容量タイプ",
+            "掃除": "一度にたっぷり集められる大容量タイプ",
+            DEFAULT_CATEGORY: "たっぷり使える大容量タイプ",
+        },
+    ),
     ("軽量", "持ち運びしやすい軽量設計"),
     ("シリコン", "お手入れしやすいシリコン素材"),
     ("ステンレス", "サビに強いステンレス製"),
@@ -178,6 +197,13 @@ FEATURE_HINTS: list[tuple[str, str]] = [
     ("充電式", "繰り返し使える充電式タイプ"),
     ("コードレス", "コードレスで扱いやすいタイプ"),
 ]
+
+
+def _resolve_hint_phrase(phrase: str | dict[str, str], category: str) -> str:
+    """FEATURE_HINTSの値（固定文言、またはカテゴリ別の文言辞書）から実際の文言を選ぶ。"""
+    if isinstance(phrase, dict):
+        return phrase.get(category, phrase.get(DEFAULT_CATEGORY, ""))
+    return phrase
 
 
 def generate_description(
@@ -196,7 +222,7 @@ def generate_description(
     intro_variants = INTRO_VARIANTS[category]
     intro = intro_variants[seed % len(intro_variants)]
 
-    feature_points = _feature_hint_points(item.get("name", "") or "", max_hints=2)
+    feature_points = _feature_hint_points(item.get("name", "") or "", category, max_hints=2)
 
     point_variants = POINT_VARIANTS[category]
     idx = seed
@@ -227,12 +253,14 @@ def generate_description(
     return description
 
 
-def _feature_hint_points(searchable_text: str, max_hints: int) -> list[str]:
-    """商品名から、具体的な特徴の言い回しを検出する。"""
+def _feature_hint_points(searchable_text: str, category: str, max_hints: int) -> list[str]:
+    """商品名から、具体的な特徴の言い回しを検出する（カテゴリに応じた表現で）。"""
     matched: list[str] = []
-    for keyword, phrase in FEATURE_HINTS:
-        if keyword in searchable_text and phrase not in matched:
-            matched.append(phrase)
+    for keyword, phrase_spec in FEATURE_HINTS:
+        if keyword in searchable_text:
+            phrase = _resolve_hint_phrase(phrase_spec, category)
+            if phrase and phrase not in matched:
+                matched.append(phrase)
         if len(matched) >= max_hints:
             break
     return matched
