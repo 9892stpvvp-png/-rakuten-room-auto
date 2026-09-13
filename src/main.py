@@ -48,6 +48,7 @@ def main() -> None:
     settings = load_settings()
     criteria = settings["selection_criteria"]
     endpoint = settings.get("api_endpoint")
+    allowed_origin = settings.get("allowed_origin")
     posted_item_codes = dedupe.load_posted_item_codes(POSTED_ITEMS_PATH)
 
     candidates = []
@@ -59,6 +60,7 @@ def main() -> None:
                 access_key=access_key,
                 hits=settings.get("items_per_keyword", 10),
                 endpoint=endpoint,
+                allowed_origin=allowed_origin,
             )
         except rakuten_api.RakutenApiError as exc:
             raise SystemExit(str(exc)) from exc
