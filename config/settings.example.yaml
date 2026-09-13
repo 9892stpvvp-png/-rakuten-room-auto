@@ -99,9 +99,8 @@ items_per_keyword: 15
 description_max_length: 500
 
 # 紹介文の末尾につける、全カテゴリ共通のハッシュタグ。
-# （カテゴリ別のハッシュタグは自動で追加される）
+# （カテゴリ別のハッシュタグ・商品名から推測した追加ハッシュタグは自動で追加される）
 default_hashtags:
-  - "#楽天ROOM"
   - "#暮らしの便利グッズ"
 
 # GitHub Actionsの実行結果画面（Summary）に表示する候補の件数
