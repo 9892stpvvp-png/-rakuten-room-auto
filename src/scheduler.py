@@ -1,12 +1,13 @@
-"""商品候補検索を「毎日、日本時間19:30〜21:00のランダムな1分」に自動実行する
-ための、スケジュール決定・発火判定のロジック。
+"""商品候補検索を「毎日、日本時間19:30〜21:00の5分刻みのランダムな時刻」に
+自動実行するための、スケジュール決定・発火判定のロジック。
 
 ## 仕組み
 
 1. 毎日 日本時間19:30（`.github/workflows/schedule_next_run.yml`）に、
-   「翌日」の19:30〜21:00の範囲から1分単位でランダムな時刻を1つ選び、
+   「翌日」の19:30〜21:00の範囲（19:30, 19:35, 19:40, ..., 20:55, 21:00の
+   19通り）から5分単位でランダムな時刻を1つ選び、
    `data/schedule/schedule_log.json` に追記する（`decide` コマンド）。
-2. 日本時間19:30〜21:00の間、1分おきに
+2. 日本時間19:30〜21:00の間、5分おきに
    `.github/workflows/run_scheduled_search.yml` が実行され、
    「今日の予定時刻に達しているか」を確認する（`check` コマンド）。
    達していれば、そのワークフローが `search_candidates.yml`
@@ -17,20 +18,21 @@
 このモジュールから一切変更しない。あくまで「いつ起動するか」だけを
 決める部分。
 
-## なぜ「90分sleepして待つ」方式を使わないか
+## なぜ「sleepして待つ」方式を使わないか
 
-1つのジョブが90分間sleepし続ける方式は、その間ずっとRunnerを専有してしまい、
-途中で失敗した場合にもリカバリーしにくい。代わりに、GitHub Actionsの
-`schedule`（cron）トリガーを1分刻みで設定し、日本時間19:30〜21:00の間、
-短時間で終わる「確認だけ」のジョブを繰り返し実行する方式にしている
-（各ジョブは数秒で終わり、対象時刻でなければ何もせず終了する）。
+1つのジョブがsleepし続けて対象時刻を待つ方式は、その間ずっとRunnerを
+専有してしまい、途中で失敗した場合にもリカバリーしにくい。代わりに、
+GitHub Actionsの`schedule`（cron）トリガーを5分刻みで設定し、日本時間
+19:30〜21:00の間、短時間で終わる「確認だけ」のジョブを繰り返し実行する
+方式にしている（各ジョブは数秒で終わり、対象時刻でなければ何もせず終了する。
+sleepは一切使わない）。
 
 ## 状態の持ち方（`data/schedule/schedule_log.json`）
 
 日付ごとのエントリの配列。「翌日分を決める処理」と「今日の予定を確認する処理」
 が同じ19:30台に重なっても壊れないよう、両者を1つの値で共有せず、日付をキーに
 した別々のエントリとして持たせている（例：ある日の19:30に翌日分を新規追加
-する時点で、その日自身の予定がまだ未発火（例：20:52予定）ということがあり
+する時点で、その日自身の予定がまだ未発火（例：20:50予定）ということがあり
 うるため）。
 """
 
@@ -48,10 +50,12 @@ from typing import Any
 JST = timezone(timedelta(hours=9))
 UTC = timezone.utc
 
-# 実行時刻の範囲：日本時間19:30〜21:00（両端を含む、91通りの1分刻み）。
+# 実行時刻の範囲：日本時間19:30〜21:00（両端を含む、5分刻みで19通り：
+# 19:30, 19:35, 19:40, ..., 20:50, 20:55, 21:00）。
 WINDOW_START_HOUR, WINDOW_START_MINUTE = 19, 30
 WINDOW_END_HOUR, WINDOW_END_MINUTE = 21, 0
-WINDOW_MINUTES = 91
+STEP_MINUTES = 5
+WINDOW_STEP_COUNT = 19  # (21:00 - 19:30) / 5分 + 1
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 SCHEDULE_LOG_PATH = PROJECT_ROOT / "data" / "schedule" / "schedule_log.json"
@@ -61,15 +65,16 @@ KEEP_DAYS = 14
 
 
 def pick_random_time_jst(target_date: date, rng: random.Random | None = None) -> datetime:
-    """target_date（日本時間の日付）の19:30〜21:00の範囲から、1分単位で
-    ランダムな時刻（タイムゾーン付きdatetime、日本時間）を1つ選ぶ。"""
+    """target_date（日本時間の日付）の19:30〜21:00の範囲から、5分単位で
+    ランダムな時刻（タイムゾーン付きdatetime、日本時間）を1つ選ぶ
+    （19:30, 19:35, ..., 20:55, 21:00 の19通りから1つ）。"""
     rng = rng if rng is not None else random.Random()
-    offset_minutes = rng.randint(0, WINDOW_MINUTES - 1)
+    step_index = rng.randint(0, WINDOW_STEP_COUNT - 1)
     start = datetime(
         target_date.year, target_date.month, target_date.day,
         WINDOW_START_HOUR, WINDOW_START_MINUTE, tzinfo=JST,
     )
-    return start + timedelta(minutes=offset_minutes)
+    return start + timedelta(minutes=step_index * STEP_MINUTES)
 
 
 def load_schedule_log(path: Path | None = None) -> list[dict[str, Any]]:

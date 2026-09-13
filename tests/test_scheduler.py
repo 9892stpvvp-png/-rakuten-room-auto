@@ -1,6 +1,6 @@
 """商品候補検索の自動実行スケジュール（src/scheduler.py）の回帰テスト。
 
-「日本時間19:30〜21:00の範囲から1分単位でランダムな時刻を選ぶ」処理と、
+「日本時間19:30〜21:00の範囲から5分単位でランダムな時刻を選ぶ」処理と、
 「同じ日に2回自動実行しない」ための発火判定ロジックを確認する。
 実際のファイル入出力やGitHub Actionsには依存せず、日時計算の部分だけを
 テストする（`entries`・`now_utc`を直接渡せるようにしてあるため）。
@@ -26,7 +26,7 @@ def _utc(text: str) -> datetime:
 
 
 class PickRandomTimeTest(unittest.TestCase):
-    """19:30〜21:00の範囲・1分単位、という条件そのものを確認する。"""
+    """19:30〜21:00の範囲・5分単位、という条件そのものを確認する。"""
 
     def test_result_is_always_within_window(self):
         target = date(2026, 9, 14)
@@ -41,40 +41,58 @@ class PickRandomTimeTest(unittest.TestCase):
                 (result.hour, result.minute), (sch.WINDOW_END_HOUR, sch.WINDOW_END_MINUTE)
             )
 
-    def test_result_is_minute_granularity(self):
+    def test_result_is_five_minute_granularity(self):
+        # 分が必ず 00,05,10,...,55 のいずれかになることを確認する。
         target = date(2026, 9, 14)
         for seed in range(200):
             rng = random.Random(seed)
             result = sch.pick_random_time_jst(target, rng)
             self.assertEqual(result.second, 0)
             self.assertEqual(result.microsecond, 0)
+            self.assertEqual(result.minute % 5, 0)
+            self.assertIn(result.minute, {0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55})
 
     def test_lower_boundary_is_reachable(self):
-        # rng.randint(0, 90) が 0 を返したとき、19:30ちょうどになることを確認する。
+        # rng.randint(0, 18) が 0 を返したとき、19:30ちょうどになることを確認する。
         rng = random.Random()
         rng.randint = lambda a, b: 0  # type: ignore[method-assign]
         result = sch.pick_random_time_jst(date(2026, 9, 14), rng)
         self.assertEqual((result.hour, result.minute), (19, 30))
 
     def test_upper_boundary_is_reachable_and_not_exceeded(self):
-        # rng.randint(0, 90) が 90 を返したとき、21:00ちょうどになる
+        # rng.randint(0, 18) が 18 を返したとき、21:00ちょうどになる
         # （21:00を超えることはない）ことを確認する。
         rng = random.Random()
-        rng.randint = lambda a, b: 90  # type: ignore[method-assign]
+        rng.randint = lambda a, b: 18  # type: ignore[method-assign]
         result = sch.pick_random_time_jst(date(2026, 9, 14), rng)
         self.assertEqual((result.hour, result.minute), (21, 0))
 
-    def test_window_covers_exactly_91_distinct_minutes(self):
+    def test_window_covers_exactly_the_19_five_minute_slots(self):
+        # 19:30, 19:35, 19:40, ..., 20:55, 21:00 の19通りすべてが
+        # 選ばれうることを確認する。
         target = date(2026, 9, 14)
+        expected = set()
+        h, m = 19, 30
+        for _ in range(sch.WINDOW_STEP_COUNT):
+            expected.add((h, m))
+            m += 5
+            if m >= 60:
+                m -= 60
+                h += 1
+        self.assertEqual(len(expected), 19)
+
         seen = set()
-        for offset in range(sch.WINDOW_MINUTES):
+        for offset in range(sch.WINDOW_STEP_COUNT):
             rng = random.Random()
             rng.randint = lambda a, b, offset=offset: offset  # type: ignore[method-assign]
             result = sch.pick_random_time_jst(target, rng)
             seen.add((result.hour, result.minute))
-        self.assertEqual(len(seen), 91)
+        self.assertEqual(len(seen), 19)
+        self.assertEqual(seen, expected)
         self.assertIn((19, 30), seen)
         self.assertIn((21, 0), seen)
+        for _hour, minute in seen:
+            self.assertEqual(minute % 5, 0)
 
 
 class DecideNextRunTest(unittest.TestCase):
@@ -114,14 +132,14 @@ class DecideNextRunTest(unittest.TestCase):
 
     def test_does_not_disturb_todays_still_pending_entry(self):
         # 「今日(2026-09-13)自身の予定」がまだ発火していない状態
-        # （例：19:30時点ではまだ来ていない20:52予定）で翌日分を決めても、
+        # （例：19:30時点ではまだ来ていない20:50予定）で翌日分を決めても、
         # 今日の未発火エントリが消えたり上書きされたりしないことを確認する
         # （19:30の「翌日分決定」と「今日の発火判定」が同じ時刻に重なる
         # レースを避けるための設計）。
         todays_pending = {
             "date": "2026-09-13",
-            "time_jst": "20:52",
-            "datetime_utc": "2026-09-13T11:52:00Z",
+            "time_jst": "20:50",
+            "datetime_utc": "2026-09-13T11:50:00Z",
             "fired": False,
             "decided_at_utc": "2026-09-12T10:30:00Z",
         }
@@ -133,7 +151,7 @@ class DecideNextRunTest(unittest.TestCase):
         self.assertEqual(dates, ["2026-09-13", "2026-09-14"])
         still_there = next(e for e in entries if e["date"] == "2026-09-13")
         self.assertFalse(still_there["fired"])
-        self.assertEqual(still_there["time_jst"], "20:52")
+        self.assertEqual(still_there["time_jst"], "20:50")
 
     def test_prunes_entries_older_than_keep_days(self):
         old_entry = {
@@ -154,8 +172,8 @@ class FindDueEntryTest(unittest.TestCase):
     def _entry(self, **overrides):
         base = {
             "date": "2026-09-14",
-            "time_jst": "20:17",
-            "datetime_utc": "2026-09-14T11:17:00Z",
+            "time_jst": "20:15",
+            "datetime_utc": "2026-09-14T11:15:00Z",
             "fired": False,
         }
         base.update(overrides)
@@ -163,12 +181,12 @@ class FindDueEntryTest(unittest.TestCase):
 
     def test_not_due_before_target_time(self):
         entries = [self._entry()]
-        now_utc = _utc("2026-09-14T11:16:00Z")
+        now_utc = _utc("2026-09-14T11:10:00Z")
         self.assertIsNone(sch.find_due_entry(now_utc, entries))
 
     def test_due_exactly_at_target_time(self):
         entries = [self._entry()]
-        now_utc = _utc("2026-09-14T11:17:00Z")
+        now_utc = _utc("2026-09-14T11:15:00Z")
         result = sch.find_due_entry(now_utc, entries)
         self.assertIsNotNone(result)
         assert result is not None
@@ -183,7 +201,7 @@ class FindDueEntryTest(unittest.TestCase):
         self.assertIsNotNone(sch.find_due_entry(now_utc, entries))
 
     def test_not_due_once_fired(self):
-        entries = [self._entry(fired=True, fired_at_utc="2026-09-14T11:17:05Z")]
+        entries = [self._entry(fired=True, fired_at_utc="2026-09-14T11:15:05Z")]
         now_utc = _utc("2026-09-14T12:00:00Z")
         self.assertIsNone(sch.find_due_entry(now_utc, entries))
 
@@ -197,7 +215,7 @@ class FindDueEntryTest(unittest.TestCase):
     def test_only_todays_entry_is_considered_among_multiple(self):
         entries = [
             self._entry(date="2026-09-13", time_jst="19:45", datetime_utc="2026-09-13T10:45:00Z", fired=True),
-            self._entry(date="2026-09-14", time_jst="20:17", datetime_utc="2026-09-14T11:17:00Z"),
+            self._entry(date="2026-09-14", time_jst="20:15", datetime_utc="2026-09-14T11:15:00Z"),
             self._entry(date="2026-09-15", time_jst="19:40", datetime_utc="2026-09-15T10:40:00Z"),
         ]
         now_utc = _utc("2026-09-14T11:20:00Z")
@@ -213,25 +231,25 @@ class MarkFiredTest(unittest.TestCase):
         entries = [
             {
                 "date": "2026-09-14",
-                "time_jst": "20:17",
-                "datetime_utc": "2026-09-14T11:17:00Z",
+                "time_jst": "20:15",
+                "datetime_utc": "2026-09-14T11:15:00Z",
                 "fired": False,
             }
         ]
-        now_utc = _utc("2026-09-14T11:17:03Z")
+        now_utc = _utc("2026-09-14T11:15:03Z")
         updated, marked = sch.mark_fired(entries, "2026-09-14", now_utc)
         self.assertTrue(marked)
         self.assertTrue(updated[0]["fired"])
-        self.assertEqual(updated[0]["fired_at_utc"], "2026-09-14T11:17:03Z")
+        self.assertEqual(updated[0]["fired_at_utc"], "2026-09-14T11:15:03Z")
 
     def test_returns_false_when_already_fired(self):
         entries = [
             {
                 "date": "2026-09-14",
-                "time_jst": "20:17",
-                "datetime_utc": "2026-09-14T11:17:00Z",
+                "time_jst": "20:15",
+                "datetime_utc": "2026-09-14T11:15:00Z",
                 "fired": True,
-                "fired_at_utc": "2026-09-14T11:17:05Z",
+                "fired_at_utc": "2026-09-14T11:15:05Z",
             }
         ]
         now_utc = _utc("2026-09-14T11:20:00Z")
