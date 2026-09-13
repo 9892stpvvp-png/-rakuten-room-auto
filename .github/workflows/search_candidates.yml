@@ -1,0 +1,37 @@
+name: 商品候補を検索する
+
+# 「Actions」タブから手動で実行するためのトリガー。
+# 自動投稿は一切行わず、候補一覧ファイルを作成するだけのワークフロー。
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  search:
+    runs-on: ubuntu-latest
+    steps:
+      - name: リポジトリを取得
+        uses: actions/checkout@v4
+
+      - name: Pythonをセットアップ
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 必要なライブラリをインストール
+        run: pip install -r requirements.txt
+
+      - name: 商品候補を検索して候補一覧を作成
+        env:
+          RAKUTEN_APP_ID: ${{ secrets.RAKUTEN_APP_ID }}
+          RAKUTEN_ACCESS_KEY: ${{ secrets.RAKUTEN_ACCESS_KEY }}
+        run: python -m src.main
+
+      - name: 候補一覧をActionsの成果物として保存
+        uses: actions/upload-artifact@v4
+        with:
+          name: rakuten-room-candidates
+          path: data/candidates/
+          if-no-files-found: warn

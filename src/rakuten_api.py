@@ -1,6 +1,14 @@
 """楽天ウェブサービス（公式API）から商品情報を取得する部分。
 
 ROOMへの投稿やログインは一切行わない。ここで扱うのは商品検索APIのみ。
+
+注意：楽天ウェブサービスは2026年にAPIの基盤が刷新され、エンドポイントのドメインが
+app.rakuten.co.jp から openapi.rakuten.co.jp に変わり、認証にアプリID
+（applicationId）に加えてアクセスキー（accessKey）が必要になった。
+この変更に合わせて実装しているが、楽天側の仕様は今後も変わる可能性があるため、
+エラーが出る場合は最新の公式ドキュメント
+（https://webservice.rakuten.co.jp/documentation/ichiba-item-search）を確認し、
+必要であれば config/settings.yaml の api_endpoint を書き換えること。
 """
 
 from __future__ import annotations
@@ -10,23 +18,35 @@ from typing import Any
 
 import requests
 
-SEARCH_ENDPOINT = "https://app.rakuten.co.jp/services/api/IchibaItem/Search/20220601"
+DEFAULT_SEARCH_ENDPOINT = "https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20260701"
 
 # 楽天ウェブサービスのレート制限を守るため、リクエストの間隔を空ける（秒）。
 REQUEST_INTERVAL_SECONDS = 1.1
 
 
+class RakutenApiError(RuntimeError):
+    """楽天ウェブサービスの呼び出しに失敗したことを表すエラー。
+
+    メッセージにはHTTPステータスコードなどの情報のみを含み、
+    アプリIDやアクセスキーの値そのものは絶対に含めない。
+    """
+
+
 def search_items(
     keyword: str,
     app_id: str,
+    access_key: str | None = None,
     hits: int = 10,
+    endpoint: str | None = None,
 ) -> list[dict[str, Any]]:
     """キーワードで商品を検索し、必要な項目だけを取り出して返す。
 
     Args:
         keyword: 検索キーワード（例: "掃除 便利グッズ"）
         app_id: 楽天ウェブサービスのアプリID
+        access_key: 楽天ウェブサービスのアクセスキー（発行されている場合）
         hits: 取得したい商品件数（最大30）
+        endpoint: APIのエンドポイントURL（省略時はDEFAULT_SEARCH_ENDPOINT）
 
     Returns:
         商品情報の辞書のリスト
@@ -37,11 +57,24 @@ def search_items(
         "hits": hits,
         "sort": "-reviewCount",  # レビュー件数が多い順（売れ行き・購入動向の目安）
     }
+    if access_key:
+        params["accessKey"] = access_key
 
-    response = requests.get(SEARCH_ENDPOINT, params=params, timeout=10)
-    response.raise_for_status()
+    try:
+        response = requests.get(endpoint or DEFAULT_SEARCH_ENDPOINT, params=params, timeout=10)
+        response.raise_for_status()
+    except requests.exceptions.HTTPError as exc:
+        status = exc.response.status_code if exc.response is not None else "不明"
+        raise RakutenApiError(
+            f"楽天ウェブサービスの呼び出しに失敗しました（キーワード: {keyword} / HTTPステータス: {status}）。"
+            "アプリID・アクセスキーが正しいか、また公式ドキュメントでAPI仕様が変わっていないかを確認してください。"
+        ) from exc
+    except requests.exceptions.RequestException as exc:
+        raise RakutenApiError(
+            f"楽天ウェブサービスへの通信中にエラーが発生しました（キーワード: {keyword}）: {type(exc).__name__}"
+        ) from exc
+
     payload = response.json()
-
     items = [_extract_item(entry["Item"]) for entry in payload.get("Items", [])]
 
     # 連続してAPIを叩くときにレート制限にかからないよう待機する。
