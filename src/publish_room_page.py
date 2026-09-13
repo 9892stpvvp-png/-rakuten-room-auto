@@ -43,7 +43,14 @@ def build_room_page_data(
     now_jst = now_utc.astimezone(JST)
 
     items = []
+    convenience_count = 0
+    consumable_count = 0
     for item in candidates[:limit]:
+        group_label = item.get("_display_group", "")
+        if group_label == "便利グッズ":
+            convenience_count += 1
+        elif group_label in ("消耗品", "飲料"):
+            consumable_count += 1
         items.append(
             {
                 "item_code": item.get("item_code", ""),
@@ -55,12 +62,16 @@ def build_room_page_data(
                 "image_url": item.get("image_url", ""),
                 "description": item.get("description", ""),
                 "category": item.get("_category", ""),
+                # 投稿ページのカード・上部の内訳表示（便利グッズ／消耗品／飲料）用。
+                "group_label": group_label,
             }
         )
 
     return {
         "generated_at_jst": now_jst.strftime("%Y/%m/%d %H:%M"),
         "items": items,
+        "convenience_count": convenience_count,
+        "consumable_count": consumable_count,
     }
 
 

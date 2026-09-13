@@ -88,6 +88,29 @@ class BuildRoomPageDataTest(unittest.TestCase):
         self.assertEqual(item["price"], 0)
         self.assertEqual(item["review_average"], 0)
         self.assertEqual(item["review_count"], 0)
+        self.assertEqual(item["group_label"], "")
+
+    def test_group_label_is_included_for_room_page_badge(self):
+        convenience = make_candidate(item_code="a", _display_group="便利グッズ")
+        consumable = make_candidate(item_code="b", _display_group="消耗品")
+        beverage = make_candidate(item_code="c", _display_group="飲料")
+
+        data = pub.build_room_page_data([convenience, consumable, beverage])
+
+        labels = [item["group_label"] for item in data["items"]]
+        self.assertEqual(labels, ["便利グッズ", "消耗品", "飲料"])
+
+    def test_convenience_and_consumable_counts_are_aggregated(self):
+        candidates = (
+            [make_candidate(item_code=f"conv{i}", _display_group="便利グッズ") for i in range(5)]
+            + [make_candidate(item_code=f"cons{i}", _display_group="消耗品") for i in range(3)]
+            + [make_candidate(item_code=f"bev{i}", _display_group="飲料") for i in range(2)]
+        )
+
+        data = pub.build_room_page_data(candidates)
+
+        self.assertEqual(data["convenience_count"], 5)
+        self.assertEqual(data["consumable_count"], 5)
 
 
 class FindLatestCandidatesJsonTest(unittest.TestCase):

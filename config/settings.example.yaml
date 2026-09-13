@@ -13,20 +13,68 @@ api_endpoint: "https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/2026
 # 登録したURLと1文字でも違うと403になるので注意（末尾のスラッシュやhttp/httpsの違いも含む）。
 allowed_origin: "https://9892stpvvp-png.github.io/-rakuten-room-auto/"
 
-# 楽天ウェブサービスAPIで検索するキーワード（テーマ：暮らしの便利グッズ）。
-# category は紹介文の言い回し・ハッシュタグを選ぶために使う
-# （掃除／収納／キッチン／時短／暮らし全般のいずれか）。
+# 楽天ウェブサービスAPIで検索するキーワード。
+# 毎日の投稿候補10件は、「暮らしの便利グッズ」枠5件＋「消耗品・飲料」枠5件で
+# 選ばれる（片方が5件に満たない場合だけ、もう片方の枠から補充する）。
+# - group: どちらの枠の商品として検索するか（convenience=暮らしの便利グッズ／
+#   consumable=消耗品・飲料）。省略した場合はconvenience扱いになる。
+# - category: 紹介文の言い回し・ハッシュタグを選ぶために使う。
+#   便利グッズ枠は「掃除／収納／キッチン／時短／暮らし全般」、
+#   消耗品・飲料枠は「洗剤／キッチン消耗品／日用品／水／お茶／ジュース」のいずれか。
 keywords:
+  # --- 暮らしの便利グッズ（5件） ---
   - keyword: "掃除 便利グッズ"
     category: "掃除"
+    group: "convenience"
   - keyword: "収納 便利グッズ"
     category: "収納"
+    group: "convenience"
   - keyword: "キッチン 時短グッズ"
     category: "キッチン"
+    group: "convenience"
   - keyword: "時短家電"
     category: "時短"
+    group: "convenience"
   - keyword: "生活雑貨 便利グッズ"
     category: "暮らし全般"
+    group: "convenience"
+  # --- 消耗品・飲料（5件）。繰り返し購入されやすい日用品・飲料を対象にする ---
+  - keyword: "洗濯洗剤"
+    category: "洗剤"
+    group: "consumable"
+  - keyword: "食器用洗剤"
+    category: "洗剤"
+    group: "consumable"
+  - keyword: "キッチンスポンジ"
+    category: "キッチン消耗品"
+    group: "consumable"
+  - keyword: "食品用ラップ"
+    category: "キッチン消耗品"
+    group: "consumable"
+  - keyword: "トイレットペーパー"
+    category: "日用品"
+    group: "consumable"
+  - keyword: "掃除シート"
+    category: "日用品"
+    group: "consumable"
+  - keyword: "ミネラルウォーター"
+    category: "水"
+    group: "consumable"
+  - keyword: "炭酸水"
+    category: "水"
+    group: "consumable"
+  - keyword: "緑茶 ペットボトル"
+    category: "お茶"
+    group: "consumable"
+  - keyword: "麦茶 ペットボトル"
+    category: "お茶"
+    group: "consumable"
+  - keyword: "野菜ジュース"
+    category: "ジュース"
+    group: "consumable"
+  - keyword: "100%ジュース"
+    category: "ジュース"
+    group: "consumable"
 
 # 商品選定条件（必須）
 selection_criteria:
@@ -84,13 +132,45 @@ off_theme_keywords:
   - "ぬいぐるみ"
   - "フィギュア"
 
+# 商品名・商品説明にこれらの言葉が含まれる場合、ビール・チューハイ・ワインなどの
+# アルコール飲料とみなして候補から除外する（「消耗品・飲料」枠の飲料カテゴリ
+# 〈水／お茶／ジュース〉にだけ適用する）。
+alcohol_keywords:
+  - "ビール"
+  - "発泡酒"
+  - "チューハイ"
+  - "缶チューハイ"
+  - "酎ハイ"
+  - "カクテル"
+  - "ワイン"
+  - "日本酒"
+  - "焼酎"
+  - "ウイスキー"
+  - "ウィスキー"
+  - "ハイボール"
+  - "スピリッツ"
+  - "リキュール"
+  - "梅酒"
+  - "サワー"
+  - "アルコール"
+
 # 同じカテゴリ内で商品名の類似度がこの値以上の場合、「用途がほぼ同じ類似商品」とみなし、
 # レビュー評価・レビュー件数が良い方の1件だけを残す（0.0〜1.0、値が大きいほど厳しく判定）。
 similarity_threshold: 0.55
 
-# Summaryの上位表示で、同じカテゴリの商品を最大何件まで連続して入れてよいか
-# （偏りすぎを防ぎつつ、無理に均等にはしない）。
+# 毎日の投稿候補10件の内訳（「暮らしの便利グッズ」枠と「消耗品・飲料」枠を
+# それぞれ何件選ぶか）。片方の枠が不足する場合だけ、もう片方の枠から補充する。
+convenience_target: 5
+consumable_target: 5
+
+# 「暮らしの便利グッズ」枠の上位表示で、同じカテゴリの商品を最大何件まで
+# 連続して入れてよいか（偏りすぎを防ぎつつ、無理に均等にはしない）。
 summary_max_per_category: 3
+
+# 「消耗品・飲料」枠の5件が、同じカテゴリ（水・洗剤など）に偏りすぎないように
+# 最大何件まで連続して入れてよいか。便利グッズ枠より小さい値にして、
+# 5件の中でカテゴリが分散しやすくしている。
+consumable_max_per_category: 2
 
 # キーワード1件あたりの取得件数（多すぎるとAPIの負荷が上がるので控えめに）
 items_per_keyword: 15

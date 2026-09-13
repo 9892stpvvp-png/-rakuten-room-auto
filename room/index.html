@@ -47,6 +47,32 @@
   .progress b {
     font-size: 1.05em;
   }
+  .group-breakdown {
+    width: 100%;
+    font-size: 0.85em;
+    color: #666;
+    border-top: 1px dashed #e3ddd2;
+    margin-top: 8px;
+    padding-top: 8px;
+  }
+  .group-badge {
+    display: inline-block;
+    font-size: 0.78em;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+    margin-bottom: 10px;
+    background: #eef2f7;
+    color: #35577a;
+  }
+  .group-badge.is-consumable {
+    background: #fdf1e3;
+    color: #9a5b17;
+  }
+  .group-badge.is-beverage {
+    background: #e6f5ee;
+    color: #1c7a52;
+  }
   .filter-row {
     display: flex;
     justify-content: flex-end;
@@ -203,6 +229,7 @@
   <span>今日の投稿候補：<b id="totalCount">-</b>件</span>
   <span>投稿済み：<b id="postedCount">-</b>件</span>
   <span>残り：<b id="remainingCount">-</b>件</span>
+  <div class="group-breakdown" id="groupBreakdown"></div>
 </div>
 
 <div class="filter-row">
@@ -299,6 +326,18 @@
     document.getElementById("totalCount").textContent = total;
     document.getElementById("postedCount").textContent = posted;
     document.getElementById("remainingCount").textContent = total - posted;
+
+    var convenienceCount = state.items.filter(function (item) {
+      return item.group_label === "便利グッズ";
+    }).length;
+    var consumableCount = total - convenienceCount;
+    var breakdownEl = document.getElementById("groupBreakdown");
+    if (breakdownEl) {
+      breakdownEl.textContent =
+        total === 0
+          ? ""
+          : "内訳：便利グッズ " + convenienceCount + "件 / 消耗品・飲料 " + consumableCount + "件";
+    }
   }
 
   function applyFilter() {
@@ -349,6 +388,19 @@
       badge.className = "posted-badge";
       badge.textContent = "投稿済み ✓";
       card.appendChild(badge);
+    }
+
+    if (item.group_label) {
+      var groupBadge = document.createElement("span");
+      var groupBadgeClass = "group-badge";
+      if (item.group_label === "消耗品") {
+        groupBadgeClass += " is-consumable";
+      } else if (item.group_label === "飲料") {
+        groupBadgeClass += " is-beverage";
+      }
+      groupBadge.className = groupBadgeClass;
+      groupBadge.textContent = item.group_label;
+      card.appendChild(groupBadge);
     }
 
     var img = document.createElement("img");

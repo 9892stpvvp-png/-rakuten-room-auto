@@ -49,6 +49,20 @@ def filter_by_off_theme_keywords(
     return [item for item in items if not _contains_any(_searchable_text(item), off_theme_keywords)]
 
 
+def filter_by_alcohol_keywords(
+    items: list[dict[str, Any]],
+    alcohol_keywords: list[str],
+) -> list[dict[str, Any]]:
+    """ビール・チューハイ・ワインなど、アルコール飲料とみられる商品を除外する。
+
+    「消耗品・飲料」枠の飲料カテゴリ（水・お茶・ジュース）にだけ適用する想定。
+    商品名・キャッチコピー・商品説明にアルコール関連の言葉が含まれているかどうかで判定する。
+    """
+    if not alcohol_keywords:
+        return items
+    return [item for item in items if not _contains_any(_searchable_text(item), alcohol_keywords)]
+
+
 def _searchable_text(item: dict[str, Any]) -> str:
     return f"{item.get('name', '')} {item.get('catch_copy', '')} {item.get('item_caption', '')}"
 

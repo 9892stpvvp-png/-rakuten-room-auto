@@ -27,11 +27,30 @@ def load_settings() -> dict:
         return yaml.safe_load(f)
 
 
-def _parse_keyword_entry(entry: str | dict) -> tuple[str, str]:
-    """settings.yamlのkeywords要素から (検索キーワード, カテゴリ名) を取り出す。"""
+def _parse_keyword_entry(entry: str | dict) -> tuple[str, str, str]:
+    """settings.yamlのkeywords要素から (検索キーワード, カテゴリ名, 枠) を取り出す。
+
+    「枠」は ranking.CONVENIENCE_GROUP（暮らしの便利グッズ）か
+    ranking.CONSUMABLE_GROUP（消耗品・飲料）のいずれか。省略された場合、
+    または文字列だけのエントリの場合は、これまでどおり「暮らしの便利グッズ」
+    として扱う。
+    """
     if isinstance(entry, dict):
-        return entry["keyword"], entry.get("category", description_generator.DEFAULT_CATEGORY)
-    return entry, description_generator.DEFAULT_CATEGORY
+        return (
+            entry["keyword"],
+            entry.get("category", description_generator.DEFAULT_CATEGORY),
+            entry.get("group", ranking.CONVENIENCE_GROUP),
+        )
+    return entry, description_generator.DEFAULT_CATEGORY, ranking.CONVENIENCE_GROUP
+
+
+def _display_group(group: str, category: str) -> str:
+    """スマホ投稿ページ（room/）に表示する小さなカテゴリ表示（便利グッズ／消耗品／飲料）を決める。"""
+    if group == ranking.CONVENIENCE_GROUP:
+        return "便利グッズ"
+    if category in ranking.BEVERAGE_CATEGORIES:
+        return "飲料"
+    return "消耗品"
 
 
 def main() -> None:
@@ -58,14 +77,17 @@ def main() -> None:
     allowed_origin = settings.get("allowed_origin")
     ng_keywords = settings.get("ng_keywords", [])
     off_theme_keywords = settings.get("off_theme_keywords", [])
+    alcohol_keywords = settings.get("alcohol_keywords", [])
     base_hashtags = settings.get("default_hashtags", ["#暮らしの便利グッズ"])
     posted_item_codes = dedupe.load_posted_item_codes(POSTED_ITEMS_PATH)
     seen_item_codes: set[str] = set()
 
     # フェーズ1: キーワードごとに検索し、条件を満たさない商品・重複を取り除く。
+    # 「暮らしの便利グッズ」枠と「消耗品・飲料」枠は、keywordsの各エントリに
+    # 付けた group（ranking.CONVENIENCE_GROUP / ranking.CONSUMABLE_GROUP）で判別する。
     filtered_items = []
     for entry in settings["keywords"]:
-        keyword, category = _parse_keyword_entry(entry)
+        keyword, category, group = _parse_keyword_entry(entry)
 
         try:
             items = rakuten_api.search_items(
@@ -86,11 +108,22 @@ def main() -> None:
         )
         items = filters.filter_by_ng_keywords(items, ng_keywords)
         items = filters.filter_by_off_theme_keywords(items, off_theme_keywords)
+        if category in ranking.BEVERAGE_CATEGORIES:
+            items = filters.filter_by_alcohol_keywords(items, alcohol_keywords)
         items = dedupe.remove_duplicates(items, posted_item_codes)
         items = dedupe.remove_within_run_duplicates(items, seen_item_codes)
 
         for item in items:
-            item["_category"] = description_generator.refine_category(item, category)
+            item["_group"] = group
+            # 「消耗品・飲料」枠は検索キーワード自体が商品種別そのものなので、
+            # 「暮らしの便利グッズ」枠のような商品名からのカテゴリ補正は行わない
+            # （補正ロジックのキーワード一覧は便利グッズ向けのため、例えば
+            # 洗剤の商品名にある「洗剤」の一語で掃除カテゴリに誤補正されるのを防ぐ）。
+            if group == ranking.CONVENIENCE_GROUP:
+                item["_category"] = description_generator.refine_category(item, category)
+            else:
+                item["_category"] = category
+            item["_display_group"] = _display_group(item["_group"], item["_category"])
         filtered_items.extend(items)
 
     # フェーズ2: 同じカテゴリ内で用途がほぼ同じ類似商品を1件に絞る。
@@ -108,12 +141,17 @@ def main() -> None:
             max_length=settings.get("description_max_length", 500),
         )
 
-    # フェーズ4: レビュー実績順に並べたうえで、上位のカテゴリが偏りすぎないようにする。
-    candidates = ranking.sort_by_quality(unique_items)
-    candidates = ranking.diversify_top(
-        candidates,
-        top_n=settings.get("summary_item_limit", 10),
-        max_per_category=settings.get("summary_max_per_category", 3),
+    # フェーズ4: 「暮らしの便利グッズ」5件＋「消耗品・飲料」5件のバランスで上位候補を選ぶ
+    # （どちらかの枠が5件に満たない場合だけ、もう片方の枠から補充する）。
+    convenience_items = [item for item in unique_items if item["_group"] == ranking.CONVENIENCE_GROUP]
+    consumable_items = [item for item in unique_items if item["_group"] == ranking.CONSUMABLE_GROUP]
+    candidates = ranking.select_balanced_top(
+        convenience_items,
+        consumable_items,
+        convenience_target=settings.get("convenience_target", 5),
+        consumable_target=settings.get("consumable_target", 5),
+        convenience_max_per_category=settings.get("summary_max_per_category", 3),
+        consumable_max_per_category=settings.get("consumable_max_per_category", 2),
     )
 
     json_path, markdown_path = storage.save_candidates(candidates, CANDIDATES_DIR)

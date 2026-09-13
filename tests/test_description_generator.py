@@ -541,5 +541,61 @@ class ProductTypeTemplateTest(unittest.TestCase):
         self.assertTrue(hook_line.startswith("🛁 "), hook_line)
 
 
+# 「消耗品・飲料」枠（洗剤・キッチン消耗品・日用品・水・お茶・ジュース）で
+# 新しく追加したカテゴリのテンプレートが、既存カテゴリと同じ安全ルールを
+# 守っていることを確認する回帰テスト。6ブロック構成・絵文字・✔️3項目などの
+# 形式面はDescriptionStructureTestがdg.GENERIC_TEMPLATESの全カテゴリを対象に
+# 既に確認しているため、ここでは消耗品・飲料特有の内容（導入文・禁止表現）だけを見る。
+CONSUMABLE_CATEGORIES = ["洗剤", "キッチン消耗品", "日用品", "水", "お茶", "ジュース"]
+
+# 根拠のない断定表現（絶対にお得・必ず安い・健康になる等）を禁止するルールの確認用。
+FORBIDDEN_PHRASES = [
+    "絶対お得", "絶対にお得", "必ず安い", "健康になる", "絶対安い", "お得です",
+]
+
+
+class ConsumableAndBeverageDescriptionTest(unittest.TestCase):
+    def test_consumable_categories_are_registered_in_generic_templates(self):
+        for category in CONSUMABLE_CATEGORIES:
+            self.assertIn(category, dg.GENERIC_TEMPLATES)
+
+    def test_consumable_categories_have_a_dedicated_hashtag(self):
+        for category in CONSUMABLE_CATEGORIES:
+            self.assertIn(category, dg.HASHTAG_BY_CATEGORY)
+
+    def test_no_unfounded_claims_in_any_consumable_or_beverage_description(self):
+        item = make_item(name="テスト消耗品")
+        for category in CONSUMABLE_CATEGORIES:
+            description = dg.generate_description(item, category=category, base_hashtags=BASE_HASHTAGS)
+            for phrase in FORBIDDEN_PHRASES:
+                self.assertNotIn(phrase, description, f"category={category}: {description}")
+
+    def test_detergent_hook_matches_requested_wording(self):
+        item = make_item(name="濃縮 洗濯洗剤 詰め替え 大容量")
+        description = dg.generate_description(item, category="洗剤", base_hashtags=BASE_HASHTAGS)
+        hook_line = _blocks(description)[0]
+        self.assertEqual(hook_line, "🧴 洗剤のストック、そろそろ減ってない？✨")
+
+    def test_water_hook_matches_requested_wording(self):
+        item = make_item(name="天然水 500ml 24本")
+        description = dg.generate_description(item, category="水", base_hashtags=BASE_HASHTAGS)
+        hook_line = _blocks(description)[0]
+        self.assertEqual(hook_line, "💧 お水のストック、切らしたくないよね✨")
+
+    def test_tea_hook_matches_requested_wording(self):
+        item = make_item(name="緑茶 ペットボトル 24本")
+        description = dg.generate_description(item, category="お茶", base_hashtags=BASE_HASHTAGS)
+        hook_line = _blocks(description)[0]
+        self.assertEqual(hook_line, "🍵 毎日飲むお茶、まとめて用意しておくとラク✨")
+
+    def test_price_and_review_are_still_not_included(self):
+        item = make_item(name="テスト消耗品", price=2480, review_average=4.8, review_count=321)
+        for category in CONSUMABLE_CATEGORIES:
+            description = dg.generate_description(item, category=category, base_hashtags=BASE_HASHTAGS)
+            self.assertNotIn("2480", description)
+            self.assertNotIn("4.8", description)
+            self.assertNotIn("321", description)
+
+
 if __name__ == "__main__":
     unittest.main()
