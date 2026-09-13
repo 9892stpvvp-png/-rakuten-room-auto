@@ -147,6 +147,14 @@ python -m src.main
 `.env`ファイルに `RAKUTEN_APP_ID` と `RAKUTEN_ACCESS_KEY` を設定していれば、
 `data/candidates/` フォルダに同じ形式の結果ファイルが作られます。
 
+### テスト（開発者向け）
+
+紹介文生成に問題がないかを確認する自動テストがあります（楽天APIへのアクセスは不要）。
+
+```bash
+python -m unittest tests.test_description_generator -v
+```
+
 ### 投稿した後にやること
 
 候補一覧の中から実際に楽天ROOMへ投稿した商品があれば、`data/posted_items.json` の

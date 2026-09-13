@@ -90,7 +90,7 @@ def main() -> None:
         items = dedupe.remove_within_run_duplicates(items, seen_item_codes)
 
         for item in items:
-            item["_category"] = category
+            item["_category"] = description_generator.refine_category(item, category)
         filtered_items.extend(items)
 
     # フェーズ2: 同じカテゴリ内で用途がほぼ同じ類似商品を1件に絞る。

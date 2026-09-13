@@ -2,17 +2,25 @@
 
 条件：
 - 押し売り感のない自然な日本語
-- 実際の商品データ（商品名・キャッチコピー・商品説明・レビュー評価など）から
+- 実際の商品データ（商品名・商品説明・レビュー評価など）から
   確認できないことは書かない（実際に使用したかのような表現や断定的な効果は書かない）
 - 商品紹介文＋箇条書き（2〜4個）＋ハッシュタグを1つのコピペ用ブロックにする
 - 500文字以内
-- 同じ定型文を全商品に使い回さない。商品名・キャッチコピー・商品説明から
-  読み取れる特徴（マグネット式、折りたたみ式など）があれば優先して使い、
-  読み取れない場合のみカテゴリ共通の言い回しで補う
+- 同じ定型文を全商品に使い回さない。商品名・商品説明の冒頭で明記されている特徴
+  （マグネット式、折りたたみ式など）があれば優先して使い、確実に読み取れない
+  場合は無理に特徴を作らず、カテゴリ共通の安全な言い回しで補う
+
+注意（特徴抽出の対象範囲について）：
+商品説明（itemCaption）は配送案内・他商品との比較・付属品の説明など、
+その商品自体の特徴ではない文章を含むことが多い。そのため特徴語の検出は
+「商品名」と「商品説明の最初の一文」だけに限定している。説明文の後半に
+無関係な単語（例：他の対応商品としての『ステンレスボトル』）が含まれていても、
+それを商品自体の特徴として誤って拾わないようにするため。
 """
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 DEFAULT_CATEGORY = "暮らし全般"
@@ -76,7 +84,46 @@ HASHTAG_BY_CATEGORY: dict[str, str] = {
     DEFAULT_CATEGORY: "#暮らしの便利グッズ",
 }
 
-# 商品名・キャッチコピー・商品説明から検出できたときだけ使う、商品の設計・仕様に関する
+# 商品名にこれらの言葉が含まれていれば、そのカテゴリに合っているとみなす。
+# 検索キーワードから割り当てたカテゴリが商品の実際の内容と合わないことがある
+# （例：「衣類圧縮袋」が掃除キーワードの検索結果に混ざる）ため、
+# 商品名から見て明らかに別カテゴリだと分かる場合はそちらを優先する。
+CATEGORY_NAME_KEYWORDS: dict[str, list[str]] = {
+    "掃除": ["掃除", "クリーナー", "モップ", "ワイパー", "洗剤", "ブラシ", "雑巾"],
+    "収納": [
+        "収納", "整理", "ケース", "ボックス", "ラック", "圧縮袋", "オーガナイザー",
+        "仕切り", "クローゼット", "ハンガー",
+    ],
+    "キッチン": ["キッチン", "調理", "食器", "鍋", "フライパン", "まな板", "水切り", "保存容器"],
+    "時短": ["時短", "家電", "スチーマー"],
+}
+
+
+def refine_category(item: dict[str, Any], assigned_category: str) -> str:
+    """検索キーワードから割り当てたカテゴリを、商品名から見て適切なものに補正する。
+
+    商品名が元のカテゴリのキーワードにも一致する場合はそのまま（変更しない）。
+    元のカテゴリに一致せず、別カテゴリのキーワードに一致する場合はそちらへ変更する。
+    どちらにも一致しない場合は、元のカテゴリのまま（暮らし全般などはそのまま）。
+    """
+    name = item.get("name", "")
+
+    own_keywords = CATEGORY_NAME_KEYWORDS.get(assigned_category)
+    if own_keywords and _contains_any(name, own_keywords):
+        return assigned_category
+
+    for category, keywords in CATEGORY_NAME_KEYWORDS.items():
+        if category != assigned_category and _contains_any(name, keywords):
+            return category
+
+    return assigned_category
+
+
+def _contains_any(text: str, words: list[str]) -> bool:
+    return any(word in text for word in words if word)
+
+
+# 商品名・商品説明の冒頭から検出できたときだけ使う、商品の設計・仕様に関する
 # 具体的な言い回し。検出したキーワードそのものではなく、商品情報から読み取れる
 # 客観的な特徴（構造・素材・使い方）だけを表す表現にとどめ、効果や体験談は含めない。
 FEATURE_HINTS: list[tuple[str, str]] = [
@@ -121,10 +168,7 @@ def generate_description(
     intro_variants = INTRO_VARIANTS[category]
     intro = intro_variants[seed % len(intro_variants)]
 
-    searchable_text = (
-        f"{item.get('name', '')} {item.get('catch_copy', '')} {item.get('item_caption', '')}"
-    )
-    feature_points = _feature_hint_points(searchable_text, max_hints=2)
+    feature_points = _feature_hint_points(_feature_extraction_text(item), max_hints=2)
 
     point_variants = POINT_VARIANTS[category]
     idx = seed
@@ -155,8 +199,20 @@ def generate_description(
     return description
 
 
+def _feature_extraction_text(item: dict[str, Any]) -> str:
+    """特徴語の検出に使うテキストを組み立てる（商品名＋商品説明の最初の一文のみ）。
+
+    商品説明のうち最初の一文だけを使うのは、配送案内・付属品の説明・他商品との
+    比較などが混ざりやすい後半部分から、無関係な特徴語を誤って拾わないようにするため。
+    """
+    name = item.get("name", "") or ""
+    caption = item.get("item_caption", "") or ""
+    first_sentence = re.split(r"[。\n]", caption, maxsplit=1)[0] if caption else ""
+    return f"{name} {first_sentence}"
+
+
 def _feature_hint_points(searchable_text: str, max_hints: int) -> list[str]:
-    """商品名・キャッチコピー・商品説明から、具体的な特徴の言い回しを検出する。"""
+    """商品名・商品説明の冒頭から、具体的な特徴の言い回しを検出する。"""
     matched: list[str] = []
     for keyword, phrase in FEATURE_HINTS:
         if keyword in searchable_text and phrase not in matched:
