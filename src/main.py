@@ -12,7 +12,7 @@ from pathlib import Path
 import yaml
 from dotenv import load_dotenv
 
-from . import dedupe, description_generator, filters, rakuten_api, storage
+from . import dedupe, description_generator, filters, ranking, rakuten_api, storage
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 SETTINGS_PATH = PROJECT_ROOT / "config" / "settings.yaml"
@@ -25,6 +25,13 @@ def load_settings() -> dict:
     settings_path = SETTINGS_PATH if SETTINGS_PATH.exists() else SETTINGS_EXAMPLE_PATH
     with settings_path.open("r", encoding="utf-8") as f:
         return yaml.safe_load(f)
+
+
+def _parse_keyword_entry(entry: str | dict) -> tuple[str, str]:
+    """settings.yamlのkeywords要素から (検索キーワード, カテゴリ名) を取り出す。"""
+    if isinstance(entry, dict):
+        return entry["keyword"], entry.get("category", description_generator.DEFAULT_CATEGORY)
+    return entry, description_generator.DEFAULT_CATEGORY
 
 
 def main() -> None:
@@ -49,10 +56,17 @@ def main() -> None:
     criteria = settings["selection_criteria"]
     endpoint = settings.get("api_endpoint")
     allowed_origin = settings.get("allowed_origin")
+    ng_keywords = settings.get("ng_keywords", [])
+    off_theme_keywords = settings.get("off_theme_keywords", [])
+    base_hashtags = settings.get("default_hashtags", ["#楽天ROOM", "#暮らしの便利グッズ"])
     posted_item_codes = dedupe.load_posted_item_codes(POSTED_ITEMS_PATH)
+    seen_item_codes: set[str] = set()
 
-    candidates = []
-    for keyword in settings["keywords"]:
+    # フェーズ1: キーワードごとに検索し、条件を満たさない商品・重複を取り除く。
+    filtered_items = []
+    for entry in settings["keywords"]:
+        keyword, category = _parse_keyword_entry(entry)
+
         try:
             items = rakuten_api.search_items(
                 keyword=keyword,
@@ -64,20 +78,43 @@ def main() -> None:
             )
         except rakuten_api.RakutenApiError as exc:
             raise SystemExit(str(exc)) from exc
+
         items = filters.filter_by_review(
             items,
             min_review_average=criteria["min_review_average"],
             min_review_count=criteria["min_review_count"],
         )
+        items = filters.filter_by_ng_keywords(items, ng_keywords)
+        items = filters.filter_by_off_theme_keywords(items, off_theme_keywords)
         items = dedupe.remove_duplicates(items, posted_item_codes)
+        items = dedupe.remove_within_run_duplicates(items, seen_item_codes)
 
         for item in items:
-            item["description"] = description_generator.generate_description(
-                item,
-                hashtags=settings.get("default_hashtags", []),
-                max_length=settings.get("description_max_length", 500),
-            )
-            candidates.append(item)
+            item["_category"] = description_generator.refine_category(item, category)
+        filtered_items.extend(items)
+
+    # フェーズ2: 同じカテゴリ内で用途がほぼ同じ類似商品を1件に絞る。
+    unique_items = ranking.deduplicate_similar_items(
+        filtered_items,
+        similarity_threshold=settings.get("similarity_threshold", 0.55),
+    )
+
+    # フェーズ3: 紹介文を生成する（商品固有の特徴が分かればそれを反映する）。
+    for item in unique_items:
+        item["description"] = description_generator.generate_description(
+            item,
+            category=item["_category"],
+            base_hashtags=base_hashtags,
+            max_length=settings.get("description_max_length", 500),
+        )
+
+    # フェーズ4: レビュー実績順に並べたうえで、上位のカテゴリが偏りすぎないようにする。
+    candidates = ranking.sort_by_quality(unique_items)
+    candidates = ranking.diversify_top(
+        candidates,
+        top_n=settings.get("summary_item_limit", 10),
+        max_per_category=settings.get("summary_max_per_category", 3),
+    )
 
     json_path, markdown_path = storage.save_candidates(candidates, CANDIDATES_DIR)
     print(f"{len(candidates)}件の投稿候補を保存しました。")

@@ -85,6 +85,15 @@
    `.env` ファイルは絶対にGitHubなどに公開しないでください（`.gitignore` で自動的に除外されます）。
 
 5. `config/settings.example.yaml` を参考に、検索したいキーワードや条件を調整します。
+   - `keywords`：検索キーワードと、そのキーワードが「掃除／収納／キッチン／時短／暮らし全般」の
+     どれに当たるか（`category`）をセットで指定します。カテゴリは紹介文の言い回しを選ぶのに使われます。
+   - `ng_keywords`：商品名・説明に含まれていたら除外する言葉（福袋・ランダム・訳ありなど）です。
+   - `off_theme_keywords`：商品名・説明に含まれていたら除外する言葉（耳かき・財布・アクセサリー
+     など、テーマから明らかに外れるジャンル）です。
+   - `similarity_threshold`：同じカテゴリ内で「用途がほぼ同じ類似商品」とみなす商品名の
+     類似度のしきい値です（似た商品が複数上位に並ぶのを防ぎます）。
+   - `summary_max_per_category`：Summaryの上位表示で、同じカテゴリが連続して入ってよい
+     最大件数です（上位が1カテゴリに偏るのを防ぎます）。
 
 ## GitHub Actionsで実行する方法（おすすめ）
 
@@ -137,6 +146,14 @@ python -m src.main
 
 `.env`ファイルに `RAKUTEN_APP_ID` と `RAKUTEN_ACCESS_KEY` を設定していれば、
 `data/candidates/` フォルダに同じ形式の結果ファイルが作られます。
+
+### テスト（開発者向け）
+
+紹介文生成に問題がないかを確認する自動テストがあります（楽天APIへのアクセスは不要）。
+
+```bash
+python -m unittest tests.test_description_generator -v
+```
 
 ### 投稿した後にやること
 
