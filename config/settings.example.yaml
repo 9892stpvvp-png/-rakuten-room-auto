@@ -2,6 +2,10 @@
 # コピーして settings.yaml を作り、必要に応じて調整してください。
 #   cp config/settings.example.yaml config/settings.yaml
 
+# 楽天市場 商品検索APIのエンドポイント。
+# 楽天側の仕様変更でURLが変わった場合は、コードを書き換えずここだけ直せばよい。
+api_endpoint: "https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20260701"
+
 # 楽天ウェブサービスAPIで検索するキーワード（テーマ：暮らしの便利グッズ）
 keywords:
   - "掃除 便利グッズ"
