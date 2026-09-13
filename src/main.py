@@ -27,6 +27,13 @@ def load_settings() -> dict:
         return yaml.safe_load(f)
 
 
+def _parse_keyword_entry(entry: str | dict) -> tuple[str, str]:
+    """settings.yamlのkeywords要素から (検索キーワード, カテゴリ名) を取り出す。"""
+    if isinstance(entry, dict):
+        return entry["keyword"], entry.get("category", description_generator.DEFAULT_CATEGORY)
+    return entry, description_generator.DEFAULT_CATEGORY
+
+
 def main() -> None:
     load_dotenv()
     app_id = os.environ.get("RAKUTEN_APP_ID")
@@ -49,10 +56,16 @@ def main() -> None:
     criteria = settings["selection_criteria"]
     endpoint = settings.get("api_endpoint")
     allowed_origin = settings.get("allowed_origin")
+    ng_keywords = settings.get("ng_keywords", [])
+    theme_keywords = settings.get("theme_keywords", [])
+    base_hashtags = settings.get("default_hashtags", ["#楽天ROOM", "#暮らしの便利グッズ"])
     posted_item_codes = dedupe.load_posted_item_codes(POSTED_ITEMS_PATH)
+    seen_item_codes: set[str] = set()
 
     candidates = []
-    for keyword in settings["keywords"]:
+    for entry in settings["keywords"]:
+        keyword, category = _parse_keyword_entry(entry)
+
         try:
             items = rakuten_api.search_items(
                 keyword=keyword,
@@ -64,20 +77,31 @@ def main() -> None:
             )
         except rakuten_api.RakutenApiError as exc:
             raise SystemExit(str(exc)) from exc
+
         items = filters.filter_by_review(
             items,
             min_review_average=criteria["min_review_average"],
             min_review_count=criteria["min_review_count"],
         )
+        items = filters.filter_by_ng_keywords(items, ng_keywords)
+        items = filters.filter_by_theme_relevance(items, theme_keywords)
         items = dedupe.remove_duplicates(items, posted_item_codes)
+        items = dedupe.remove_within_run_duplicates(items, seen_item_codes)
 
         for item in items:
             item["description"] = description_generator.generate_description(
                 item,
-                hashtags=settings.get("default_hashtags", []),
+                category=category,
+                base_hashtags=base_hashtags,
                 max_length=settings.get("description_max_length", 500),
             )
             candidates.append(item)
+
+    # レビュー件数が多い商品（購入・利用されている実績が多い商品）を優先して並べる。
+    candidates.sort(
+        key=lambda item: (item.get("review_count", 0), item.get("review_average", 0)),
+        reverse=True,
+    )
 
     json_path, markdown_path = storage.save_candidates(candidates, CANDIDATES_DIR)
     print(f"{len(candidates)}件の投稿候補を保存しました。")
