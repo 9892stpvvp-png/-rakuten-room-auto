@@ -433,36 +433,36 @@
     desc.textContent = item.description || "";
     card.appendChild(desc);
 
-    // ① 紹介文をコピー
+    // 紹介文をコピー
     var copyDescBtn = document.createElement("button");
     copyDescBtn.type = "button";
     copyDescBtn.className = "btn btn-primary";
-    copyDescBtn.textContent = "紹介文をコピー";
+    copyDescBtn.textContent = "① 紹介文をコピー";
     copyDescBtn.addEventListener("click", function () {
       copyToClipboard(item.description || "").then(function () {
-        flashCopied(copyDescBtn, "紹介文をコピー");
+        flashCopied(copyDescBtn, "① 紹介文をコピー");
       }).catch(function () {
         window.alert("コピーできませんでした。紹介文を長押しして手動でコピーしてください。");
       });
     });
     card.appendChild(copyDescBtn);
 
-    // ② 楽天市場からROOM投稿へ（APIの正式な商品URLをそのまま開く。楽天市場の
-    // 商品ページに用意されている「ROOMに投稿する」をタップしてもらう想定）。
+    // 楽天市場を開く（APIの正式な商品URLをそのまま開く。楽天市場の
+    // 商品ページに用意されている「ROOMで投稿」を押してもらう想定）。
     var roomLink = document.createElement("a");
     roomLink.className = "btn btn-secondary";
     roomLink.href = item.item_url || "#";
     roomLink.target = "_blank";
     roomLink.rel = "noopener";
-    roomLink.textContent = "楽天市場からROOM投稿へ";
+    roomLink.textContent = "② 楽天市場を開く";
     card.appendChild(roomLink);
 
     var roomLinkCaption = document.createElement("p");
     roomLinkCaption.className = "btn-caption";
-    roomLinkCaption.textContent = "楽天市場の商品ページで「ROOMに投稿する」をタップ";
+    roomLinkCaption.textContent = "楽天市場の商品ページで「ROOMで投稿」を押す";
     card.appendChild(roomLinkCaption);
 
-    // ③ ROOM検索ワードをコピー（予備手段：商品ページに「ROOMに投稿する」が
+    // ROOM検索ワードをコピー（予備手段：商品ページに「ROOMで投稿」が
     // 表示されない場合に、ROOM内の検索で投稿するための商品名コピー）。
     var copyKeywordBtn = document.createElement("button");
     copyKeywordBtn.type = "button";
