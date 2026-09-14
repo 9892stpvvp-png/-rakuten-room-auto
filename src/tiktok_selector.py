@@ -64,6 +64,13 @@ def _recent_categories(history: list[dict[str, Any]], lookback: int = ROTATION_L
     return {entry.get("category", "") for entry in history[-lookback:] if entry.get("category")}
 
 
+def _recent_item_codes(history: list[dict[str, Any]]) -> set[str]:
+    """TikTok向けに過去（履歴ファイルが保持している範囲＝直近HISTORY_KEEP_LAST件）に
+    選定済みの商品コード一覧を返す。同じ商品を連日選んでしまうことを避けるための、
+    カテゴリ単位のローテーションとは別のitem_code単位の重複チェック用。"""
+    return {entry.get("item_code", "") for entry in history if entry.get("item_code")}
+
+
 def _score_item(item: dict[str, Any], recent_categories: set[str]) -> float:
     score = 0.0
 
@@ -118,6 +125,10 @@ def select_for_tiktok(
     """本日の投稿候補10件から、TikTok向けに1件を選ぶ。
 
     優先順位：
+    0. 直近に選定済みの商品（item_code、履歴ファイルが保持している範囲＝
+       直近HISTORY_KEEP_LAST件）は基本的に除外する。ただし、本日の候補が
+       すべて過去に選定済みの場合（同じ商品しか候補に無い日）まで除外すると
+       選定不能になってしまうため、その場合だけ除外せず通常どおり選定する。
     1. 暮らしの便利グッズ（消耗品・飲料より優先）
     2. 掃除・収納・キッチン・時短に関連する商品
     3. レビュー件数（僅差のタイブレーク程度）
@@ -128,8 +139,15 @@ def select_for_tiktok(
         raise ValueError("候補が0件のため、TikTok向け商品を選定できません。")
 
     history = history if history is not None else load_history()
+
+    recent_item_codes = _recent_item_codes(history)
+    not_recently_featured = [
+        item for item in candidates if item.get("item_code") not in recent_item_codes
+    ]
+    candidate_pool = not_recently_featured or candidates
+
     recent_categories = _recent_categories(history)
 
-    best_item = max(candidates, key=lambda item: _score_item(item, recent_categories))
+    best_item = max(candidate_pool, key=lambda item: _score_item(item, recent_categories))
     reason = _build_reason(best_item, recent_categories)
     return SelectionResult(item=best_item, reason=reason)

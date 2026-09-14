@@ -88,6 +88,31 @@ class SelectForTikTokTest(unittest.TestCase):
         result = tiktok_selector.select_for_tiktok(candidates, history=history)
         self.assertEqual(result.item["item_code"], "b")
 
+    def test_excludes_item_already_featured_recently(self):
+        # 「c1」が直近の履歴に入っている場合、他に候補があれば同じ商品を
+        # 連日選ばないようにする（item_code単位の重複チェック）。
+        candidates = [
+            _make_item("c1", "tower 収納ラック", "収納", "便利グッズ"),
+            _make_item("c2", "掃除用モップ", "掃除", "便利グッズ"),
+        ]
+        history = [{"date": "2026-09-13", "item_code": "c1", "category": "収納", "group_label": "便利グッズ"}]
+        result = tiktok_selector.select_for_tiktok(candidates, history=history)
+        self.assertEqual(result.item["item_code"], "c2")
+
+    def test_falls_back_to_repeat_item_when_all_candidates_already_featured(self):
+        # 本日の候補全部が過去に選定済みの場合まで除外すると0件になって
+        # しまうため、除外せず通常どおり選定できることを確認する。
+        candidates = [
+            _make_item("c1", "tower 収納ラック", "収納", "便利グッズ"),
+            _make_item("c2", "掃除用モップ", "掃除", "便利グッズ"),
+        ]
+        history = [
+            {"date": "2026-09-12", "item_code": "c1", "category": "収納", "group_label": "便利グッズ"},
+            {"date": "2026-09-13", "item_code": "c2", "category": "掃除", "group_label": "便利グッズ"},
+        ]
+        result = tiktok_selector.select_for_tiktok(candidates, history=history)
+        self.assertIn(result.item["item_code"], ("c1", "c2"))
+
     def test_does_not_repeat_same_genre_back_to_back_over_multiple_days(self):
         history: list[dict] = []
         picked_categories = []
