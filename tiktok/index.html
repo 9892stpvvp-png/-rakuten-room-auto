@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>今日のTikTok投稿コンテンツ</title>
+<style>
+  :root {
+    color-scheme: light;
+  }
+  * {
+    box-sizing: border-box;
+  }
+  html, body {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
+    background: #f5f3ef;
+    color: #222;
+    margin: 0;
+    padding: 12px 12px 48px;
+    line-height: 1.6;
+  }
+  h1 {
+    font-size: 1.2em;
+    margin: 4px 0 2px;
+    color: #000;
+  }
+  .updated {
+    font-size: 0.8em;
+    color: #666;
+    margin-bottom: 14px;
+  }
+  #status {
+    text-align: center;
+    color: #777;
+    padding: 40px 10px;
+  }
+  .card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    margin-bottom: 16px;
+    padding: 16px;
+    overflow: hidden;
+  }
+  .card-image {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: contain;
+    background: #fafafa;
+    border-radius: 10px;
+    margin-bottom: 12px;
+    display: block;
+  }
+  .card-name {
+    font-size: 1em;
+    font-weight: 600;
+    margin: 0 0 8px;
+    word-break: break-word;
+  }
+  .badge-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+  .badge {
+    display: inline-block;
+    font-size: 0.78em;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: #eef2f7;
+    color: #35577a;
+  }
+  .badge.is-tiktok {
+    background: #000;
+    color: #fff;
+  }
+  .section-title {
+    font-size: 0.95em;
+    font-weight: 700;
+    margin: 0 0 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .section-body {
+    background: #fbf8f2;
+    border: 1px solid #ece4d6;
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 0.94em;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 260px;
+    overflow-y: auto;
+    margin: 0 0 8px;
+  }
+  .telop-list {
+    margin: 0 0 8px;
+    padding-left: 1.2em;
+  }
+  .telop-list li {
+    word-break: break-word;
+    margin-bottom: 4px;
+  }
+  .note-list {
+    margin: 0 0 8px;
+    padding-left: 1.2em;
+  }
+  .note-list li {
+    word-break: break-word;
+    margin-bottom: 6px;
+  }
+  .copy-btn {
+    background: #fff;
+    color: #333;
+    border: 1px solid #ccc;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.82em;
+    padding: 6px 12px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    white-space: nowrap;
+  }
+  .copy-btn.copied {
+    background: #2e7d32;
+    border-color: #2e7d32;
+    color: #fff;
+  }
+  .reason {
+    font-size: 0.9em;
+    color: #555;
+    margin-bottom: 4px;
+  }
+</style>
+</head>
+<body>
+
+<h1>🎬 今日のTikTok投稿コンテンツ</h1>
+<div class="updated" id="updatedAt">最終更新：読み込み中…</div>
+
+<div id="status">読み込み中…</div>
+<div id="content"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  function escapeHtml(text) {
+    return String(text == null ? "" : text).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  function copyToClipboard(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text);
+    }
+    // クリップボードAPIが使えない古い環境向けのフォールバック。
+    return new Promise(function (resolve, reject) {
+      var textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      try {
+        var ok = document.execCommand("copy");
+        document.body.removeChild(textarea);
+        ok ? resolve() : reject(new Error("execCommand failed"));
+      } catch (err) {
+        document.body.removeChild(textarea);
+        reject(err);
+      }
+    });
+  }
+
+  function flashCopied(button) {
+    var original = button.textContent;
+    button.textContent = "コピーしました ✓";
+    button.classList.add("copied");
+    window.setTimeout(function () {
+      button.textContent = original;
+      button.classList.remove("copied");
+    }, 1600);
+  }
+
+  function makeCopyButton(getText) {
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "copy-btn";
+    btn.textContent = "コピー";
+    btn.addEventListener("click", function () {
+      copyToClipboard(getText()).then(function () {
+        flashCopied(btn);
+      }).catch(function () {
+        window.alert("コピーできませんでした。文章を長押しして手動でコピーしてください。");
+      });
+    });
+    return btn;
+  }
+
+  function section(title, bodyText, bodyEl) {
+    var wrap = document.createElement("div");
+
+    var titleRow = document.createElement("div");
+    titleRow.className = "section-title";
+    var titleText = document.createElement("span");
+    titleText.textContent = title;
+    titleRow.appendChild(titleText);
+    titleRow.appendChild(makeCopyButton(function () { return bodyText; }));
+    wrap.appendChild(titleRow);
+
+    wrap.appendChild(bodyEl);
+    return wrap;
+  }
+
+  function renderTextSection(title, text) {
+    var body = document.createElement("div");
+    body.className = "section-body";
+    body.textContent = text || "";
+    return section(title, text || "", body);
+  }
+
+  function renderTelops(telops) {
+    var list = document.createElement("ol");
+    list.className = "telop-list";
+    (telops || []).forEach(function (t) {
+      var li = document.createElement("li");
+      li.textContent = t;
+      list.appendChild(li);
+    });
+    var joined = (telops || []).map(function (t, i) { return (i + 1) + ". " + t; }).join("\n");
+    return section("④ テロップ", joined, list);
+  }
+
+  function renderHashtags(hashtags) {
+    var body = document.createElement("div");
+    body.className = "section-body";
+    body.textContent = (hashtags || []).join(" ");
+    return section("⑦ ハッシュタグ", (hashtags || []).join(" "), body);
+  }
+
+  function renderVideoNotes(notes) {
+    var list = document.createElement("ul");
+    list.className = "note-list";
+    (notes || []).forEach(function (n) {
+      var li = document.createElement("li");
+      li.textContent = n;
+      list.appendChild(li);
+    });
+    var joined = (notes || []).join("\n");
+    return section("⑧ 動画制作メモ", joined, list);
+  }
+
+  function render(data) {
+    var container = document.getElementById("content");
+    container.innerHTML = "";
+
+    var card = document.createElement("div");
+    card.className = "card";
+
+    var badgeRow = document.createElement("div");
+    badgeRow.className = "badge-row";
+    var tiktokBadge = document.createElement("span");
+    tiktokBadge.className = "badge is-tiktok";
+    tiktokBadge.textContent = "TikTok向け選定";
+    badgeRow.appendChild(tiktokBadge);
+    if (data.group_label) {
+      var groupBadge = document.createElement("span");
+      groupBadge.className = "badge";
+      groupBadge.textContent = data.group_label;
+      badgeRow.appendChild(groupBadge);
+    }
+    if (data.category) {
+      var categoryBadge = document.createElement("span");
+      categoryBadge.className = "badge";
+      categoryBadge.textContent = data.category;
+      badgeRow.appendChild(categoryBadge);
+    }
+    card.appendChild(badgeRow);
+
+    if (data.image_url) {
+      var img = document.createElement("img");
+      img.className = "card-image";
+      img.loading = "lazy";
+      img.src = data.image_url;
+      img.alt = data.product_name || "商品画像";
+      card.appendChild(img);
+    }
+
+    var name = document.createElement("p");
+    name.className = "card-name";
+    name.textContent = data.product_name || "(商品名不明)";
+    card.appendChild(name);
+
+    var reason = document.createElement("p");
+    reason.className = "reason";
+    reason.textContent = "選定理由：" + (data.selection_reason || "");
+    card.appendChild(reason);
+
+    if (data.item_url) {
+      var link = document.createElement("a");
+      link.href = data.item_url;
+      link.target = "_blank";
+      link.rel = "noopener";
+      link.textContent = "楽天市場の商品ページを開く";
+      link.style.fontSize = "0.85em";
+      card.appendChild(link);
+    }
+
+    container.appendChild(card);
+
+    var scriptCard = document.createElement("div");
+    scriptCard.className = "card";
+    scriptCard.appendChild(renderTextSection("① 商品名", data.product_name || ""));
+    scriptCard.appendChild(renderTextSection("③ 台本（15〜20秒想定）", data.script || ""));
+    container.appendChild(scriptCard);
+
+    var telopCard = document.createElement("div");
+    telopCard.className = "card";
+    telopCard.appendChild(renderTelops(data.telops));
+    container.appendChild(telopCard);
+
+    var narrationCard = document.createElement("div");
+    narrationCard.className = "card";
+    narrationCard.appendChild(renderTextSection("⑤ ナレーション", data.narration || ""));
+    container.appendChild(narrationCard);
+
+    var captionCard = document.createElement("div");
+    captionCard.className = "card";
+    captionCard.appendChild(renderTextSection("⑥ TikTokキャプション", data.caption || ""));
+    container.appendChild(captionCard);
+
+    var hashtagCard = document.createElement("div");
+    hashtagCard.className = "card";
+    hashtagCard.appendChild(renderHashtags(data.hashtags));
+    container.appendChild(hashtagCard);
+
+    var noteCard = document.createElement("div");
+    noteCard.className = "card";
+    noteCard.appendChild(renderVideoNotes(data.video_notes));
+    container.appendChild(noteCard);
+  }
+
+  function init() {
+    var statusEl = document.getElementById("status");
+
+    fetch("daily_content.json?_=" + Date.now(), { cache: "no-store" })
+      .then(function (res) {
+        if (!res.ok) {
+          throw new Error("HTTP " + res.status);
+        }
+        return res.json();
+      })
+      .then(function (data) {
+        document.getElementById("updatedAt").textContent =
+          "最終更新：" + (data.generated_at || "不明");
+
+        if (!data || !data.product_name) {
+          statusEl.textContent = "本日のTikTok向けコンテンツがまだありません。しばらくしてから再度開いてください。";
+          return;
+        }
+
+        statusEl.style.display = "none";
+        render(data);
+      })
+      .catch(function (err) {
+        statusEl.textContent =
+          "コンテンツの読み込みに失敗しました（" + err.message + "）。時間をおいて再読み込みしてください。";
+      });
+  }
+
+  init();
+})();
+</script>
+
+</body>
+</html>

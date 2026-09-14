@@ -42,15 +42,25 @@ jobs:
       - name: スマホ用投稿ページのデータを書き出す
         run: python -m src.publish_room_page
 
-      - name: 投稿ページのデータをコミットしてプッシュ
+      # ここから下は、ROOM候補生成が成功したあと、その10件を使ってTikTok
+      # 投稿向けコンテンツ（1商品選定＋台本・テロップ・ナレーション・
+      # キャプション・ハッシュタグ・動画制作メモ）を生成するための追加処理。
+      # 前のステップ（商品検索・publish_room_page）が失敗した場合は、GitHub
+      # Actionsのデフォルト挙動により後続ステップは実行されないため、
+      # TikTok側だけ単独で不完全なデータを作ることはない。動画ファイルの
+      # 生成・外部の動画生成API連携・TikTokへの自動投稿は行わない。
+      - name: TikTok投稿用コンテンツを生成する
+        run: python -m src.tiktok_daily
+
+      - name: 投稿ページ・TikTok用データをコミットしてプッシュ
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add room/data/candidates.json
+          git add room/data/candidates.json tiktok/daily_content.json tiktok/daily_content.md data/tiktok_history.json
           if git diff --staged --quiet; then
-            echo "投稿ページのデータに変化がないため、コミットしません。"
+            echo "投稿ページ・TikTok用データに変化がないため、コミットしません。"
           else
-            git commit -m "投稿ページのデータを更新"
+            git commit -m "投稿ページ・TikTok用データを更新"
             git pull --rebase origin "${{ github.ref_name }}"
             git push origin "HEAD:${{ github.ref_name }}"
           fi

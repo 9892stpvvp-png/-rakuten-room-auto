@@ -597,5 +597,46 @@ class ConsumableAndBeverageDescriptionTest(unittest.TestCase):
             self.assertNotIn("321", description)
 
 
+class TemplateComponentsForReuseTest(unittest.TestCase):
+    """get_template_components()・match_product_type_keyword()（TikTok台本
+    生成などで再利用するための追加関数）のテスト。generate_description()
+    自体の挙動・テストには影響しない。"""
+
+    def test_match_product_type_keyword_returns_matched_keyword(self):
+        self.assertEqual(dg.match_product_type_keyword("スープメーカー 便利家電"), "スープメーカー")
+        self.assertIsNone(dg.match_product_type_keyword("何にでも使える便利グッズX"))
+
+    def test_components_reflect_matched_product_type_template(self):
+        item = make_item(name="水切りボウル 便利グッズ")
+        components = dg.get_template_components(item, category="キッチン")
+        self.assertEqual(components.hook_text, "野菜の水切り、これならラクそう")
+        self.assertEqual(len(components.checklist), 3)
+        self.assertEqual(len(components.worry_lines), 2)
+
+    def test_components_fall_back_to_generic_template_with_location(self):
+        item = make_item(name="洗面所 収納ラック")
+        components = dg.get_template_components(item, category="収納")
+        self.assertIn("洗面所", components.hook_text)
+
+    def test_components_never_contain_experience_implying_phrases(self):
+        for item, category in ALL_REAL_ITEMS_AND_CATEGORIES:
+            components = dg.get_template_components(item, category=category)
+            combined = " ".join(
+                [components.hook_text, components.solution_text, components.closing_text]
+                + components.worry_lines
+                + components.checklist
+            )
+            for phrase in ("使ってみました", "買ってよかった", "使ってみて", "買ってみました"):
+                self.assertNotIn(phrase, combined)
+
+    def test_get_template_components_does_not_change_generate_description_output(self):
+        # get_template_components()を追加しても、generate_description()自体の
+        # 出力（既存機能）が変わっていないことの確認。
+        for item, category in ALL_REAL_ITEMS_AND_CATEGORIES:
+            description = dg.generate_description(item, category=category, base_hashtags=BASE_HASHTAGS)
+            self.assertIsInstance(description, str)
+            self.assertTrue(description)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -792,6 +792,73 @@ def generate_description(
     return description
 
 
+class TemplateComponents(NamedTuple):
+    """generate_description()が組み立てに使っているテンプレート内容
+    （悩み・解決・メリット等）を、他の用途向けにそのまま取り出したもの。"""
+
+    hook_text: str
+    topic_emoji: str
+    worry_lines: list[str]
+    solution_text: str
+    checklist: list[str]
+    closing_text: str
+
+
+def match_product_type_keyword(name: str) -> str | None:
+    """商品名から、具体的な商品の種類が分かる場合、その判定に使った
+    キーワード（PRODUCT_TYPE_TEMPLATESの見出し語）を返す。無ければNone。
+    generate_description()と同じ判定順位（先に一致したものを採用）を使う。
+    """
+    for keyword, _template in PRODUCT_TYPE_TEMPLATES:
+        if keyword in name:
+            return keyword
+    return None
+
+
+def get_template_components(item: dict[str, Any], category: str) -> TemplateComponents:
+    """商品情報から、generate_description()と同じテンプレート・判定ロジックで
+    悩み・解決・メリット等の内容を取り出す（紹介文としては組み立てない）。
+
+    generate_description()自体は変更せず、この関数はその組み立てロジックを
+    複製している。紹介文生成（既存機能）の挙動に影響を与えないためにあえて
+    分離しており、TikTok台本生成など、紹介文とは異なる形式で同じ安全な
+    言い回しを再利用したい用途向けの関数。
+    """
+    category = category if category in GENERIC_TEMPLATES else DEFAULT_CATEGORY
+    name = item.get("name", "") or ""
+
+    seed_source = item.get("item_code") or name
+    seed = sum(ord(c) for c in seed_source) if seed_source else 0
+
+    template = _match_product_type(name)
+    if template is None:
+        template = GENERIC_TEMPLATES[category]
+        location = _resolve_location(name)
+        topic_emoji = LOCATION_TOPIC_EMOJI.get(location, template.topic_emoji)
+    else:
+        location = _resolve_location(name)
+        topic_emoji = template.topic_emoji
+
+    hook_text = template.hook_text.format(location=location)
+    solution_text = template.solution_text.format(location=location)
+    checklist_core = [text.format(location=location) for text in template.checklist_core]
+
+    clause, _clause_emoji = _top_feature_clause(name, category)
+    third_item = clause if clause else template.checklist_fallback.format(location=location)
+    checklist = checklist_core + [third_item]
+
+    closing_text = template.closing_variants[seed % len(template.closing_variants)]
+
+    return TemplateComponents(
+        hook_text=hook_text,
+        topic_emoji=topic_emoji,
+        worry_lines=list(template.worry_lines),
+        solution_text=solution_text,
+        checklist=checklist,
+        closing_text=closing_text,
+    )
+
+
 def _top_feature_clause(name: str, category: str) -> tuple[str, str]:
     """商品名から、最初に見つかった特徴の（節, 絵文字）を返す。見つからなければ空文字。"""
     for keyword, clause_spec, emoji_spec in FEATURE_CLAUSES:
