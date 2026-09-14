@@ -2,25 +2,32 @@
 
 Status: READY
 Owner: ChatGPT -> Claude Code
+Task ID: handoff-test-001
 
 ## 目的
-ChatGPT と Claude Code の間で、ユーザーが長い指示文や作業結果を毎回手動コピー＆ペーストしなくても、GitHub を共通の受け渡し場所として使えるようにする。
+ChatGPT から GitHub を介して Claude Code に指示を渡し、ユーザーが長い指示文をコピー＆ペーストしなくても作業を引き継げることを確認する。
 
-## 今回のタスク
-1. この `CLAUDE.md` と `docs/AI_TASK.md` を作業開始時に読む運用にする。
+## 今回のテストタスク
+1. `CLAUDE.md` とこの `docs/AI_TASK.md` を読む。
 2. 現在の楽天ROOM候補検索システムを確認する。
-3. 既存の GitHub Actions、候補検索、重複除外、紹介文生成を壊さない。
-4. 作業結果を `docs/AI_STATUS.md` に記録する。
-5. 変更が必要な場合は専用ブランチで作業し、テスト後にPRを作成する。
+3. コードや設定は変更しない。
+4. 次の4点だけを確認する。
+   - GitHub Actions の候補検索ワークフローが存在すること
+   - 投稿済み商品の重複除外用データ/処理が存在すること
+   - ROOM紹介文生成処理が存在すること
+   - 楽天ROOMへの自動投稿処理が実装されていないこと
+5. 確認結果を `docs/AI_STATUS.md` に書く。
+6. `docs/AI_STATUS.md` の更新だけをコミットして main に push する。コードは変更しない。
 
-## 現在わかっている状態
-- GitHub Actions による楽天ROOM商品候補取得が動作している。
-- 投稿済み商品は重複判定対象として管理されている。
-- 商品選定と紹介文生成の改善が main にマージ済み。
-- 楽天ROOMへの自動投稿は対象外。ユーザーによる手動投稿を維持する。
+## 完了時に `docs/AI_STATUS.md` へ必ず書く内容
+- Task ID: handoff-test-001
+- Status: DONE または BLOCKED
+- 確認した内容
+- 変更したファイル
+- テスト/確認結果
+- 未解決事項
 
-## 完了条件
-- Claude Code がこのファイルから指示を受け取れる。
-- 作業結果が `docs/AI_STATUS.md` に残る。
-- 秘密情報がGitHubに保存されない。
-- 既存テストが壊れていない。
+## 安全ルール
+- Application ID、Access Key、トークン、パスワード等の秘密情報は表示・記録・コミットしない。
+- 楽天ROOMへの自動投稿、自動ログイン、購入操作を追加しない。
+- 今回はコード変更禁止。
