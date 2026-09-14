@@ -24,7 +24,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
-from . import tiktok_content_generator, tiktok_selector
+from . import atomic_io, tiktok_content_generator, tiktok_selector
 
 JST = timezone(timedelta(hours=9))
 
@@ -153,11 +153,11 @@ def main() -> None:
     history = tiktok_selector.load_history(tiktok_selector.TIKTOK_HISTORY_PATH)
     data = build_daily_content(candidates, history=history)
 
-    TIKTOK_DIR.mkdir(parents=True, exist_ok=True)
-    with TIKTOK_JSON_PATH.open("w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-        f.write("\n")
-    TIKTOK_MARKDOWN_PATH.write_text(render_markdown(data), encoding="utf-8")
+    # 書き込み途中でプロセスが終了しても壊れた（書きかけの）ファイルが残らない
+    # よう、atomic_io経由で書き出す（GitHub Actionsのジョブタイムアウト・
+    # キャンセル対策）。
+    atomic_io.write_json_atomic(TIKTOK_JSON_PATH, data)
+    atomic_io.write_text_atomic(TIKTOK_MARKDOWN_PATH, render_markdown(data))
 
     tiktok_selector.record_selection(
         {

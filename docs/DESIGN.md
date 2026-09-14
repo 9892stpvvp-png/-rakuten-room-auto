@@ -1280,3 +1280,106 @@ Playwrightを使った実機での確認テストで検証済み。
 便利グッズ5件＋消耗品/飲料5件・レビュー条件・投稿済み履歴・4段階の重複判定・
 紹介文生成・毎日15:30 JST自動実行・スマホ投稿ページ（room/）・GitHub Pages・
 Secretsは変更していない。
+
+## 23. TikTok日次生成の本番運用向け堅牢化（tiktok-affiliate-002）
+
+TikTokアフィリエイト機能を本番の日次運用で安定して使える状態にするため、
+監査を行い、見つかった不足を修正した。
+
+### 発見した問題1: TikTok側だけ失敗すると、成功していたROOM側の更新まで失われる
+
+`search_candidates.yml`は、ROOM候補生成（`src.main`）→スマホ投稿ページの
+データ書き出し（`src.publish_room_page`）→TikTokコンテンツ生成
+（`src.tiktok_daily`）→コミット・pushという順番のステップで構成されている。
+GitHub Actionsは前のステップが失敗すると後続ステップを実行しない
+デフォルト挙動があるため、**ROOM候補生成・投稿ページのデータ書き出しは
+成功していても、TikTokコンテンツ生成だけが失敗した場合、最後の
+「コミットしてプッシュ」ステップごと実行されず、せっかく成功していた
+ROOM側の新しい候補データ（`room/data/candidates.json`）までコミットされずに
+失われてしまう**問題があった（22章で書いた「ROOM側が失敗した回はTikTok側の
+不完全なデータを作らない」という設計は正しいが、その逆方向＝TikTok側だけが
+失敗した場合の対策が抜けていた）。
+
+対応として、最後の「投稿ページ・TikTok用データをコミットしてプッシュ」
+ステップに`if: always()`を付け、TikTokコンテンツ生成ステップ
+（`id: tiktok`）が失敗・スキップされた場合でも実行されるようにした。
+ただし、`steps.tiktok.outcome == 'success'`のときだけ`tiktok/`・
+`data/tiktok_history.json`を`git add`の対象に含めるようにし、TikTok側が
+失敗した場合はROOM側のデータ（`room/data/candidates.json`）だけを
+コミットするようにした。これにより、
+
+- ROOM候補生成自体が失敗した場合：`publish_room_page`・`tiktok_daily`の
+  両方が実行されないため、どちらのファイルも変化せず、結果的に何も
+  コミットされない（従来どおり安全）。
+- ROOM側は成功・TikTok側だけ失敗した場合：ROOM側のデータだけが
+  コミットされ、TikTok側（`tiktok/`・`data/tiktok_history.json`）は
+  前回の内容のまま維持される（新しく追加した挙動）。
+- 両方成功した場合：従来どおり両方コミットされる。
+
+という3パターンいずれでも、コミットされる内容が常に「そのステップまでの
+処理が成功して書き出されたファイルだけ」になり、`tiktok/daily_content.json`
+（新しい選定結果）と`data/tiktok_history.json`（選定履歴）が矛盾した
+組み合わせでコミットされることもない（TikTok側のファイルは、生成処理
+（`src.tiktok_daily`の`main()`）が最後まで成功したときだけまとめて
+コミット対象になるため）。
+
+また、TikTok生成ステップが失敗した場合に、実行ログを開かなくても
+Actionsの実行結果ページ（Summary）から状況が分かるよう、
+「TikTok生成の失敗をActions Summaryに分かりやすく記録する」ステップを
+追加した（`if: failure() && steps.tiktok.outcome == 'failure'`）。
+
+### 発見した問題2: 同じ日に手動で複数回実行すると、履歴に同日の記録が何件も積み重なる
+
+`tiktok_selector.record_selection()`は、これまで選定結果を無条件で
+履歴に追記するだけだった。同じ日にGitHub Actionsを手動で複数回実行すると
+（例えば1回目の実行結果を確認してから、設定を調整してもう一度実行する等）、
+`data/tiktok_history.json`に同じ日付の記録が複数件積み重なってしまう
+（履歴が壊れるわけではないが、直近の選定履歴が本来より多くの「実際に
+選ばれた日」を含んでいるかのように見えてしまう、不自然な状態）。
+
+対応として、`record_selection()`で新しい記録を追記する前に、同じ日付
+（`entry["date"]`）の既存の記録を取り除くようにした。これにより、同じ日に
+何度実行しても、履歴に残るのはその日最後に実行した選定結果1件だけになる。
+
+### 発見した問題3: 書き込み途中でプロセスが終了すると、JSONファイルが壊れた状態で残る可能性
+
+`data/tiktok_history.json`・`tiktok/daily_content.json`・
+`tiktok/daily_content.md`は、いずれも`open(path, "w")`で直接書き込んで
+いた。GitHub Actionsのジョブタイムアウトや手動キャンセル等でこの書き込みの
+途中にプロセスが終了すると、書きかけの不完全なファイル（壊れたJSON等）が
+残ってしまう可能性があった。
+
+対応として、`src/atomic_io.py`を新規追加し、「同じディレクトリに一時
+ファイルを書き、書き終わってから`os.replace()`で本来のファイル名に
+置き換える」というアトミックな書き込み方式に変更した（`os.replace()`は
+同一ファイルシステム上ではアトミックな操作であるため、置き換えの途中で
+壊れた中間状態のファイルが観測されることはない）。`tiktok_selector.py`の
+履歴保存と、`tiktok_daily.py`のJSON/Markdown書き出しの両方で使っている。
+
+### 確認して問題が無かった項目
+
+- **日次実行をまたいだ履歴の永続化**: `data/tiktok_history.json`は
+  毎回のワークフロー実行の最後にコミット・pushされ、次回の実行は
+  `actions/checkout@v4`でその最新状態から始まるため、日をまたいだ
+  永続化の仕組み自体は元から正しく機能していた（今回の問題1は、
+  「失敗時にコミットされない」という別の問題）。
+- **GitHub Actionsが生成物だけを安全にコミットすること**: 最後のコミット
+  ステップは`git add -A`等ではなく、`room/data/candidates.json`・
+  `tiktok/daily_content.json`・`tiktok/daily_content.md`・
+  `data/tiktok_history.json`の4ファイルだけを明示的に指定しているため、
+  `.env`や`data/candidates/`（`.gitignore`対象）等の意図しないファイルが
+  混入する余地はない。変更不要と判断した。
+- **iPhone向け`tiktok/index.html`のデータ連携**: `daily_content.json`を
+  キャッシュを無視して取得し（`cache: "no-store"`・タイムスタンプ付き
+  クエリ）、取得失敗時・商品名が無い場合にそれぞれ分かりやすいメッセージを
+  表示する作りになっており、商品名・台本・テロップ・ナレーション・
+  キャプション・ハッシュタグ・動画制作メモそれぞれに「コピー」ボタンが
+  付いている。追加の問題は見つからなかった。
+
+### テスト
+
+- `tests/test_tiktok_selector.py`に、同じ日付の記録が複数回追記されても
+  履歴には1件しか残らないことを確認するテストを追加した。
+- `tests/test_atomic_io.py`を新規追加し、`atomic_io.write_text_atomic()`・
+  `write_json_atomic()`が正しく書き込めること、書き込み中に例外が起きても
+  既存のファイルが壊れず・一時ファイルも残らないことを確認した。

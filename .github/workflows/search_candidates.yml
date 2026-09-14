@@ -50,13 +50,57 @@ jobs:
       # TikTok側だけ単独で不完全なデータを作ることはない。動画ファイルの
       # 生成・外部の動画生成API連携・TikTokへの自動投稿は行わない。
       - name: TikTok投稿用コンテンツを生成する
+        id: tiktok
         run: python -m src.tiktok_daily
 
+      # このステップが失敗した場合（前のステップのidが"tiktok"）だけ、
+      # Actionsの実行結果ページ（Summary）にも分かりやすく理由を書き出す。
+      # 通常のエラーメッセージは実行ログに表示されるが、ログを開かなくても
+      # 「TikTok側だけ失敗した」「ROOM側のデータは別途コミットされる」ことが
+      # 分かるようにするためのもの。
+      - name: TikTok生成の失敗をActions Summaryに分かりやすく記録する
+        if: failure() && steps.tiktok.outcome == 'failure'
+        run: |
+          {
+            echo "## ⚠️ TikTok投稿用コンテンツの生成に失敗しました"
+            echo ""
+            echo "上の「TikTok投稿用コンテンツを生成する」ステップのログでエラー内容を確認してください。"
+            echo "このステップの失敗により、TikTok側（tiktok/・data/tiktok_history.json）は"
+            echo "今回コミットされません（前回の内容のまま維持されます）。"
+            echo "楽天ROOM側の候補データ（room/data/candidates.json）は、"
+            echo "ここまでが成功していれば通常どおり次のステップでコミットされます。"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # 投稿ページ・TikTok用データのコミット・push。
+      #
+      # if: always() にしているのは、直前の「TikTok投稿用コンテンツを生成する」
+      # ステップだけが失敗した場合に、成功しているROOM側のデータ更新
+      # （room/data/candidates.json）まで一緒に失われてしまうのを防ぐため
+      # （以前は後続ステップが全てスキップされ、その日のROOM候補データの
+      # 更新ごとコミットされずに失われる問題があった）。
+      #
+      # ただし、TikTok投稿用コンテンツの生成（id: tiktok）が成功した場合だけ
+      # tiktok/・data/tiktok_history.json をコミット対象に含める。失敗した
+      # 場合にステージングしてしまうと、tiktok/daily_content.json（新しい
+      # 選定結果）とdata/tiktok_history.json（更新されていない古い履歴）が
+      # 矛盾した状態のままコミットされてしまう恐れがあるため。
+      #
+      # 商品検索（python -m src.main）自体が失敗した場合は、このステップより
+      # 前のpublish_room_page・tiktok_dailyの両方が実行されず、room/・
+      # tiktok/以下のファイルもどちらも更新されないため、以下のgit addは
+      # 差分なし（git diff --staged --quiet）となり、結果的に何もコミット
+      # されない（従来どおり安全）。
       - name: 投稿ページ・TikTok用データをコミットしてプッシュ
+        if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add room/data/candidates.json tiktok/daily_content.json tiktok/daily_content.md data/tiktok_history.json
+          git add room/data/candidates.json
+          if [ "${{ steps.tiktok.outcome }}" = "success" ]; then
+            git add tiktok/daily_content.json tiktok/daily_content.md data/tiktok_history.json
+          else
+            echo "TikTok投稿用コンテンツの生成が成功していないため、tiktok/・data/tiktok_history.jsonはコミット対象に含めません。"
+          fi
           if git diff --staged --quiet; then
             echo "投稿ページ・TikTok用データに変化がないため、コミットしません。"
           else

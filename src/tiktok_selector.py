@@ -13,6 +13,8 @@ import json
 from pathlib import Path
 from typing import Any, NamedTuple
 
+from . import atomic_io
+
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 TIKTOK_HISTORY_PATH = PROJECT_ROOT / "data" / "tiktok_history.json"
 
@@ -50,14 +52,24 @@ def record_selection(
     path: Path = TIKTOK_HISTORY_PATH,
     keep_last: int = HISTORY_KEEP_LAST,
 ) -> None:
-    """選定結果を履歴ファイルに追記する（直近keep_last件だけ保持する）。"""
+    """選定結果を履歴ファイルに追記する（直近keep_last件だけ保持する）。
+
+    同じ日付（entryの"date"）の記録が既にある場合は、先に取り除いてから
+    追記する（同じ日にGitHub Actionsを手動で複数回実行しても、同日の記録が
+    何件も積み重なる「不自然な二重記録」にならないようにするため。最終的に
+    履歴に残るのは、その日最後に実行した選定結果になる）。
+
+    書き込みはatomic_io.write_json_atomic()を使い、GitHub Actionsのジョブ
+    タイムアウト・キャンセル等で書き込み途中にプロセスが終了しても、
+    履歴ファイルが壊れた状態（書きかけの不完全なJSON）で残らないようにしている。
+    """
     history = load_history(path)
+    date = entry.get("date")
+    if date:
+        history = [existing for existing in history if existing.get("date") != date]
     history.append(entry)
     history = history[-keep_last:]
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8") as f:
-        json.dump({"history": history}, f, ensure_ascii=False, indent=2)
-        f.write("\n")
+    atomic_io.write_json_atomic(path, {"history": history})
 
 
 def _recent_categories(history: list[dict[str, Any]], lookback: int = ROTATION_LOOKBACK) -> set[str]:
