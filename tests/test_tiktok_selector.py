@@ -164,6 +164,38 @@ class HistoryPersistenceTest(unittest.TestCase):
             path = Path(tmp) / "does_not_exist.json"
             self.assertEqual(tiktok_selector.load_history(path), [])
 
+    def test_same_date_recorded_twice_replaces_instead_of_duplicating(self):
+        # 同じ日にGitHub Actionsを手動で複数回実行しても、履歴にその日の
+        # 記録が何件も積み重なる「不自然な二重記録」にならないことを確認する。
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "tiktok_history.json"
+            tiktok_selector.record_selection(
+                {"date": "2026-09-14", "item_code": "c1", "category": "収納", "group_label": "便利グッズ"},
+                path=path,
+            )
+            tiktok_selector.record_selection(
+                {"date": "2026-09-14", "item_code": "c2", "category": "掃除", "group_label": "便利グッズ"},
+                path=path,
+            )
+            history = tiktok_selector.load_history(path)
+            self.assertEqual(len(history), 1)
+            self.assertEqual(history[0]["item_code"], "c2")
+
+    def test_different_dates_are_both_kept(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "tiktok_history.json"
+            tiktok_selector.record_selection(
+                {"date": "2026-09-13", "item_code": "c1", "category": "収納", "group_label": "便利グッズ"},
+                path=path,
+            )
+            tiktok_selector.record_selection(
+                {"date": "2026-09-14", "item_code": "c2", "category": "掃除", "group_label": "便利グッズ"},
+                path=path,
+            )
+            history = tiktok_selector.load_history(path)
+            self.assertEqual(len(history), 2)
+            self.assertEqual([h["item_code"] for h in history], ["c1", "c2"])
+
 
 if __name__ == "__main__":
     unittest.main()
