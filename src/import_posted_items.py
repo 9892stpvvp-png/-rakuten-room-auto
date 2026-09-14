@@ -39,6 +39,20 @@ item_code・item_urlが分からない過去の投稿（例えば楽天ROOMの�
       ...
     ]
 
+商品名も断定できない（スクリーンショットの一部からしか特徴語が分からない）
+場合は、match_keywordsで登録できる。候補の商品名にmatch_keywords全語が
+含まれていれば（AND判定・誤判定防止のため2語以上必須）投稿済みとみなす。
+    [
+      {
+        "product_name": null,
+        "item_code": null,
+        "item_url": null,
+        "match_keywords": ["山崎実業", "tower", "マグネットバスルームラック", "ワイド"]
+      },
+      ...
+    ]
+product_nameとmatch_keywordsは併用でき、両方指定してもよい。
+
 過去のROOM投稿をまとめて初期登録したい場合は、data/past_posted_items_seed.json
 に商品名一覧を追記してから、このスクリプトの引数にそのファイルを渡す。
     python -m src.import_posted_items data/past_posted_items_seed.json

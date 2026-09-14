@@ -64,6 +64,7 @@
 ├── data/
 │   ├── posted_items.json     投稿済み履歴（過去に投稿した商品の記録、重複チェック用）
 │   ├── past_posted_items_seed.json  過去のROOM投稿を一括登録するための下書き
+│   ├── past_posted_items_unresolved.json  商品を特定しきれず未登録の候補
 │   └── candidates/            実行結果（候補一覧）が保存される場所
 └── src/
     ├── main.py                 実行の入り口（このファイルを動かして候補一覧を作る）
@@ -236,6 +237,13 @@ python -m unittest discover -s tests -v
    ブランド名・サイズ・容量・個数などは区別する。「ワイド」と「ラージ」、
    「1個」と「5個セット」は別商品として扱われる。あいまい一致はせず、
    正規化後の完全一致だけで判定する）
+4. `match_keywords`（登録した特徴語）がすべて商品名に含まれる（3の完全
+   一致よりもさらに情報が少ない場合——スクリーンショットからしか商品を
+   特定できない場合等——の補助判定。全語が含まれていること（AND）だけを
+   見る。1語でも欠けていれば一致とみなさない。誤判定を防ぐため、
+   `["tower"]`のような1語だけの登録は一致判定に使われない
+   （最低2語必要）。「ワイド」と「ラージ」、「1個」と「5個セット」の
+   区別もこの判定に反映される）
 
 登録方法は2通りあります。
 
@@ -260,8 +268,8 @@ python -m unittest discover -s tests -v
 ### 過去のROOM投稿をまとめて登録する（初期登録）
 
 これまで楽天ROOMに投稿した商品を、`item_code`や商品URLが分からなくても
-商品名だけで登録できます。`data/past_posted_items_seed.json`に商品名の一覧を
-追記してください（`item_code`・`item_url`・`posted_at`は分からなければ
+商品名・特徴語だけで登録できます。`data/past_posted_items_seed.json`に
+一覧を追記してください（`item_code`・`item_url`・`posted_at`は分からなければ
 `null`のままでかまいません）。
 
 ```json
@@ -271,10 +279,18 @@ python -m unittest discover -s tests -v
     "item_code": null,
     "item_url": null,
     "posted_at": null,
-    "category": "過去投稿"
+    "category": "過去投稿",
+    "match_keywords": ["マーナ", "シートケース"]
   }
 ]
 ```
+
+商品名すら断定できない場合は、`match_keywords`（ブランド名＋商品固有名詞など、
+2語以上の組み合わせ）だけでも登録できます。「収納」「掃除」「ケース」などの
+一般語だけの組み合わせは、無関係な商品まで巻き込みやすいためできるだけ避け、
+ブランド名＋商品固有名詞を基本にしてください。商品の種類やサイズ・個数が
+はっきり分からないものは、無理に登録せず`data/past_posted_items_unresolved.json`
+に候補として書き留めておき、確認が取れてから正式に登録することをおすすめします。
 
 追記したら、次のコマンドで`data/posted_items.json`へ取り込みます
 （すでに登録済みの商品は自動的にスキップされ、二重登録されません）。

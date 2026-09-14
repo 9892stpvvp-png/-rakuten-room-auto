@@ -229,6 +229,111 @@ class MatchPostedReasonTest(unittest.TestCase):
         candidate = make_item(name="🎊🎈")
         self.assertIsNone(dedupe.match_posted_reason(candidate, index))
 
+    def test_matches_by_match_keywords_when_others_are_absent(self):
+        posted = make_item(match_keywords=["マーナ", "シートケース"])
+        index = dedupe.build_posted_index([posted])
+        candidate = make_item(name="マーナ シートケース ホワイト")
+        self.assertEqual(dedupe.match_posted_reason(candidate, index), "match_keywords")
+
+    def test_match_keywords_partial_match_is_not_excluded(self):
+        posted = make_item(match_keywords=["マーナ", "シートケース"])
+        index = dedupe.build_posted_index([posted])
+        candidate = make_item(name="マーナ 計量お玉")
+        self.assertIsNone(dedupe.match_posted_reason(candidate, index))
+
+    def test_match_keywords_does_not_confuse_wide_and_large(self):
+        posted = make_item(
+            match_keywords=["山崎実業", "tower", "マグネットバスルームラック", "ワイド"]
+        )
+        index = dedupe.build_posted_index([posted])
+        large_candidate = make_item(name="tower 《 山崎実業 マグネットバスルームラック タワー ラージ 》")
+        wide_candidate = make_item(name="tower 《 山崎実業 マグネットバスルームラック タワー ワイド 》")
+        self.assertIsNone(dedupe.match_posted_reason(large_candidate, index))
+        self.assertEqual(dedupe.match_posted_reason(wide_candidate, index), "match_keywords")
+
+    def test_match_keywords_does_not_confuse_quantity_variants(self):
+        posted = make_item(match_keywords=["マーナ", "冷凍ごはん容器", "5個"])
+        index = dedupe.build_posted_index([posted])
+        single_candidate = make_item(name="マーナ 冷凍ごはん容器 1個")
+        five_candidate = make_item(name="マーナ 冷凍ごはん容器 5個セット")
+        self.assertIsNone(dedupe.match_posted_reason(single_candidate, index))
+        self.assertEqual(dedupe.match_posted_reason(five_candidate, index), "match_keywords")
+
+    def test_brand_only_match_keywords_never_excludes_anything(self):
+        # ["tower"]のような1語だけの登録は、無関係な商品まで巻き込まないよう
+        # 一致判定に使われない（登録上は許容するが機能しない）。
+        posted = make_item(match_keywords=["tower"])
+        index = dedupe.build_posted_index([posted])
+        candidate = make_item(name="tower マグネットフック")
+        self.assertIsNone(dedupe.match_posted_reason(candidate, index))
+
+    def test_item_code_url_and_product_name_take_priority_over_match_keywords(self):
+        # 優先順位1〜3のいずれかが一致すれば、match_keywordsの判定に到達する前に
+        # その結果が返ることを確認する。
+        posted_code = make_item(item_code="shop:a", match_keywords=["ダミー", "キーワード"])
+        index_code = dedupe.build_posted_index([posted_code])
+        self.assertEqual(
+            dedupe.match_posted_reason(make_item(item_code="shop:a"), index_code), "item_code"
+        )
+
+        posted_url = make_item(
+            item_url="https://item.rakuten.co.jp/shop/a/", match_keywords=["ダミー", "キーワード"]
+        )
+        index_url = dedupe.build_posted_index([posted_url])
+        self.assertEqual(
+            dedupe.match_posted_reason(
+                make_item(item_url="https://item.rakuten.co.jp/shop/a/"), index_url
+            ),
+            "url",
+        )
+
+        posted_name = make_item(
+            product_name="マーナ シートケース", match_keywords=["ダミー", "キーワード"]
+        )
+        index_name = dedupe.build_posted_index([posted_name])
+        self.assertEqual(
+            dedupe.match_posted_reason(make_item(name="マーナ シートケース"), index_name),
+            "product_name",
+        )
+
+
+class MatchAllKeywordsTest(unittest.TestCase):
+    def test_true_when_all_keywords_are_present(self):
+        self.assertTrue(
+            dedupe.match_all_keywords(
+                "tower 《 山崎実業 マグネットバスルームラック タワー ワイド 》",
+                ["山崎実業", "tower", "マグネットバスルームラック", "ワイド"],
+            )
+        )
+
+    def test_false_when_only_some_keywords_are_present(self):
+        self.assertFalse(
+            dedupe.match_all_keywords(
+                "tower マグネットバスルームラック タワー ラージ",
+                ["山崎実業", "tower", "マグネットバスルームラック", "ワイド"],
+            )
+        )
+
+    def test_false_when_fewer_than_two_keywords(self):
+        # 1語だけの登録は誤判定のリスクが高いため、常に不一致とする。
+        self.assertFalse(dedupe.match_all_keywords("tower 何かの商品", ["tower"]))
+        self.assertFalse(dedupe.match_all_keywords("何かの商品", []))
+
+    def test_case_and_width_insensitive(self):
+        self.assertTrue(
+            dedupe.match_all_keywords("ＴＯＷＥＲ サーキュレーター", ["tower", "サーキュレーター"])
+        )
+
+    def test_size_variants_are_distinguished(self):
+        keywords = ["マーナ", "冷凍ごはん容器", "5個"]
+        self.assertTrue(dedupe.match_all_keywords("マーナ 冷凍ごはん容器 5個セット", keywords))
+        self.assertFalse(dedupe.match_all_keywords("マーナ 冷凍ごはん容器 1個", keywords))
+
+    def test_brand_only_keyword_set_ignored_due_to_minimum(self):
+        # ブランド名1語だけでは無関係な商品まで巻き込むため、登録があっても
+        # 一致判定には使われない。
+        self.assertFalse(dedupe.match_all_keywords("tower マグネットフック", ["tower"]))
+
 
 class IsPostedAndRemoveDuplicatesTest(unittest.TestCase):
     def test_matches_by_item_code(self):
@@ -292,7 +397,9 @@ class RemoveDuplicatesWithBreakdownTest(unittest.TestCase):
         kept, breakdown = dedupe.remove_duplicates_with_breakdown(items, index)
 
         self.assertEqual([item["item_code"] for item in kept], ["shop:new"])
-        self.assertEqual(breakdown, {"item_code": 1, "url": 1, "product_name": 1})
+        self.assertEqual(
+            breakdown, {"item_code": 1, "url": 1, "product_name": 1, "match_keywords": 0}
+        )
 
 
 class AppendPostedItemsTest(unittest.TestCase):
@@ -425,6 +532,67 @@ class AppendPostedItemsTest(unittest.TestCase):
             self.assertEqual(result.added, 0)
             self.assertEqual(result.skipped, 1)
             self.assertEqual(result.total, 1)
+
+    def test_match_keywords_only_records_are_accepted_and_preserved(self):
+        # item_code・item_url・product_nameが無くても、match_keywordsが
+        # あれば登録できる（過去投稿のスクリーンショットからの登録を想定）。
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "posted_items.json"
+            result = dedupe.append_posted_items(
+                [
+                    {
+                        "item_code": None,
+                        "item_url": None,
+                        "product_name": None,
+                        "posted_at": None,
+                        "category": "過去投稿",
+                        "match_keywords": ["マーナ", "シートケース"],
+                    }
+                ],
+                path,
+            )
+            self.assertEqual(result.added, 1)
+            saved = json.loads(path.read_text(encoding="utf-8"))
+            self.assertEqual(saved["posted_items"][0]["match_keywords"], ["マーナ", "シートケース"])
+
+    def test_import_preserves_match_keywords_alongside_product_name(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "posted_items.json"
+            dedupe.append_posted_items(
+                [
+                    {
+                        "product_name": "tower マグネットバスルームラック",
+                        "match_keywords": ["山崎実業", "tower", "マグネットバスルームラック", "ワイド"],
+                    }
+                ],
+                path,
+            )
+            saved = json.loads(path.read_text(encoding="utf-8"))
+            record = saved["posted_items"][0]
+            self.assertEqual(record["product_name"], "tower マグネットバスルームラック")
+            self.assertEqual(
+                record["match_keywords"], ["山崎実業", "tower", "マグネットバスルームラック", "ワイド"]
+            )
+
+    def test_match_keywords_based_duplicate_is_not_double_registered(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "posted_items.json"
+            dedupe.append_posted_items(
+                [{"match_keywords": ["マーナ", "シートケース"]}], path
+            )
+            result = dedupe.append_posted_items(
+                [{"product_name": "マーナ シートケース ホワイト"}], path
+            )
+            self.assertEqual(result.added, 0)
+            self.assertEqual(result.skipped, 1)
+            self.assertEqual(result.total, 1)
+
+    def test_missing_match_keywords_defaults_to_empty_list(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "posted_items.json"
+            dedupe.append_posted_items([{"item_code": "shop:a"}], path)
+            saved = json.loads(path.read_text(encoding="utf-8"))
+            self.assertEqual(saved["posted_items"][0]["match_keywords"], [])
 
 
 if __name__ == "__main__":

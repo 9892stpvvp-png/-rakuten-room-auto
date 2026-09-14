@@ -27,6 +27,11 @@
     3. 正規化した商品名が一致するか（item_code・item_urlが無い過去投稿等の
        ための補助的な判定。誤判定を避けるため、正規化後の「完全一致」だけを
        見る。あいまい一致・部分一致はしない）
+    4. match_keywords（登録した特徴語）がすべて商品名に含まれるか（3の
+       完全一致よりさらに情報が少ない過去投稿——スクリーンショットからしか
+       商品を特定できない場合等——のための補助判定。他の3つより優先度を
+       下げてある。全語一致（AND）だけを見る。1語だけの登録は誤判定の
+       リスクが高いため無視する）
 """
 
 from __future__ import annotations
@@ -44,6 +49,7 @@ class PostedIndex(NamedTuple):
     item_codes: set[str]
     normalized_urls: set[str]
     normalized_product_names: set[str]
+    match_keyword_sets: list[tuple[str, ...]]
 
 
 class AppendResult(NamedTuple):
@@ -125,6 +131,47 @@ def normalize_product_name(name: str) -> str:
     return _WHITESPACE_PATTERN.sub(" ", normalized).strip()
 
 
+# match_keywordsによる補助判定を有効にするために必要な最低キーワード数。
+# 1語だけの登録（例：["tower"]、["マーナ"]、["収納"]）は、無関係な商品まで
+# 誤って除外してしまうリスクが高いため、判定に使わない（登録自体は
+# 妨げないが、索引の構築時に無視される＝一致判定には一切影響しない）。
+_MIN_MATCH_KEYWORDS = 2
+
+
+def _normalize_for_keyword_match(text: str) -> str:
+    """match_keywordsの一致判定用に、商品名・キーワードをNFKC正規化・
+    小文字化する（normalize_product_nameと異なり、販売文言・装飾記号の
+    除去は行わない。あくまで全角/半角・大文字小文字の違いだけを吸収する）。
+    """
+    if not text:
+        return ""
+    return unicodedata.normalize("NFKC", text).lower()
+
+
+def match_all_keywords(candidate_name: str, keywords: list[str]) -> bool:
+    """候補の商品名に、指定したキーワードが（NFKC正規化・小文字化した上で）
+    すべて含まれているかどうかを判定する（AND判定。1つでも欠けていれば
+    不一致）。
+
+    キーワードが _MIN_MATCH_KEYWORDS 未満の場合は、誤判定を避けるため
+    常にFalseを返す（「山崎実業」単独のように広すぎる登録で無関係な
+    商品まで除外してしまうことを防ぐ）。
+    """
+    valid_keywords = [kw for kw in keywords if kw and kw.strip()]
+    if len(valid_keywords) < _MIN_MATCH_KEYWORDS:
+        return False
+
+    normalized_candidate = _normalize_for_keyword_match(candidate_name)
+    if not normalized_candidate:
+        return False
+
+    for keyword in valid_keywords:
+        normalized_keyword = _normalize_for_keyword_match(keyword)
+        if not normalized_keyword or normalized_keyword not in normalized_candidate:
+            return False
+    return True
+
+
 def load_posted_items(path: Path) -> list[dict[str, Any]]:
     """投稿済み履歴ファイルを読み込む。ファイルが無ければ空リストを返す。
 
@@ -151,7 +198,8 @@ def load_posted_item_codes(path: Path) -> set[str]:
 
 
 def build_posted_index(posted_items: list[dict[str, Any]]) -> PostedIndex:
-    """投稿済み履歴から、item_code・正規化済みURL・正規化済み商品名の集合を作る。"""
+    """投稿済み履歴から、item_code・正規化済みURL・正規化済み商品名・
+    match_keywordsの組の一覧を作る。"""
     item_codes = {item["item_code"] for item in posted_items if item.get("item_code")}
 
     normalized_urls = {
@@ -166,21 +214,32 @@ def build_posted_index(posted_items: list[dict[str, Any]]) -> PostedIndex:
     }
     normalized_product_names.discard("")
 
+    match_keyword_sets: list[tuple[str, ...]] = []
+    for item in posted_items:
+        keywords = item.get("match_keywords") or []
+        valid_keywords = tuple(kw for kw in keywords if kw and kw.strip())
+        if len(valid_keywords) >= _MIN_MATCH_KEYWORDS:
+            match_keyword_sets.append(valid_keywords)
+
     return PostedIndex(
         item_codes=item_codes,
         normalized_urls=normalized_urls,
         normalized_product_names=normalized_product_names,
+        match_keyword_sets=match_keyword_sets,
     )
 
 
 def match_posted_reason(item: dict[str, Any], posted_index: PostedIndex) -> str | None:
     """商品が投稿済み履歴に含まれるかどうかを判定し、一致した根拠
-    （"item_code" / "url" / "product_name"）を返す。一致しなければNone。
+    （"item_code" / "url" / "product_name" / "match_keywords"）を返す。
+    一致しなければNone。
 
     1. item_code（安定した商品ID）が一致するか
     2. 正規化した商品URLが一致するか
     3. 正規化した商品名が一致するか（item_code・URLが取れない過去投稿向けの
        補助判定。他の2つより優先度を下げる）
+    4. 登録したmatch_keywordsがすべて商品名に含まれるか（3よりさらに情報が
+       少ない過去投稿向けの補助判定。他の3つより優先度を下げる）
 
     候補商品（キー名"name"）・投稿済み履歴のレコード（キー名"product_name"）
     のどちらの形でも商品名を拾えるようにしている。
@@ -194,9 +253,14 @@ def match_posted_reason(item: dict[str, Any], posted_index: PostedIndex) -> str 
         return "url"
 
     raw_name = item.get("name") or item.get("product_name") or ""
+
     normalized_name = normalize_product_name(raw_name)
     if normalized_name and normalized_name in posted_index.normalized_product_names:
         return "product_name"
+
+    for keywords in posted_index.match_keyword_sets:
+        if match_all_keywords(raw_name, keywords):
+            return "match_keywords"
 
     return None
 
@@ -219,10 +283,11 @@ def remove_duplicates_with_breakdown(
     posted_index: PostedIndex,
 ) -> tuple[list[dict[str, Any]], dict[str, int]]:
     """過去に投稿済みの商品を候補から取り除きつつ、item_code／url／product_name
-    のどの判定方法で何件除外したかを集計する（GitHub Actions Summary表示用）。
+    ／match_keywordsのどの判定方法で何件除外したかを集計する
+    （GitHub Actions Summary表示用）。
     """
     kept: list[dict[str, Any]] = []
-    breakdown = {"item_code": 0, "url": 0, "product_name": 0}
+    breakdown = {"item_code": 0, "url": 0, "product_name": 0, "match_keywords": 0}
     for item in items:
         reason = match_posted_reason(item, posted_index)
         if reason is None:
@@ -254,12 +319,12 @@ def remove_within_run_duplicates(
 def append_posted_items(new_items: list[dict[str, Any]], path: Path) -> AppendResult:
     """投稿済み履歴に新しい商品を追記する（履歴ファイルを書き換える唯一の関数）。
 
-    item_code→商品URL→商品名の順で重複を判定し、既存の履歴、および今回
-    追記しようとしているリスト自身の中で重複する商品は二重登録しない。
-    各レコードのキー名のゆれ（product_id→item_code、name→product_name）も
-    吸収する。item_code・商品URLが無く、商品名だけの過去投稿（例：
-    `{"product_name": "...", "item_code": null, "item_url": null}`）も
-    登録できる。
+    item_code→商品URL→商品名→match_keywordsの順で重複を判定し、既存の履歴、
+    および今回追記しようとしているリスト自身の中で重複する商品は二重登録
+    しない。各レコードのキー名のゆれ（product_id→item_code、name→
+    product_name）も吸収する。item_code・商品URL・商品名が無く、
+    match_keywordsだけの過去投稿（例：`{"match_keywords": ["マーナ",
+    "シートケース"], "item_code": null, "item_url": null}`）も登録できる。
 
     将来、別の手段（手動の一括登録スクリプトや、ROOM側の正式なエクスポート
     機能等）で履歴を自動更新できるように、履歴への書き込み処理をこの関数に
@@ -273,9 +338,14 @@ def append_posted_items(new_items: list[dict[str, Any]], path: Path) -> AppendRe
     skipped = 0
     for raw_item in new_items:
         item = _normalize_incoming_item(raw_item)
-        if not item.get("item_code") and not item.get("item_url") and not item.get("product_name"):
-            # 商品を特定できる情報（商品コード・商品URL・商品名のいずれも）が
-            # 無ければ登録しない。
+        if (
+            not item.get("item_code")
+            and not item.get("item_url")
+            and not item.get("product_name")
+            and not item.get("match_keywords")
+        ):
+            # 商品を特定できる情報（商品コード・商品URL・商品名・
+            # match_keywordsのいずれも）が無ければ登録しない。
             skipped += 1
             continue
         if is_posted(item, posted_index):
@@ -291,6 +361,9 @@ def append_posted_items(new_items: list[dict[str, Any]], path: Path) -> AppendRe
         normalized_name = normalize_product_name(item.get("product_name", ""))
         if normalized_name:
             posted_index.normalized_product_names.add(normalized_name)
+        valid_keywords = tuple(kw for kw in item.get("match_keywords", []) if kw and kw.strip())
+        if len(valid_keywords) >= _MIN_MATCH_KEYWORDS:
+            posted_index.match_keyword_sets.append(valid_keywords)
         added += 1
 
     _save_posted_items(existing, path)
@@ -302,6 +375,13 @@ def _clean_str(value: Any) -> str:
     return value if isinstance(value, str) and value else ""
 
 
+def _clean_keywords(value: Any) -> list[str]:
+    """match_keywordsの値（リスト以外・null・空文字混入等）を安全なリストに揃える。"""
+    if not isinstance(value, list):
+        return []
+    return [kw for kw in value if isinstance(kw, str) and kw.strip()]
+
+
 def _normalize_incoming_item(raw_item: dict[str, Any]) -> dict[str, Any]:
     """取り込むレコードのキー名のゆれ（product_id・name等）や、値がnullの
     場合を吸収して統一形式にする。"""
@@ -311,6 +391,7 @@ def _normalize_incoming_item(raw_item: dict[str, Any]) -> dict[str, Any]:
         "product_name": _clean_str(raw_item.get("product_name")) or _clean_str(raw_item.get("name")),
         "posted_at": _clean_str(raw_item.get("posted_at")),
         "category": _clean_str(raw_item.get("category")),
+        "match_keywords": _clean_keywords(raw_item.get("match_keywords")),
     }
 
 

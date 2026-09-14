@@ -86,6 +86,7 @@ def main() -> None:
     posted_excluded_by_item_code = 0
     posted_excluded_by_url = 0
     posted_excluded_by_product_name = 0
+    posted_excluded_by_match_keywords = 0
     seen_item_codes: set[str] = set()
 
     # フェーズ1: キーワードごとに検索し、条件を満たさない商品・重複を取り除く。
@@ -124,6 +125,7 @@ def main() -> None:
         posted_excluded_by_item_code += posted_exclusion_breakdown["item_code"]
         posted_excluded_by_url += posted_exclusion_breakdown["url"]
         posted_excluded_by_product_name += posted_exclusion_breakdown["product_name"]
+        posted_excluded_by_match_keywords += posted_exclusion_breakdown["match_keywords"]
         items = dedupe.remove_within_run_duplicates(items, seen_item_codes)
 
         for item in items:
@@ -173,12 +175,16 @@ def main() -> None:
     print(f"  - 一覧（データ用）: {json_path}")
     print("内容を確認し、良いものを選んで楽天ROOMに手動で投稿してください。")
     posted_excluded_total = (
-        posted_excluded_by_item_code + posted_excluded_by_url + posted_excluded_by_product_name
+        posted_excluded_by_item_code
+        + posted_excluded_by_url
+        + posted_excluded_by_product_name
+        + posted_excluded_by_match_keywords
     )
     print(
         f"投稿済み履歴による除外: {posted_excluded_total}件"
         f"（item_code: {posted_excluded_by_item_code}件 / URL: {posted_excluded_by_url}件"
-        f" / 商品名: {posted_excluded_by_product_name}件、履歴の総数: {posted_history_total}件）"
+        f" / 商品名: {posted_excluded_by_product_name}件"
+        f" / match_keywords: {posted_excluded_by_match_keywords}件、履歴の総数: {posted_history_total}件）"
     )
 
     write_github_step_summary(
@@ -186,6 +192,7 @@ def main() -> None:
             excluded_by_item_code=posted_excluded_by_item_code,
             excluded_by_url=posted_excluded_by_url,
             excluded_by_product_name=posted_excluded_by_product_name,
+            excluded_by_match_keywords=posted_excluded_by_match_keywords,
             new_candidate_count=len(candidates),
             history_total=posted_history_total,
         )

@@ -221,8 +221,77 @@ class RunPipelineTest(unittest.TestCase):
         self.assertIn("item_codeによる除外件数", content)
         self.assertIn("URLによる除外件数", content)
         self.assertIn("商品名履歴による除外件数", content)
+        self.assertIn("match_keywordsによる除外件数", content)
         self.assertIn("今回選ばれた新規候補", content)
         self.assertIn("現在の投稿済み履歴の総数: 1件", content)
+
+    def test_match_keywords_history_excludes_matching_candidate(self):
+        # item_code・item_url・完全一致するproduct_nameのいずれも分からない
+        # 過去投稿（match_keywordsだけの履歴）でも、全キーワードを含む候補を
+        # 除外できることを確認する。
+        def fake_search_specific(keyword: str, **kwargs):
+            if keyword == "掃除 便利グッズ":
+                return [_make_item("shop:cleaning_v", "山崎実業 tower マグネットクリーナー ワイド")]
+            return _default_fake_search(keyword, **kwargs)
+
+        self.posted_items_path.parent.mkdir(parents=True, exist_ok=True)
+        with self.posted_items_path.open("w", encoding="utf-8") as f:
+            json.dump(
+                {
+                    "posted_items": [
+                        {
+                            "match_keywords": ["tower", "マグネットクリーナー", "ワイド"],
+                            "item_code": None,
+                            "item_url": None,
+                            "product_name": None,
+                        }
+                    ]
+                },
+                f,
+            )
+
+        candidates = self._run_main(fake_search_specific)
+        codes = [c["item_code"] for c in candidates]
+        self.assertNotIn("shop:cleaning_v", codes)
+
+    def test_match_keywords_partial_match_does_not_exclude_candidate(self):
+        # 一部のキーワードしか含まない候補（別モデル・別サイズ等）は
+        # 除外しないことを確認する。
+        def fake_search_specific(keyword: str, **kwargs):
+            if keyword == "掃除 便利グッズ":
+                return [_make_item("shop:cleaning_u", "山崎実業 tower マグネットクリーナー ラージ")]
+            return _default_fake_search(keyword, **kwargs)
+
+        self.posted_items_path.parent.mkdir(parents=True, exist_ok=True)
+        with self.posted_items_path.open("w", encoding="utf-8") as f:
+            json.dump(
+                {
+                    "posted_items": [
+                        {"match_keywords": ["tower", "マグネットクリーナー", "ワイド"]}
+                    ]
+                },
+                f,
+            )
+
+        candidates = self._run_main(fake_search_specific)
+        codes = [c["item_code"] for c in candidates]
+        self.assertIn("shop:cleaning_u", codes)
+
+    def test_single_word_match_keywords_never_excludes_candidates(self):
+        # ["tower"]のような1語だけのmatch_keywordsは、無関係な商品まで
+        # 除外してしまわないよう機能しない（誤判定防止）。
+        def fake_search_specific(keyword: str, **kwargs):
+            if keyword == "掃除 便利グッズ":
+                return [_make_item("shop:cleaning_t", "tower マグネットフック")]
+            return _default_fake_search(keyword, **kwargs)
+
+        self.posted_items_path.parent.mkdir(parents=True, exist_ok=True)
+        with self.posted_items_path.open("w", encoding="utf-8") as f:
+            json.dump({"posted_items": [{"match_keywords": ["tower"]}]}, f)
+
+        candidates = self._run_main(fake_search_specific)
+        codes = [c["item_code"] for c in candidates]
+        self.assertIn("shop:cleaning_t", codes)
 
     def test_product_name_only_history_excludes_matching_candidate(self):
         # item_code・item_urlが分からない過去投稿（商品名だけの履歴）でも、
