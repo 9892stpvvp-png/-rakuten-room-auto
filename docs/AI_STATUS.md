@@ -53,7 +53,7 @@ Claude Code がTikTokアフィリエイト機能の現状監査を行い、完�
 
 ## 次にChatGPTが確認すべき点
 - 今回追加したitem_code単位の重複防止ロジックの設計（除外→候補0件ならフォールバックして除外なしで選定）が、意図通りか確認をお願いしたい。
-- 今回のタスクではPRの作成まで求められているが、本セッションの運用ルールにより`main`への直接pushではなく専用ブランチ（`claude/kaishi-ah0jdp`）へpushしている。PR作成もこのセッションから対応する。
+- PRを作成済み: https://github.com/9892stpvvp-png/-rakuten-room-auto/pull/8 （ブランチ`claude/kaishi-ah0jdp` → `main`）。マージはユーザー側でお願いします。
 
 ## セキュリティ
 Application ID、Access Key、トークン、パスワード等の秘密情報はここに記載しないこと。
