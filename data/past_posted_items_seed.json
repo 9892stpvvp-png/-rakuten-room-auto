@@ -286,5 +286,29 @@
     "posted_at": null,
     "category": "過去投稿",
     "match_keywords": ["D-slide", "コンロ隙間ラック"]
+  },
+  {
+    "product_name": "Dr.relax マッサージボール",
+    "item_code": null,
+    "item_url": null,
+    "posted_at": null,
+    "category": "過去投稿",
+    "match_keywords": ["Dr.relax", "マッサージボール"]
+  },
+  {
+    "product_name": "Plate レンジフード調味料ラック",
+    "item_code": null,
+    "item_url": null,
+    "posted_at": null,
+    "category": "過去投稿",
+    "match_keywords": ["Plate", "レンジフード調味料ラック"]
+  },
+  {
+    "product_name": "スパイラル シーツハンガー",
+    "item_code": null,
+    "item_url": null,
+    "posted_at": null,
+    "category": "過去投稿",
+    "match_keywords": ["スパイラル", "シーツハンガー"]
   }
 ]
