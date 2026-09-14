@@ -218,8 +218,100 @@ class RunPipelineTest(unittest.TestCase):
         content = summary_path.read_text(encoding="utf-8")
         self.assertIn("投稿済み履歴による重複防止", content)
         self.assertIn("投稿済み履歴によって除外した件数", content)
+        self.assertIn("item_codeによる除外件数", content)
+        self.assertIn("URLによる除外件数", content)
+        self.assertIn("商品名履歴による除外件数", content)
         self.assertIn("今回選ばれた新規候補", content)
         self.assertIn("現在の投稿済み履歴の総数: 1件", content)
+
+    def test_product_name_only_history_excludes_matching_candidate(self):
+        # item_code・item_urlが分からない過去投稿（商品名だけの履歴）でも、
+        # 同じ商品名の候補を除外できることを確認する。
+        def fake_search_specific(keyword: str, **kwargs):
+            if keyword == "掃除 便利グッズ":
+                return [_make_item("shop:cleaning_x", "激安クリーナー Aシリーズ")]
+            return _default_fake_search(keyword, **kwargs)
+
+        self.posted_items_path.parent.mkdir(parents=True, exist_ok=True)
+        with self.posted_items_path.open("w", encoding="utf-8") as f:
+            json.dump(
+                {
+                    "posted_items": [
+                        {
+                            "product_name": "激安クリーナー Aシリーズ",
+                            "item_code": None,
+                            "item_url": None,
+                            "posted_at": None,
+                            "category": "過去投稿",
+                        }
+                    ]
+                },
+                f,
+            )
+
+        candidates = self._run_main(fake_search_specific)
+        codes = [c["item_code"] for c in candidates]
+        self.assertNotIn("shop:cleaning_x", codes)
+
+    def test_decorated_product_name_in_history_still_matches(self):
+        # 販売文言・装飾記号・絵文字が付いた商品名でも、正規化後の完全一致で
+        # 投稿済みと判定できることを確認する。
+        def fake_search_specific(keyword: str, **kwargs):
+            if keyword == "掃除 便利グッズ":
+                return [
+                    _make_item(
+                        "shop:cleaning_y",
+                        "【送料無料】激安クリーナー　Ｂシリーズ　公式　限定 🎉",
+                    )
+                ]
+            return _default_fake_search(keyword, **kwargs)
+
+        self.posted_items_path.parent.mkdir(parents=True, exist_ok=True)
+        with self.posted_items_path.open("w", encoding="utf-8") as f:
+            json.dump({"posted_items": [{"product_name": "激安クリーナー Bシリーズ"}]}, f)
+
+        candidates = self._run_main(fake_search_specific)
+        codes = [c["item_code"] for c in candidates]
+        self.assertNotIn("shop:cleaning_y", codes)
+
+    def test_size_variant_in_history_does_not_exclude_different_variant(self):
+        # 「ワイド」と「ラージ」のように似ているだけの別商品は除外しない
+        # （正規化後の完全一致だけで判定するため、部分一致では除外されない）。
+        def fake_search_specific(keyword: str, **kwargs):
+            if keyword == "掃除 便利グッズ":
+                return [_make_item("shop:cleaning_z", "クリーナー Cシリーズ ラージ")]
+            return _default_fake_search(keyword, **kwargs)
+
+        self.posted_items_path.parent.mkdir(parents=True, exist_ok=True)
+        with self.posted_items_path.open("w", encoding="utf-8") as f:
+            json.dump({"posted_items": [{"product_name": "クリーナー Cシリーズ ワイド"}]}, f)
+
+        candidates = self._run_main(fake_search_specific)
+        codes = [c["item_code"] for c in candidates]
+        self.assertIn("shop:cleaning_z", codes)
+
+    def test_item_code_match_is_not_overridden_by_product_name_mismatch(self):
+        # item_codeが一致していれば、履歴の商品名が違っていても（表記ゆれ等）
+        # item_code判定が優先されて除外されることを確認する。
+        def fake_search_specific(keyword: str, **kwargs):
+            if keyword == "掃除 便利グッズ":
+                return [_make_item("shop:cleaning_w", "新しい商品名のクリーナー")]
+            return _default_fake_search(keyword, **kwargs)
+
+        self.posted_items_path.parent.mkdir(parents=True, exist_ok=True)
+        with self.posted_items_path.open("w", encoding="utf-8") as f:
+            json.dump(
+                {
+                    "posted_items": [
+                        {"item_code": "shop:cleaning_w", "product_name": "まったく違う古い商品名"}
+                    ]
+                },
+                f,
+            )
+
+        candidates = self._run_main(fake_search_specific)
+        codes = [c["item_code"] for c in candidates]
+        self.assertNotIn("shop:cleaning_w", codes)
 
     def test_convenience_shortfall_is_filled_from_consumable(self):
         def fake_search_scarce_convenience(keyword: str, **kwargs):

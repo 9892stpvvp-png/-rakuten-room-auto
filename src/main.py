@@ -83,7 +83,9 @@ def main() -> None:
     posted_items_history = dedupe.load_posted_items(POSTED_ITEMS_PATH)
     posted_index = dedupe.build_posted_index(posted_items_history)
     posted_history_total = len(posted_items_history)
-    posted_excluded_count = 0
+    posted_excluded_by_item_code = 0
+    posted_excluded_by_url = 0
+    posted_excluded_by_product_name = 0
     seen_item_codes: set[str] = set()
 
     # フェーズ1: キーワードごとに検索し、条件を満たさない商品・重複を取り除く。
@@ -118,9 +120,10 @@ def main() -> None:
             items = filters.filter_by_durable_accessory_keywords(
                 items, consumable_durable_accessory_keywords
             )
-        before_posted_filter = len(items)
-        items = dedupe.remove_duplicates(items, posted_index)
-        posted_excluded_count += before_posted_filter - len(items)
+        items, posted_exclusion_breakdown = dedupe.remove_duplicates_with_breakdown(items, posted_index)
+        posted_excluded_by_item_code += posted_exclusion_breakdown["item_code"]
+        posted_excluded_by_url += posted_exclusion_breakdown["url"]
+        posted_excluded_by_product_name += posted_exclusion_breakdown["product_name"]
         items = dedupe.remove_within_run_duplicates(items, seen_item_codes)
 
         for item in items:
@@ -169,14 +172,20 @@ def main() -> None:
     print(f"  - 一覧（人間が見る用）: {markdown_path}")
     print(f"  - 一覧（データ用）: {json_path}")
     print("内容を確認し、良いものを選んで楽天ROOMに手動で投稿してください。")
+    posted_excluded_total = (
+        posted_excluded_by_item_code + posted_excluded_by_url + posted_excluded_by_product_name
+    )
     print(
-        f"投稿済み履歴による除外: {posted_excluded_count}件"
-        f"（履歴の総数: {posted_history_total}件）"
+        f"投稿済み履歴による除外: {posted_excluded_total}件"
+        f"（item_code: {posted_excluded_by_item_code}件 / URL: {posted_excluded_by_url}件"
+        f" / 商品名: {posted_excluded_by_product_name}件、履歴の総数: {posted_history_total}件）"
     )
 
     write_github_step_summary(
         storage.build_posted_history_summary_markdown(
-            excluded_count=posted_excluded_count,
+            excluded_by_item_code=posted_excluded_by_item_code,
+            excluded_by_url=posted_excluded_by_url,
+            excluded_by_product_name=posted_excluded_by_product_name,
             new_candidate_count=len(candidates),
             history_total=posted_history_total,
         )

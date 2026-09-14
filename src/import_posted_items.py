@@ -23,7 +23,25 @@ input.jsonの形式（商品情報の配列）:
     ]
 
 item_codeの代わりにproduct_id、product_nameの代わりにnameのキーも使える。
-すでに履歴にある商品（item_code、または正規化した商品URLが一致）は二重登録しない。
+すでに履歴にある商品（item_code一致→商品URL一致→商品名一致、の優先順位で判定）
+は二重登録しない。
+
+item_code・item_urlが分からない過去の投稿（例えば楽天ROOMの投稿履歴画面から
+商品名だけを書き写した場合等）も、商品名だけで登録できる。
+    [
+      {
+        "product_name": "マーナ シートケース",
+        "item_code": null,
+        "item_url": null,
+        "posted_at": null,
+        "category": "過去投稿"
+      },
+      ...
+    ]
+
+過去のROOM投稿をまとめて初期登録したい場合は、data/past_posted_items_seed.json
+に商品名一覧を追記してから、このスクリプトの引数にそのファイルを渡す。
+    python -m src.import_posted_items data/past_posted_items_seed.json
 """
 
 from __future__ import annotations

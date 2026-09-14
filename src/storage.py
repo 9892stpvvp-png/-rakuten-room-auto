@@ -47,21 +47,27 @@ def build_summary_markdown(candidates: list[dict[str, Any]], limit: int = 10) ->
 
 
 def build_posted_history_summary_markdown(
-    excluded_count: int,
+    excluded_by_item_code: int,
+    excluded_by_url: int,
+    excluded_by_product_name: int,
     new_candidate_count: int,
     history_total: int,
 ) -> str:
     """GitHub ActionsのSummaryに表示する、投稿済み履歴による重複防止の状況。
 
-    ・投稿済み履歴によって候補から除外した件数
+    ・投稿済み履歴によって候補から除外した件数（item_code／URL／商品名の内訳つき）
     ・今回選ばれた新規候補の件数
     ・現在の投稿済み履歴の総数
     をまとめて表示する。
     """
+    total_excluded = excluded_by_item_code + excluded_by_url + excluded_by_product_name
     lines = [
         "## 投稿済み履歴による重複防止",
         "",
-        f"- 投稿済み履歴によって除外した件数: {excluded_count}件",
+        f"- 投稿済み履歴によって除外した件数: {total_excluded}件",
+        f"  - item_codeによる除外件数: {excluded_by_item_code}件",
+        f"  - URLによる除外件数: {excluded_by_url}件",
+        f"  - 商品名履歴による除外件数: {excluded_by_product_name}件",
         f"- 今回選ばれた新規候補: {new_candidate_count}件",
         f"- 現在の投稿済み履歴の総数: {history_total}件",
         "",
