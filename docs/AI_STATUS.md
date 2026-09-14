@@ -67,7 +67,7 @@ Claude Code が、TikTok日次生成の本番運用上の穴を`main`最新状�
 ## 次にChatGPTが判断すべき点
 - `data/posted_items.json`の書き込みも同様にアトミック化すべきか（残課題参照）。
 - 今回の3つの修正（コミット失敗時の分離・同日再実行時の重複防止・アトミック書き込み）の設計が意図通りか確認をお願いしたい。
-- PRを作成済み: （このあとPR作成後にURLを追記します）
+- PRを作成済み: https://github.com/9892stpvvp-png/-rakuten-room-auto/pull/9 （ブランチ`claude/kaishi-ah0jdp` → `main`）。マージはユーザー側でお願いします。
 
 ## セキュリティ
 Application ID、Access Key、トークン、パスワード等の秘密情報はここに記載しないこと。
