@@ -66,6 +66,27 @@ class ImportPostedItemsTest(unittest.TestCase):
         with self.assertRaises(SystemExit):
             import_posted_items.main([str(input_path)])
 
+    def test_malformed_json_raises_system_exit_with_readable_message(self):
+        # GitHub Actionsのワークフロー（入力欄への貼り付けミス等）や手動保存で
+        # 壊れたJSONを渡してしまった場合に、生のトレースバックではなく
+        # 分かりやすい日本語メッセージでSystemExitすることを確認する。
+        input_path = self.tmp_path / "broken.json"
+        input_path.write_text("{not valid json,,,", encoding="utf-8")
+
+        with self.assertRaises(SystemExit) as ctx:
+            import_posted_items.main([str(input_path)])
+
+        self.assertIn("正しいJSON", str(ctx.exception))
+
+    def test_empty_file_raises_system_exit_with_readable_message(self):
+        input_path = self.tmp_path / "empty.json"
+        input_path.write_text("", encoding="utf-8")
+
+        with self.assertRaises(SystemExit) as ctx:
+            import_posted_items.main([str(input_path)])
+
+        self.assertIn("正しいJSON", str(ctx.exception))
+
     def test_wrong_number_of_arguments_raises_system_exit(self):
         with self.assertRaises(SystemExit):
             import_posted_items.main([])

@@ -81,13 +81,19 @@
     margin-bottom: 14px;
   }
   #filterToggle,
-  #copyPostedBtn {
+  #copyPostedBtn,
+  #registerGithubLink {
     background: #fff;
     border: 1px solid #bbb;
     border-radius: 20px;
     padding: 8px 16px;
     font-size: 0.88em;
     color: #444;
+  }
+  #registerGithubLink {
+    display: inline-block;
+    text-decoration: none;
+    box-sizing: border-box;
   }
   #filterToggle.active {
     background: #bf0000;
@@ -98,6 +104,12 @@
     background: #2e7d32;
     border-color: #2e7d32;
     color: #fff;
+  }
+  .register-help {
+    font-size: 0.78em;
+    color: #777;
+    margin: -6px 0 14px;
+    line-height: 1.5;
   }
   #status {
     text-align: center;
@@ -247,9 +259,16 @@
 </div>
 
 <div class="filter-row">
-  <button id="copyPostedBtn" type="button">投稿済みデータをコピー</button>
+  <button id="copyPostedBtn" type="button">① 投稿済みデータをコピー</button>
+  <a id="registerGithubLink" href="https://github.com/9892stpvvp-png/-rakuten-room-auto/actions/workflows/import_posted_items.yml" target="_blank" rel="noopener">② GitHubへ登録する</a>
   <button id="filterToggle" type="button">未投稿のみ表示</button>
 </div>
+<p class="register-help">
+  ROOMへ投稿し終えたら、上のカードで「投稿済みにする」→「① 投稿済みデータをコピー」→
+  「② GitHubへ登録する」を開いて「Run workflow」→貼り付けて実行、の順で進めると、
+  パソコンやChatGPTを使わずに投稿済み履歴（重複防止用データ）を更新できます。
+  実行できるのはこのリポジトリの書き込み権限を持つ人だけです。
+</p>
 
 <div id="status">読み込み中…</div>
 <div id="cards"></div>
@@ -572,7 +591,11 @@
         window.alert("まだ「投稿済みにする」で登録した商品がありません。");
         return;
       }
-      copyToClipboard(JSON.stringify(records, null, 2)).then(function () {
+      // 1行のJSON（改行なし）でコピーする。GitHub Actionsの「投稿済み商品を
+      // 登録する」ワークフローの入力欄（1行のテキスト欄）にそのまま貼り付け
+      // られるようにするため（改行入りだと、貼り付け時に改行が失われて
+      // JSONが壊れる環境があるための対策）。
+      copyToClipboard(JSON.stringify(records)).then(function () {
         flashCopied(copyPostedBtn, "投稿済みデータをコピー");
       }).catch(function () {
         window.alert("コピーできませんでした。");

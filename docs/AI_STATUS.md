@@ -1,73 +1,67 @@
 # AI STATUS
 
-Task ID: tiktok-affiliate-002
+Task ID: user-request-posted-items-auto-register（ChatGPTのAI_TASK.md経由ではなく、ユーザーからの直接依頼）
 Status: DONE
 
 ## 最終更新
-Claude Code が、TikTok日次生成の本番運用上の穴を`main`最新状態を基準に監査し、見つかった問題を安全に修正した。
+Claude Code が、「ROOMで実際に投稿した商品をposted_items.jsonへ手作業なく安全に反映したい」というユーザーからの直接依頼に対応した。
 
-## 発見した問題
+## 依頼内容の要点
+- 商品候補を作る処理・`data/candidates.json`・`data/posted_items.json`・`src.import_posted_items`・GitHub Actions・現在の重複判定の仕組みを把握したうえで、
+- 既存の仕組みを壊さずに、「実際にROOMへ投稿済みになった商品だけ」を`posted_items.json`へ自動登録する方法を設計・実装する。
+- 「ROOMへ本当に投稿されたこと」を自動判定できない場合は、推測で実装せず、(1)現在どこまで自動化できるか (2)不足している情報・連携 (3)最も安全で簡単な実装方法、を報告する。
 
-1. **TikTok側だけ失敗すると、成功していたROOM側の更新まで失われる（最重要）**
-   `search_candidates.yml`は、ROOM候補生成→スマホ投稿ページのデータ書き出し→TikTokコンテンツ生成→コミット・pushの順のステップ構成。GitHub Actionsは前のステップが失敗すると後続ステップを実行しないデフォルト挙動のため、**ROOM候補生成・投稿ページのデータ書き出しが成功していても、TikTokコンテンツ生成だけが失敗すると、最後の「コミットしてプッシュ」ステップごと実行されず、成功していたROOM側の新しい候補データまでコミットされずに失われる**状態だった。
-2. **同じ日に手動で複数回実行すると、履歴に同日の記録が何件も積み重なる**
-   `tiktok_selector.record_selection()`が選定結果を無条件で追記していたため、同じ日にワークフローを複数回手動実行すると、`data/tiktok_history.json`に同じ日付の記録が複数残ってしまう「不自然な二重記録」が起きる状態だった。
-3. **書き込み途中でプロセスが終了すると、JSONファイルが壊れた状態で残る可能性**
-   `data/tiktok_history.json`・`tiktok/daily_content.json`・`tiktok/daily_content.md`はいずれも`open(path, "w")`で直接書き込んでおり、GitHub Actionsのジョブタイムアウトや手動キャンセル等で書き込み途中にプロセスが終了すると、書きかけの不完全なファイルが残る可能性があった。
+## 調査結果：「ROOMへ本当に投稿されたこと」の完全自動判定は不可能
 
-## 確認して問題が無かった項目
-
-- **日次実行をまたいだ履歴の永続化**: `data/tiktok_history.json`は毎回のワークフロー実行の最後にコミット・pushされ、次回実行は`actions/checkout@v4`でその最新状態から始まるため、永続化の仕組み自体は元から正しく機能していた（問題1は「失敗時にコミットされない」という別の問題であり、区別して対応した）。
-- **GitHub Actionsが生成物だけを安全にコミットすること**: 最後のコミットステップは`git add -A`等ではなく`room/data/candidates.json`・`tiktok/daily_content.json`・`tiktok/daily_content.md`・`data/tiktok_history.json`の4ファイルだけを明示的に指定しており、`.env`や`data/candidates/`（`.gitignore`対象）等の意図しないファイルが混入する余地はない。変更不要と判断した。
-- **iPhone向け`tiktok/index.html`のデータ連携**: `daily_content.json`をキャッシュを無視して取得し（`cache: "no-store"`・タイムスタンプ付きクエリ）、取得失敗時・商品名が無い場合にそれぞれ分かりやすいメッセージを表示する作りで、商品名・台本・テロップ・ナレーション・キャプション・ハッシュタグ・動画制作メモそれぞれに「コピー」ボタンが付いている。追加の問題は見つからなかった。
+1. **現在どこまで自動化できるか**: 商品候補の生成（検索→条件判定→重複除外→紹介文生成→`data/candidates/`・`room/data/candidates.json`への保存）は既に毎日自動化されている。投稿済み履歴への登録は、従来「スマホ投稿ページで自己申告→JSONをコピー→ローカルに保存→`python -m src.import_posted_items`を手動実行→git commit/push」という人手を挟む経路のみだった。
+2. **完全自動化に不足している情報・連携**: 楽天ROOMには投稿履歴を読み取れる公式APIが存在しない（このプロジェクトが使う楽天ウェブサービスAPIは商品検索専用）。ROOM側の投稿状況を確認する唯一の技術的手段はROOMへの自動ログイン・Cookie/セッション利用・画面スクレイピングだが、これはCLAUDE.mdおよび各タスクの安全ルールで明確に禁止されている。したがって、「候補に出ただけの商品」と「実際に投稿済みの商品」をプログラムだけで区別する情報・連携は存在せず、最終的には人間の自己申告（スマホ投稿ページでの「投稿済みにする」操作）に頼るしかない。これは今回新たに生じた制約ではなく、従来の仕組みも元々同じ自己申告を前提にしていた。
+3. **最も安全で簡単な実装方法**: 「投稿完了の自動判定」自体は実装不可能なため、既存の自己申告データ（スマホ投稿ページの「投稿済みにする」）を`posted_items.json`へ反映するまでの**手作業だけを取り除く**方針を採った。GitHub Actionsの`workflow_dispatch`（手動実行・テキスト入力欄付き）を新設し、コピーしたJSONを貼り付けて実行するだけで、ローカルでのファイル保存・Python実行・git操作なしに登録できるようにした。`workflow_dispatch`はGitHub標準の権限モデルにより、このリポジトリへの書き込み権限を持つ人しか実行できないため、独自の権限チェックを実装する必要がなく、GitHub Issue等の第三者が起票できる仕組みより安全と判断した。
 
 ## 実施した作業
 
-- `.github/workflows/search_candidates.yml`
-  - TikTokコンテンツ生成ステップに`id: tiktok`を付与。
-  - 最後の「投稿ページ・TikTok用データをコミットしてプッシュ」ステップに`if: always()`を付け、TikTok生成が失敗・スキップされてもROOM側のデータだけは確実にコミットされるようにした。`steps.tiktok.outcome == 'success'`のときだけ`tiktok/`・`data/tiktok_history.json`を`git add`対象に含めるようにし、TikTok側の新旧データが矛盾した状態でコミットされないようにした。
-  - TikTok生成ステップだけが失敗した場合に、Actionsの実行結果ページ（Summary）へ分かりやすい説明を書き出す新しいステップを追加した。
-- `src/tiktok_selector.py`
-  - `record_selection()`で、新しい記録を追記する前に同じ日付の既存記録を取り除くようにした（同日再実行時の二重記録を防止）。
-  - 履歴ファイルの書き込みを、新設した`atomic_io.write_json_atomic()`経由に変更。
-- `src/tiktok_daily.py`
-  - `daily_content.json`・`daily_content.md`の書き出しを、`atomic_io`経由のアトミックな書き込みに変更。
-- `src/atomic_io.py`（新規）
-  - 「一時ファイルに書いてから`os.replace()`で置き換える」アトミックな書き込みヘルパー（`write_text_atomic`・`write_json_atomic`）を追加。
-- `tests/test_atomic_io.py`（新規）・`tests/test_tiktok_selector.py`
-  - アトミック書き込みの正常系・異常系（書き込み失敗時に元のファイルが壊れず一時ファイルも残らないこと）、同日再実行時に履歴が1件に保たれることを確認するテストを追加。
-- `docs/DESIGN.md`・`README.md`
-  - 監査結果・対応内容・確認して問題が無かった項目を追記。
+- `.github/workflows/import_posted_items.yml`（新規）: `workflow_dispatch`でJSONを貼り付けて実行する手動ワークフロー。貼り付けられたJSONをファイルに書き出し、既存の`python -m src.import_posted_items`（変更なしのロジック）に渡し、`data/posted_items.json`に変化があった場合だけコミット・push する。入力値は`env:`経由で渡し、シェルインジェクションを避けている。
+- `src/import_posted_items.py`: `json.load()`失敗時に生のトレースバックではなく分かりやすい日本語メッセージで`SystemExit`するよう改善（既存の重複判定・取り込みロジック自体は変更なし）。
+- `room/index.html`: 「① 投稿済みデータをコピー」の隣に「② GitHubへ登録する」リンク（Actionsワークフローのページを新しいタブで開く）を追加。コピーするJSONを、Actionsの入力欄でも安全に扱えるよう1行のJSON（改行なし）に変更（取り込み処理はJSONの改行有無を区別しないため、既存のローカルファイル経由の取り込みに影響なし）。
+- `README.md`・`docs/DESIGN.md`: 上記の調査結果・設計判断・使い方を追記。
 
-商品検索・条件判定・重複チェック・紹介文生成・ROOM側の5+5選定ロジック・TikTok商品選定のカテゴリローテーション/item_code重複防止（前回tiktok-affiliate-001で追加）・スマホ投稿ページ・Secretsの扱いには変更していない。
+商品候補生成・重複判定（item_code→URL→商品名→match_keywords）・既存のGitHub Actions（`search_candidates.yml`・`run_scheduled_search.yml`）・`data/posted_items.json`の既存データには一切変更していない（追記のみで削除なし）。ROOMへの自動投稿・自動ログイン・投稿状況の自動判定は実装していない。
 
 ## 変更したファイル
-- `.github/workflows/search_candidates.yml`
-- `src/tiktok_selector.py`
-- `src/tiktok_daily.py`
-- `src/atomic_io.py`（新規）
-- `tests/test_atomic_io.py`（新規）
-- `tests/test_tiktok_selector.py`
-- `docs/DESIGN.md`
+- `.github/workflows/import_posted_items.yml`（新規）
+- `src/import_posted_items.py`
+- `room/index.html`
+- `tests/test_import_posted_items.py`
 - `README.md`
+- `docs/DESIGN.md`
 - `docs/AI_STATUS.md`（このファイル）
 
 ## テスト結果
-- `python3 -m pytest -q` → **215 passed**（既存206件＋今回追加した9件、すべて成功。既存機能に回帰は無い）
-- `.github/workflows/search_candidates.yml`は`python3 -c "import yaml; yaml.safe_load(...)"`でYAML構文を確認済み
+- `python3 -m pytest -q` → **217 passed**（既存215件＋今回追加した2件、すべて成功。既存機能に回帰は無い）
+- `.github/workflows/import_posted_items.yml`のYAML構文を`yaml.safe_load`で確認
+- `room/index.html`が変更後もHTMLとして正しくパースできることを`html.parser`で確認
 - 秘密情報（Application ID、Access Key等）は表示・記録していません
 
+## 自動化後の流れ
+1. スマホ投稿ページでROOMへ実際に投稿した商品を「投稿済みにする」で記録する（変更なし・人間の自己申告）
+2. 「① 投稿済みデータをコピー」でJSONをコピーする（変更なし）
+3. 「② GitHubへ登録する」を開き、GitHubの「Actions」タブで「投稿済み商品を登録する」ワークフローの「Run workflow」→入力欄にJSONを貼り付け→実行する（新規。パソコン・Python・git操作・ChatGPTへの貼り付けは不要）
+4. ワークフローが`data/posted_items.json`を更新し、自動でコミット・pushする（新規）
+
+## オーナー側に残る操作
+- 実際に楽天ROOMへ投稿する操作そのもの（安全ルール上、自動化していません）
+- スマホ投稿ページで「投稿済みにする」を押す自己申告操作（ROOMへの投稿完了をプログラムだけで確認する手段が存在しないため）
+- コピーしたJSONをGitHub Actionsの入力欄に貼り付けて「Run workflow」を押す操作（この1手順だけが今回新たに残る操作で、以前あった「ローカル保存・コマンド実行・git commit/push」は不要になりました）
+
 ## 本番運用上の残課題
-- 今回の修正はローカルでのユニットテスト・YAML構文確認までで、実際のGitHub Actions実行環境での動作確認（TikTok生成を意図的に失敗させてROOM側だけコミットされることを確認する等）はできていません。次回の日次実行、または手動での`workflow_dispatch`実行時の結果を確認していただくことをおすすめします。
-- `data/posted_items.json`（ROOM投稿済み履歴）の書き込み（`src/dedupe.py`の`_save_posted_items`）は、今回スコープ外のためアトミック書き込みに変更していません。同種の「書き込み途中のプロセス終了で壊れる」リスクは理論上残っていますが、今回のタスク（TikTok日次生成）の範囲外と判断しました。
+- 今回の変更は自動テスト・YAML構文確認までで、実際のGitHub Actions実行環境（`workflow_dispatch`の入力欄への貼り付け・実行）での動作確認はできていません。次回、実際にROOM投稿後にこのワークフローを試していただくことをおすすめします。
+- GitHub Actionsの`workflow_dispatch`テキスト入力欄には（明文化された公式の上限は把握していませんが）大きすぎるJSONを貼り付けると失敗する可能性があります。一度に登録する件数が多い日（数十件など）は、複数回に分けて実行することをおすすめします。
 
 ## 外部サービス/ユーザー操作が必要な項目
-- 特になし（今回新規の外部サービス登録・課金操作は発生していません）。
+- 特になし（今回新規の外部サービス登録・課金操作は発生していません。GitHub Actionsの標準機能のみを使用）
 
 ## 次にChatGPTが判断すべき点
-- `data/posted_items.json`の書き込みも同様にアトミック化すべきか（残課題参照）。
-- 今回の3つの修正（コミット失敗時の分離・同日再実行時の重複防止・アトミック書き込み）の設計が意図通りか確認をお願いしたい。
-- PRを作成済み: https://github.com/9892stpvvp-png/-rakuten-room-auto/pull/9 （ブランチ`claude/kaishi-ah0jdp` → `main`）。マージはユーザー側でお願いします。
+- 今回の設計（GitHub Issue経由ではなく`workflow_dispatch`のテキスト入力を採用したこと、権限チェックをGitHub標準の書き込み権限モデルに委ねたこと）が意図通りか確認をお願いしたい。
+- 「実際に投稿されたこと」の自動判定自体は技術的に不可能という結論について、認識に相違がないか確認をお願いしたい。
 
 ## セキュリティ
 Application ID、Access Key、トークン、パスワード等の秘密情報はここに記載しないこと。

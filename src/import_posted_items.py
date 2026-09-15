@@ -3,9 +3,15 @@
 
 商品ID・商品URLなどを含むJSONファイルを渡すと、既存の履歴と重複しない商品だけを
 追加する。楽天ROOMへのログイン・Cookie・セッション情報を使った自動取得は行わない
-（あくまで、人間が用意したリストを取り込むための処理）。スマホ投稿ページの
+（あくまで、人間が「実際にROOMへ投稿した」と自己申告したリストを取り込むための
+処理。ROOMへの投稿完了そのものを自動判定する手段ではない）。スマホ投稿ページの
 「投稿済みデータをコピー」ボタンでコピーしたJSONをそのままファイルに保存して
 渡すこともできる。
+
+このスクリプトをローカルで実行する代わりに、GitHub Actionsの
+「投稿済み商品を登録する」ワークフロー（.github/workflows/import_posted_items.yml）
+から、コピーしたJSONを貼り付けて実行することもできる（ローカルにPython・gitの
+準備が無くても、ブラウザだけで投稿済み履歴を更新できる）。
 
 使い方:
     python -m src.import_posted_items input.json
@@ -80,7 +86,16 @@ def main(argv: list[str] | None = None) -> None:
         raise SystemExit(f"ファイルが見つかりません: {input_path}")
 
     with input_path.open("r", encoding="utf-8") as f:
-        new_items = json.load(f)
+        raw_text = f.read()
+
+    try:
+        new_items = json.loads(raw_text)
+    except json.JSONDecodeError as exc:
+        raise SystemExit(
+            f"{input_path} の内容が正しいJSONではありません（{exc}）。"
+            "スマホ投稿ページの「投稿済みデータをコピー」でコピーしたJSONを、"
+            "書き換えずにそのまま貼り付け直してください。"
+        ) from exc
 
     if not isinstance(new_items, list):
         raise SystemExit("取り込むJSONは商品情報の配列（リスト）にしてください。")

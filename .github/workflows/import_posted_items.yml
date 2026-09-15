@@ -1,0 +1,74 @@
+name: 投稿済み商品を登録する
+
+# スマホ投稿ページ（room/）の「投稿済みデータをコピー」でコピーしたJSONを
+# 貼り付けて実行するだけで、投稿済み履歴（data/posted_items.json）へ反映
+# できるようにするための手動実行ワークフロー。
+#
+# 重要：これは楽天ROOMへの投稿そのものを自動化するものではなく、
+# 「ROOMへの投稿が完了したこと」を自動で確認する仕組みでもない。楽天ROOMは
+# 投稿履歴を読み取れる公式APIを提供していないため、実際に投稿済みかどうかを
+# プログラムだけで確認する方法は無い（ROOMへの自動ログイン・自動投稿・
+# スクレイピングはこのプロジェクトの安全ルールで禁止しており、行っていない）。
+# このワークフローは、人間が実際にROOMへ投稿し終えたあとの「自己申告」
+# （スマホ投稿ページの「投稿済みにする」で記録した内容）を、ローカルでの
+# ファイル保存・python実行・git操作なしで履歴ファイルへ反映するだけのもの。
+#
+# 実行できるのは、このリポジトリへの書き込み権限を持つ人だけ（GitHubの
+# workflow_dispatchの標準の権限モデルによる。追加の権限チェックは行っていない）。
+on:
+  workflow_dispatch:
+    inputs:
+      posted_items_json:
+        description: >-
+          スマホ投稿ページの「投稿済みデータをコピー」でコピーしたJSON配列を
+          そのまま貼り付けてください（例: [{"item_code":"shop:item1", ...}]）
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - name: リポジトリを取得
+        uses: actions/checkout@v4
+
+      - name: Pythonをセットアップ
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 必要なライブラリをインストール
+        run: pip install -r requirements.txt
+
+      # 入力値をそのままファイルへ書き出すだけで、JSONとしての妥当性チェック・
+      # 重複判定は既存のsrc.import_posted_items（src.dedupe）にすべて任せる
+      # （新しい判定ロジックをここに書かない）。env経由で渡しているのは、
+      # ${{ }} の値をrunスクリプトの文字列へ直接埋め込むとシェルインジェクション
+      # の恐れがあるため（GitHub公式が推奨する安全な受け渡し方）。
+      - name: 入力されたJSONを一時ファイルに保存する
+        env:
+          POSTED_ITEMS_JSON: ${{ inputs.posted_items_json }}
+        run: printf '%s' "$POSTED_ITEMS_JSON" > input_posted_items.json
+
+      - name: 投稿済み履歴に登録する
+        run: python -m src.import_posted_items input_posted_items.json
+
+      - name: 一時ファイルを削除する
+        if: always()
+        run: rm -f input_posted_items.json
+
+      - name: 投稿済み履歴をコミットしてプッシュ
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/posted_items.json
+          if git diff --staged --quiet; then
+            echo "投稿済み履歴に変化がないため、コミットしません。"
+          else
+            git commit -m "投稿済み履歴を更新（手動登録）"
+            git pull --rebase origin "${{ github.ref_name }}"
+            git push origin "HEAD:${{ github.ref_name }}"
+          fi
