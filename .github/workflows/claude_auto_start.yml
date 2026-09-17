@@ -6,21 +6,36 @@ on:
       - main
     paths:
       - docs/AI_TASK.md
+  repository_dispatch:
+    types:
+      - claude-ai-task-ready
   workflow_dispatch:
 
 permissions:
   contents: write
   pull-requests: write
   issues: write
-  actions: read
+  actions: write
   id-token: write
 
 concurrency:
-  group: claude-auto-start
+  group: claude-auto-start-${{ github.event_name }}
   cancel-in-progress: false
 
 jobs:
+  dispatch-claude:
+    if: ${{ github.event_name == 'push' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch supported Claude event
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --method POST "repos/${{ github.repository }}/dispatches" \
+            -f event_type='claude-ai-task-ready'
+
   run-claude-task:
+    if: ${{ github.event_name == 'repository_dispatch' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
