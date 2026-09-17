@@ -48,3 +48,6 @@ Task ID: reliability-003
 - 既存のROOM候補検索・重複管理・紹介文生成・TikTok候補生成を壊さない。
 
 <!-- auto-start trigger: 2026-09-18 -->
+
+
+<!-- auto-start retrigger: 2026-09-18 -->
