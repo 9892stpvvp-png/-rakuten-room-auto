@@ -571,22 +571,39 @@ class ConsumableAndBeverageDescriptionTest(unittest.TestCase):
                 self.assertNotIn(phrase, description, f"category={category}: {description}")
 
     def test_detergent_hook_matches_requested_wording(self):
+        # 「洗濯」という言葉を含む商品名のため、GENERIC_TEMPLATES["洗剤"]では
+        # なく、洗濯用洗剤専用のテンプレート（_LAUNDRY_DETERGENT_TEMPLATE）の
+        # hook_variantsのいずれかが使われる。
         item = make_item(name="濃縮 洗濯洗剤 詰め替え 大容量")
         description = dg.generate_description(item, category="洗剤", base_hashtags=BASE_HASHTAGS)
         hook_line = _blocks(description)[0]
-        self.assertEqual(hook_line, "🧴 洗剤のストック、そろそろ減ってない？✨")
+        expected = {
+            f"{dg._LAUNDRY_DETERGENT_TEMPLATE.topic_emoji} {text}✨"
+            for text in dg._LAUNDRY_DETERGENT_TEMPLATE.hook_variants
+        }
+        self.assertIn(hook_line, expected)
 
     def test_water_hook_matches_requested_wording(self):
+        # hook_variantsに複数パターンを追加したため、完全一致ではなく
+        # 用意されている安全な文言のいずれかであることを確認する。
         item = make_item(name="天然水 500ml 24本")
         description = dg.generate_description(item, category="水", base_hashtags=BASE_HASHTAGS)
         hook_line = _blocks(description)[0]
-        self.assertEqual(hook_line, "💧 お水のストック、切らしたくないよね✨")
+        expected = {
+            f"{dg.GENERIC_TEMPLATES['水'].topic_emoji} {text}✨"
+            for text in dg.GENERIC_TEMPLATES["水"].hook_variants
+        }
+        self.assertIn(hook_line, expected)
 
     def test_tea_hook_matches_requested_wording(self):
         item = make_item(name="緑茶 ペットボトル 24本")
         description = dg.generate_description(item, category="お茶", base_hashtags=BASE_HASHTAGS)
         hook_line = _blocks(description)[0]
-        self.assertEqual(hook_line, "🍵 毎日飲むお茶、まとめて用意しておくとラク✨")
+        expected = {
+            f"{dg.GENERIC_TEMPLATES['お茶'].topic_emoji} {text}✨"
+            for text in dg.GENERIC_TEMPLATES["お茶"].hook_variants
+        }
+        self.assertIn(hook_line, expected)
 
     def test_price_and_review_are_still_not_included(self):
         item = make_item(name="テスト消耗品", price=2480, review_average=4.8, review_count=321)
@@ -595,6 +612,135 @@ class ConsumableAndBeverageDescriptionTest(unittest.TestCase):
             self.assertNotIn("2480", description)
             self.assertNotIn("4.8", description)
             self.assertNotIn("321", description)
+
+
+class DetergentSubtypeTest(unittest.TestCase):
+    """洗剤の用途（洗濯用・食器用・住宅用）を商品名から正しく判定し、
+    確認できない用途を紹介文に書かないことを確認する回帰テスト。
+
+    本番で実際に見つかった問題：洗濯洗剤の商品なのに「普段のお洗濯や
+    食器洗いに使いやすい」という、確認できない食器洗い用途が紹介文に
+    混ざっていた（GENERIC_TEMPLATES["洗剤"]のcheckoutlist_coreが、用途を
+    商品名から確認せず両方を常に断定していたことが原因）。
+    """
+
+    def test_laundry_detergent_does_not_mention_dishwashing(self):
+        item = make_item(name="泥汚れ用 洗濯洗剤 部屋干し対応 詰め替え")
+        description = dg.generate_description(item, category="洗剤", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("食器洗い", description)
+        self.assertNotIn("食器", description)
+        self.assertIn("洗濯", description)
+
+    def test_dishwashing_detergent_does_not_mention_laundry(self):
+        item = make_item(name="食器用洗剤 大容量 詰め替え用")
+        description = dg.generate_description(item, category="洗剤", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("お洗濯", description)
+        self.assertNotIn("洗濯に", description)
+        self.assertIn("食器", description)
+
+    def test_household_cleaning_detergent_does_not_mention_laundry_or_dishwashing(self):
+        item = make_item(name="浴室用洗剤 除菌 消臭")
+        description = dg.generate_description(item, category="洗剤", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("お洗濯", description)
+        self.assertNotIn("食器洗い", description)
+
+    def test_ambiguous_detergent_does_not_claim_specific_use(self):
+        # 商品名から用途（洗濯用・食器用・住宅用のいずれか）が確認できない
+        # 場合は、GENERIC_TEMPLATES["洗剤"]の安全なフォールバックを使い、
+        # 特定の用途を断定しない。
+        item = make_item(name="濃縮タイプ 洗剤 詰め替え用")
+        description = dg.generate_description(item, category="洗剤", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("食器洗い", description)
+        self.assertNotIn("お洗濯", description)
+
+    def test_detergent_subtype_matching_selects_expected_template(self):
+        self.assertIs(
+            dg._match_detergent_subtype("柔軟剤 部屋干し用"),
+            dg._LAUNDRY_DETERGENT_TEMPLATE,
+        )
+        self.assertIs(
+            dg._match_detergent_subtype("台所用 食器洗い洗剤"),
+            dg._DISHWASHING_DETERGENT_TEMPLATE,
+        )
+        self.assertIs(
+            dg._match_detergent_subtype("トイレ用 洗浄剤"),
+            dg._HOUSEHOLD_CLEANING_DETERGENT_TEMPLATE,
+        )
+        self.assertIsNone(dg._match_detergent_subtype("洗剤"))
+
+    def test_detergent_subtype_only_applies_within_detergent_category(self):
+        # 「洗濯」という言葉が別カテゴリーの商品名に含まれていても
+        # （例：洗濯ハンガー）、category!="洗剤"の場合は洗剤専用テンプレートを
+        # 使わない（誤って洗剤の紹介文になってしまわないことの確認）。
+        item = make_item(name="洗濯ハンガー 物干し 折りたたみ")
+        description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("洗剤", description)
+
+
+class ConsumableVarietyTest(unittest.TestCase):
+    """同じカテゴリーの消耗品・飲料でも、商品ごとに紹介文の書き出し・
+    本文・特徴が変わり、毎日ほぼ同じ文章にならないことを確認する回帰テスト。"""
+
+    def test_different_beverage_products_do_not_produce_identical_descriptions(self):
+        items = [
+            make_item(name=f"天然水 500ml {i}本セット", item_code=f"water-{i}")
+            for i in range(8)
+        ]
+        descriptions = {
+            dg.generate_description(item, category="水", base_hashtags=BASE_HASHTAGS) for item in items
+        }
+        self.assertGreater(len(descriptions), 1)
+
+    def test_different_detergent_products_in_same_subtype_do_not_produce_identical_descriptions(self):
+        items = [
+            make_item(name=f"食器用洗剤 {i}", item_code=f"dish-{i}") for i in range(8)
+        ]
+        descriptions = {
+            dg.generate_description(item, category="洗剤", base_hashtags=BASE_HASHTAGS) for item in items
+        }
+        self.assertGreater(len(descriptions), 1)
+
+    def test_beverage_no_sugar_feature_is_reflected_when_confirmed(self):
+        item = make_item(name="無糖 紅茶 ペットボトル")
+        description = dg.generate_description(item, category="お茶", base_hashtags=BASE_HASHTAGS)
+        checklist = _blocks(description)[3]
+        self.assertIn("糖分を気にせず選びやすい", checklist)
+
+    def test_beverage_caffeine_free_feature_is_reflected_when_confirmed(self):
+        item = make_item(name="ノンカフェイン麦茶 ペットボトル")
+        description = dg.generate_description(item, category="お茶", base_hashtags=BASE_HASHTAGS)
+        checklist = _blocks(description)[3]
+        self.assertIn("カフェインを気にせず飲みやすい", checklist)
+
+    def test_beverage_feature_is_not_invented_when_not_confirmed(self):
+        # 商品名にカフェイン・糖分に関する記載が一切無ければ、それらの
+        # 特徴を勝手に追加しない（確認できない特徴は書かない、というルールの確認）。
+        item = make_item(name="緑茶 ペットボトル 24本")
+        description = dg.generate_description(item, category="お茶", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("カフェイン", description)
+        self.assertNotIn("糖分", description)
+
+    def test_detergent_refill_feature_is_reflected_when_confirmed(self):
+        item = make_item(name="食器用洗剤 詰め替え用")
+        description = dg.generate_description(item, category="洗剤", base_hashtags=BASE_HASHTAGS)
+        checklist = _blocks(description)[3]
+        self.assertIn("詰め替え用でごみを減らしやすい", checklist)
+
+    def test_generic_templates_still_produce_valid_six_block_description(self):
+        # 今回追加したhook_variants/worry_variants/solution_variantsを使っても、
+        # 既存の6ブロック構成・絵文字ルールが崩れないことを確認する
+        # （DescriptionStructureTestが全カテゴリーで既に確認しているが、
+        # ここでは複数の商品コードを試して構成が崩れないことを重ねて確認する）。
+        for i in range(6):
+            item = make_item(name="テスト消耗品", item_code=f"code-{i}")
+            for category in CONSUMABLE_CATEGORIES:
+                description = dg.generate_description(item, category=category, base_hashtags=BASE_HASHTAGS)
+                blocks = _blocks(description)
+                self.assertEqual(len(blocks), 6)
+                self.assertTrue(blocks[0].endswith("✨"))
+                self.assertIn("😅", blocks[1])
+                self.assertTrue(blocks[2].endswith("◎"))
+                self.assertTrue(blocks[4].endswith("☺️"))
 
 
 class TemplateComponentsForReuseTest(unittest.TestCase):

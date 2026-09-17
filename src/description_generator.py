@@ -193,6 +193,13 @@ def _resolve_location(name: str, default: str = "身の回り") -> str:
 # checklist_core：④の✔️メリットのうち、商品タイプに応じた安全な2項目
 # checklist_fallback：④の3項目目のうち、商品名から特徴が読み取れなかった場合に使う項目
 # closing_variants：⑤の締めの一言（商品コードに応じて複数パターンから選ぶ）
+#
+# hook_variants・worry_variants・solution_variants：①②③を複数パターンから
+# 商品コードに応じて選べるようにするための追加フィールド（空タプルなら未使用で
+# 従来どおりhook_text/worry_lines/solution_textを使う。デフォルトが空タプルの
+# ため、既存のテンプレート定義は一切変更しなくてよい）。同じカテゴリー・
+# 同じテンプレートの商品が毎日ほぼ同じ文章になる問題への対応として、
+# 消耗品・飲料系のテンプレートにだけ populate している。
 class _PostTemplate(NamedTuple):
     hook_text: str
     topic_emoji: str
@@ -201,6 +208,9 @@ class _PostTemplate(NamedTuple):
     checklist_core: list[str]
     checklist_fallback: str
     closing_variants: list[str]
+    hook_variants: tuple[str, ...] = ()
+    worry_variants: tuple[tuple[str, ...], ...] = ()
+    solution_variants: tuple[str, ...] = ()
 
 
 # 商品名から「この商品が具体的に何であるか」がほぼ確実に分かる場合に使う、
@@ -590,17 +600,38 @@ GENERIC_TEMPLATES: dict[str, _PostTemplate] = {
     # ここから下は「消耗品・飲料」枠（毎日の候補5件のうち、暮らしの便利グッズ
     # とは別に選ばれる5件）で使うテンプレート。ストックが切れて困る・切らしたく
     # ないという「消耗品ならではの悩み」を①〜③に反映している。
+    #
+    # 「洗剤」だけは、商品名から「洗濯用」「食器用」「住宅用（掃除用）」の
+    # いずれかが確認できる場合、ここではなくDETERGENT_SUBTYPE_TEMPLATES
+    # （用途ごとの専用テンプレート）が優先して使われる。ここに書いている
+    # checklist_coreは、どの用途か商品名から確認できなかった場合の安全な
+    # フォールバック用のため、特定の用途（洗濯・食器洗い等）を断定しない
+    # 言い回しにしている。
     "洗剤": _PostTemplate(
         hook_text="洗剤のストック、そろそろ減ってない？",
         topic_emoji="🧴",
         worry_lines=["洗剤や柔軟剤って、", "気づいたら切れていること多いですよね…😅"],
         solution_text="ストックしておけば切らす心配を減らせそうな洗剤",
-        checklist_core=["普段のお洗濯や食器洗いに使いやすい", "ストックしておけば買い忘れを防ぎやすい"],
-        checklist_fallback="毎日の家事に取り入れやすい",
+        checklist_core=["普段のお手入れに使いやすい", "ストックしておけば買い忘れを防ぎやすい"],
+        checklist_fallback="毎日の暮らしに取り入れやすい",
         closing_variants=[
             "ストック切れを防ぎたい人におすすめ",
             "買い忘れをなくしたい人に便利そう",
+            "普段使いのストックを切らしたくない人に良さそう",
+            "気になる人はチェックしてみてほしい",
         ],
+        hook_variants=(
+            "洗剤のストック、そろそろ減ってない？",
+            "その洗剤、そろそろ切れそうじゃない？",
+        ),
+        worry_variants=(
+            ("洗剤や柔軟剤って、", "気づいたら切れていること多いですよね…😅"),
+            ("毎日のように使う洗剤だから、", "ストックが減るのも早いですよね…😅"),
+        ),
+        solution_variants=(
+            "ストックしておけば切らす心配を減らせそうな洗剤",
+            "普段使いにストックしておきたい洗剤",
+        ),
     ),
     "キッチン消耗品": _PostTemplate(
         hook_text="いつの間にかなくなるキッチン用品、まとめて準備しておきたいよね",
@@ -612,7 +643,21 @@ GENERIC_TEMPLATES: dict[str, _PostTemplate] = {
         closing_variants=[
             "キッチン用品の買い忘れを防ぎたい人におすすめ",
             "まとめてストックしておきたい人に便利そう",
+            "必要なときに困らないようにしたい人に良さそう",
+            "気になる人はチェックしてみてほしい",
         ],
+        hook_variants=(
+            "いつの間にかなくなるキッチン用品、まとめて準備しておきたいよね",
+            "キッチンの消耗品、気づいたら切れてない？",
+        ),
+        worry_variants=(
+            ("ラップやポリ袋って、", "気づいたら切れていて困ること多いですよね…😅"),
+            ("キッチンで毎日使う消耗品だから、", "ストックが減るのも早いですよね…😅"),
+        ),
+        solution_variants=(
+            "まとめてストックしておけそうなキッチン消耗品",
+            "毎日のキッチン作業に使いやすそうなキッチン消耗品",
+        ),
     ),
     "日用品": _PostTemplate(
         hook_text="切らすと地味に困る日用品、まとめてストックしておきたいよね",
@@ -624,7 +669,21 @@ GENERIC_TEMPLATES: dict[str, _PostTemplate] = {
         closing_variants=[
             "日用品のストック切れを防ぎたい人におすすめ",
             "まとめ買いしておきたい人に便利そう",
+            "切らして困ることを減らしたい人に良さそう",
+            "気になる人はチェックしてみてほしい",
         ],
+        hook_variants=(
+            "切らすと地味に困る日用品、まとめてストックしておきたいよね",
+            "日用品のストック、気づいたら切れてない？",
+        ),
+        worry_variants=(
+            ("ティッシュやトイレットペーパーって、", "切れるタイミングが地味に読めないですよね…😅"),
+            ("毎日使う日用品だから、", "気づいたら切れていること多いですよね…😅"),
+        ),
+        solution_variants=(
+            "まとめてストックしておけそうな日用品",
+            "毎日の暮らしに取り入れやすそうな日用品",
+        ),
     ),
     "水": _PostTemplate(
         hook_text="お水のストック、切らしたくないよね",
@@ -636,7 +695,21 @@ GENERIC_TEMPLATES: dict[str, _PostTemplate] = {
         closing_variants=[
             "お水のストック切れを防ぎたい人におすすめ",
             "まとめ買いしておきたい人に便利そう",
+            "水分補給のストックを切らしたくない人に良さそう",
+            "気になる人はチェックしてみてほしい",
         ],
+        hook_variants=(
+            "お水のストック、切らしたくないよね",
+            "飲み水のストック、気づいたら切れてない？",
+        ),
+        worry_variants=(
+            ("飲み水のストックって、", "気づいたら切らしていること多いですよね…😅"),
+            ("毎日飲むお水だから、", "ストックが減るのも早いですよね…😅"),
+        ),
+        solution_variants=(
+            "まとめてストックしておけそうなお水",
+            "普段の水分補給にストックしておきたいお水",
+        ),
     ),
     "お茶": _PostTemplate(
         hook_text="毎日飲むお茶、まとめて用意しておくとラク",
@@ -648,7 +721,21 @@ GENERIC_TEMPLATES: dict[str, _PostTemplate] = {
         closing_variants=[
             "お茶のストック切れを防ぎたい人におすすめ",
             "まとめ買いしておきたい人に便利そう",
+            "毎日のお茶を切らしたくない人に良さそう",
+            "気になる人はチェックしてみてほしい",
         ],
+        hook_variants=(
+            "毎日飲むお茶、まとめて用意しておくとラク",
+            "お茶のストック、気づいたら切れてない？",
+        ),
+        worry_variants=(
+            ("毎日お茶を飲む人だと、", "ストックが切れるタイミングが気になりますよね…😅"),
+            ("毎日のように飲むお茶だから、", "気づいたら切れていること多いですよね…😅"),
+        ),
+        solution_variants=(
+            "まとめてストックしておけそうなお茶",
+            "毎日の水分補給にストックしておきたいお茶",
+        ),
     ),
     "ジュース": _PostTemplate(
         hook_text="飲みたいときにストックがあると嬉しいよね",
@@ -660,9 +747,142 @@ GENERIC_TEMPLATES: dict[str, _PostTemplate] = {
         closing_variants=[
             "飲み物のストック切れを防ぎたい人におすすめ",
             "まとめ買いしておきたい人に便利そう",
+            "気分転換したいときに便利そう",
+            "気になる人はチェックしてみてほしい",
         ],
+        hook_variants=(
+            "飲みたいときにストックがあると嬉しいよね",
+            "ジュースのストック、気づいたら切れてない？",
+        ),
+        worry_variants=(
+            ("ジュースやソフトドリンクって、", "気づいたら切らしていること多いですよね…😅"),
+            ("飲みたいときに限って、", "ストックが切れていること多いですよね…😅"),
+        ),
+        solution_variants=(
+            "まとめてストックしておけそうな飲み物",
+            "気分転換にストックしておきたい飲み物",
+        ),
     ),
 }
+
+# 商品名から「洗濯用」「食器用」「住宅用（掃除用）」のいずれかが確認できる
+# 場合に使う、洗剤カテゴリー専用のサブタイプテンプレート。GENERIC_TEMPLATES
+# ["洗剤"]（用途を断定しない安全なフォールバック）より先に判定する。
+#
+# 背景：以前はGENERIC_TEMPLATES["洗剤"]のcheckoutlist_coreが
+# 「普段のお洗濯や食器洗いに使いやすい」と、洗濯用途と食器洗い用途の両方を
+# 常に断定していたため、洗濯専用の商品にも「食器洗い」という確認できない
+# 用途が誤って書かれてしまう問題があった。商品名から用途が確認できる場合は
+# その用途だけを書き、確認できない場合（フォールバック）は用途を断定しない
+# 言い回しにする、という2段構えにして再発を防いでいる。
+_LAUNDRY_DETERGENT_TEMPLATE = _PostTemplate(
+    hook_text="洗濯洗剤のストック、そろそろ減ってない？",
+    topic_emoji="🧺",
+    worry_lines=["毎日のお洗濯で使う洗剤って、", "気づいたら切れていること多いですよね…😅"],
+    solution_text="ストックしておけば切らす心配を減らせそうな洗濯用洗剤",
+    checklist_core=["普段のお洗濯に使いやすい", "ストックしておけば買い忘れを防ぎやすい"],
+    checklist_fallback="毎日の洗濯に取り入れやすい",
+    closing_variants=[
+        "洗濯用洗剤のストック切れを防ぎたい人におすすめ",
+        "買い忘れをなくしたい人に便利そう",
+        "毎日の洗濯をスムーズに続けたい人に良さそう",
+        "洗剤のストックを切らしたくない人におすすめ",
+    ],
+    hook_variants=(
+        "洗濯洗剤のストック、そろそろ減ってない？",
+        "毎日のお洗濯、洗剤の減りが早くない？",
+    ),
+    worry_variants=(
+        ("毎日のお洗濯で使う洗剤って、", "気づいたら切れていること多いですよね…😅"),
+        ("洗濯のたびに使う洗剤だから、", "ストックが減るのも早いですよね…😅"),
+    ),
+    solution_variants=(
+        "ストックしておけば切らす心配を減らせそうな洗濯用洗剤",
+        "毎日のお洗濯に使いやすそうな洗濯用洗剤",
+    ),
+)
+
+_DISHWASHING_DETERGENT_TEMPLATE = _PostTemplate(
+    hook_text="食器用洗剤のストック、そろそろ減ってない？",
+    topic_emoji="🍽️",
+    worry_lines=["毎日の食器洗いで使う洗剤って、", "気づいたら切れていること多いですよね…😅"],
+    solution_text="ストックしておけば切らす心配を減らせそうな食器用洗剤",
+    checklist_core=["普段の食器洗いに使いやすい", "ストックしておけば買い忘れを防ぎやすい"],
+    checklist_fallback="毎日の食器洗いに取り入れやすい",
+    closing_variants=[
+        "食器用洗剤のストック切れを防ぎたい人におすすめ",
+        "買い忘れをなくしたい人に便利そう",
+        "毎日の食器洗いをスムーズに続けたい人に良さそう",
+        "洗剤のストックを切らしたくない人におすすめ",
+    ],
+    hook_variants=(
+        "食器用洗剤のストック、そろそろ減ってない？",
+        "毎日の食器洗い、洗剤の減りが早くない？",
+    ),
+    worry_variants=(
+        ("毎日の食器洗いで使う洗剤って、", "気づいたら切れていること多いですよね…😅"),
+        ("食器を洗うたびに使う洗剤だから、", "ストックが減るのも早いですよね…😅"),
+    ),
+    solution_variants=(
+        "ストックしておけば切らす心配を減らせそうな食器用洗剤",
+        "毎日の食器洗いに使いやすそうな食器用洗剤",
+    ),
+)
+
+_HOUSEHOLD_CLEANING_DETERGENT_TEMPLATE = _PostTemplate(
+    hook_text="お掃除用の洗剤、そろそろ減ってない？",
+    topic_emoji="🧴",
+    worry_lines=["住まいの掃除で使う洗剤って、", "気づいたら切れていること多いですよね…😅"],
+    solution_text="ストックしておけば切らす心配を減らせそうな掃除用洗剤",
+    checklist_core=["気になる汚れのお手入れに使いやすい", "ストックしておけば買い忘れを防ぎやすい"],
+    checklist_fallback="普段のお掃除に取り入れやすい",
+    closing_variants=[
+        "掃除用洗剤のストック切れを防ぎたい人におすすめ",
+        "買い忘れをなくしたい人に便利そう",
+        "お手入れの手間を減らしたい人に便利そう",
+        "洗剤のストックを切らしたくない人におすすめ",
+    ],
+    hook_variants=(
+        "お掃除用の洗剤、そろそろ減ってない？",
+        "気になる汚れ、その洗剤でお手入れしやすそう",
+    ),
+    worry_variants=(
+        ("住まいの掃除で使う洗剤って、", "気づいたら切れていること多いですよね…😅"),
+        ("掃除のたびに使う洗剤だから、", "ストックが減るのも早いですよね…😅"),
+    ),
+    solution_variants=(
+        "ストックしておけば切らす心配を減らせそうな掃除用洗剤",
+        "気になる汚れのお手入れに使いやすそうな掃除用洗剤",
+    ),
+)
+
+# (商品名に含まれるキーワード, 対応するサブタイプテンプレート) の一覧。
+# 複数のキーワードが同じテンプレートを指すことがある（例：「洗濯」「柔軟剤」は
+# どちらも洗濯用洗剤のテンプレートを使う）。先に一致したものを採用する
+# （PRODUCT_TYPE_TEMPLATESと同じ判定方式）。
+DETERGENT_SUBTYPE_TEMPLATES: list[tuple[str, _PostTemplate]] = [
+    ("洗濯", _LAUNDRY_DETERGENT_TEMPLATE),
+    ("衣類用", _LAUNDRY_DETERGENT_TEMPLATE),
+    ("部屋干し", _LAUNDRY_DETERGENT_TEMPLATE),
+    ("柔軟剤", _LAUNDRY_DETERGENT_TEMPLATE),
+    ("食器", _DISHWASHING_DETERGENT_TEMPLATE),
+    ("台所", _DISHWASHING_DETERGENT_TEMPLATE),
+    ("住宅用", _HOUSEHOLD_CLEANING_DETERGENT_TEMPLATE),
+    ("浴室用", _HOUSEHOLD_CLEANING_DETERGENT_TEMPLATE),
+    ("トイレ用", _HOUSEHOLD_CLEANING_DETERGENT_TEMPLATE),
+    ("換気扇用", _HOUSEHOLD_CLEANING_DETERGENT_TEMPLATE),
+]
+
+
+def _match_detergent_subtype(name: str) -> _PostTemplate | None:
+    """商品名から、洗剤の用途（洗濯用・食器用・住宅用）が確認できる場合、
+    その用途専用のテンプレートを返す。確認できなければNone
+    （呼び出し側でGENERIC_TEMPLATES["洗剤"]の安全なフォールバックを使う）。
+    """
+    for keyword, template in DETERGENT_SUBTYPE_TEMPLATES:
+        if keyword in name:
+            return template
+    return None
 
 # GENERIC_TEMPLATESで商品の種類が特定できなかった場合のみ、✔️メリットの3項目目に
 # 使う構造・仕様の特徴（「マグネットで浮かせて設置できる」等）と絵文字。
@@ -718,6 +938,24 @@ FEATURE_CLAUSES: list[tuple[str, str | dict[str, str], str | dict[str, str]]] = 
     ("電子レンジ", "電子レンジで使える", "🍽️"),
     ("充電式", "充電式で繰り返し使いやすい", "⚡"),
     ("コードレス", "コードレスで扱いやすい", "⚡"),
+    # ここから下は、消耗品・飲料（洗剤・水・お茶・ジュース等）の商品名から
+    # 確認できる、確認できる特徴だけを使った安全な言い回し。商品ごとの
+    # 具体的な特徴を✔️メリットの3項目目に反映し、カテゴリー内の商品が
+    # 毎日同じ文章になりにくくするためのもの。
+    ("詰め替え", "詰め替え用でごみを減らしやすい", "🔄"),
+    ("つめかえ", "詰め替え用でごみを減らしやすい", "🔄"),
+    ("無香料", "香りが気になりにくい", "🌿"),
+    ("無香性", "香りが気になりにくい", "🌿"),
+    ("業務用", "業務用サイズでたっぷり使いやすい", "📦"),
+    ("無糖", "糖分を気にせず選びやすい", "🍃"),
+    ("砂糖不使用", "糖分を気にせず選びやすい", "🍃"),
+    ("食塩不使用", "塩分を気にせず選びやすい", "🍃"),
+    ("無塩", "塩分を気にせず選びやすい", "🍃"),
+    ("ノンカフェイン", "カフェインを気にせず飲みやすい", "🍃"),
+    ("カフェインレス", "カフェインを気にせず飲みやすい", "🍃"),
+    ("カフェインゼロ", "カフェインを気にせず飲みやすい", "🍃"),
+    ("紙パック", "紙パックでコンパクトに保管しやすい", "📦"),
+    ("水出し", "水出しで手軽に作りやすい", "💧"),
 ]
 
 # 商品名にこれらの言葉が含まれる場合、より具体的なハッシュタグを1つ追加する。
@@ -734,6 +972,64 @@ SUBTOPIC_HASHTAGS: list[tuple[str, str | dict[str, str]]] = [
 ]
 
 
+def _select_template(name: str, category: str) -> tuple[_PostTemplate, str, str]:
+    """商品名・カテゴリーから、使うテンプレートと location（場所の言葉）・
+    topic_emoji（①の絵文字）を選ぶ。generate_description()・
+    get_template_components()の両方から呼ばれる共通処理（判定ロジックの
+    重複を防ぐために分離している）。
+
+    判定順位：
+    1. PRODUCT_TYPE_TEMPLATES（商品の種類がほぼ確実に分かる場合）
+    2. DETERGENT_SUBTYPE_TEMPLATES（category=="洗剤"かつ、商品名から
+       「洗濯用」「食器用」「住宅用（掃除用）」のいずれかが確認できる場合）
+    3. GENERIC_TEMPLATES[category]（1・2のいずれにも一致しない場合の
+       安全なフォールバック。用途を断定しない言い回しにしてある）
+    """
+    location = _resolve_location(name)
+
+    template = _match_product_type(name)
+    if template is not None:
+        return template, location, template.topic_emoji
+
+    if category == "洗剤":
+        template = _match_detergent_subtype(name)
+        if template is not None:
+            return template, location, template.topic_emoji
+
+    template = GENERIC_TEMPLATES[category]
+    topic_emoji = LOCATION_TOPIC_EMOJI.get(location, template.topic_emoji)
+    return template, location, topic_emoji
+
+
+def _pick_hook_worry_solution(template: _PostTemplate, location: str, seed: int) -> tuple[str, list[str], str]:
+    """①キャッチコピー・②悩み・③解決文の本文を選ぶ。
+
+    テンプレートにhook_variants等（複数パターン）が用意されていれば商品コード
+    （seed）に応じてそこから選び、無ければ従来どおりhook_text等をそのまま使う
+    （PRODUCT_TYPE_TEMPLATESの16件は変更していないため、この関数を通しても
+    挙動は従来のまま）。同じテンプレートを使う商品同士でも、複数パターンが
+    あるカテゴリーでは毎日ほぼ同じ文章になりにくくするためのもの。
+    """
+    if template.hook_variants:
+        hook_text = template.hook_variants[seed % len(template.hook_variants)]
+    else:
+        hook_text = template.hook_text
+    hook_text = hook_text.format(location=location)
+
+    if template.worry_variants:
+        worry_lines = list(template.worry_variants[(seed // 7) % len(template.worry_variants)])
+    else:
+        worry_lines = list(template.worry_lines)
+
+    if template.solution_variants:
+        solution_text = template.solution_variants[(seed // 13) % len(template.solution_variants)]
+    else:
+        solution_text = template.solution_text
+    solution_text = solution_text.format(location=location)
+
+    return hook_text, worry_lines, solution_text
+
+
 def generate_description(
     item: dict[str, Any],
     category: str,
@@ -743,30 +1039,21 @@ def generate_description(
     """商品情報から、共感型の構成（①キャッチコピー②悩み③解決④✔️メリット3つ
     ⑤締め⑥ハッシュタグ）の紹介文を組み立てる。
 
-    レビュー評価・件数・価格は本文に含めない。商品名から具体的な商品の種類が
-    分かる場合（PRODUCT_TYPE_TEMPLATES）はそれを優先し、分からない場合は
-    カテゴリ共通の安全なテンプレート（GENERIC_TEMPLATES）を使う。✔️メリットの
-    3項目目は、商品名から構造・仕様の特徴が読み取れればそれを使い、
-    読み取れなければテンプレートの安全な言い回しで補う。
+    レビュー評価・件数・価格は本文に含めない。テンプレートの選び方は
+    _select_template()を参照。✔️メリットの3項目目は、商品名から構造・仕様の
+    特徴が読み取れればそれを使い、読み取れなければテンプレートの安全な
+    言い回しで補う。
     """
     category = category if category in GENERIC_TEMPLATES else DEFAULT_CATEGORY
     name = item.get("name", "") or ""
 
-    # 商品ごとに締めの一言を変えるための目印（商品コードが無ければ商品名を使う）。
+    # 商品ごとに文章のパターン（キャッチコピー・悩み・解決文・締めの一言）を
+    # 変えるための目印（商品コードが無ければ商品名を使う）。
     seed_source = item.get("item_code") or name
     seed = sum(ord(c) for c in seed_source) if seed_source else 0
 
-    template = _match_product_type(name)
-    topic_emoji = None
-    if template is None:
-        template = GENERIC_TEMPLATES[category]
-        location = _resolve_location(name)
-        topic_emoji = LOCATION_TOPIC_EMOJI.get(location, template.topic_emoji)
-    else:
-        location = _resolve_location(name)
-
-    hook_text = template.hook_text.format(location=location)
-    solution_text = template.solution_text.format(location=location)
+    template, location, topic_emoji = _select_template(name, category)
+    hook_text, worry_lines, solution_text = _pick_hook_worry_solution(template, location, seed)
     checklist_core = [text.format(location=location) for text in template.checklist_core]
 
     clause, _clause_emoji = _top_feature_clause(name, category)
@@ -775,8 +1062,8 @@ def generate_description(
 
     closing_text = template.closing_variants[seed % len(template.closing_variants)]
 
-    hook_line = f"{topic_emoji or template.topic_emoji} {hook_text}✨"
-    worry_block = "\n".join(template.worry_lines)
+    hook_line = f"{topic_emoji} {hook_text}✨"
+    worry_block = "\n".join(worry_lines)
     solution_line = f"{solution_text}◎"
     checklist_block = "\n".join(f"✔️ {text}" for text in checklist)
     closing_line = f"{closing_text}☺️"
@@ -819,10 +1106,12 @@ def get_template_components(item: dict[str, Any], category: str) -> TemplateComp
     """商品情報から、generate_description()と同じテンプレート・判定ロジックで
     悩み・解決・メリット等の内容を取り出す（紹介文としては組み立てない）。
 
-    generate_description()自体は変更せず、この関数はその組み立てロジックを
-    複製している。紹介文生成（既存機能）の挙動に影響を与えないためにあえて
-    分離しており、TikTok台本生成など、紹介文とは異なる形式で同じ安全な
-    言い回しを再利用したい用途向けの関数。
+    generate_description()自体は変更せず、この関数は_select_template()・
+    _pick_hook_worry_solution()という共通処理を通して同じテンプレート・
+    判定ロジックを使う（挙動は完全に揃っている）。紹介文生成（既存機能）の
+    出力形式（組み立て済みの1本の文字列）とは分離しており、TikTok台本生成
+    など、紹介文とは異なる形式で同じ安全な言い回しを再利用したい用途向けの
+    関数。
     """
     category = category if category in GENERIC_TEMPLATES else DEFAULT_CATEGORY
     name = item.get("name", "") or ""
@@ -830,17 +1119,8 @@ def get_template_components(item: dict[str, Any], category: str) -> TemplateComp
     seed_source = item.get("item_code") or name
     seed = sum(ord(c) for c in seed_source) if seed_source else 0
 
-    template = _match_product_type(name)
-    if template is None:
-        template = GENERIC_TEMPLATES[category]
-        location = _resolve_location(name)
-        topic_emoji = LOCATION_TOPIC_EMOJI.get(location, template.topic_emoji)
-    else:
-        location = _resolve_location(name)
-        topic_emoji = template.topic_emoji
-
-    hook_text = template.hook_text.format(location=location)
-    solution_text = template.solution_text.format(location=location)
+    template, location, topic_emoji = _select_template(name, category)
+    hook_text, worry_lines, solution_text = _pick_hook_worry_solution(template, location, seed)
     checklist_core = [text.format(location=location) for text in template.checklist_core]
 
     clause, _clause_emoji = _top_feature_clause(name, category)
@@ -852,7 +1132,7 @@ def get_template_components(item: dict[str, Any], category: str) -> TemplateComp
     return TemplateComponents(
         hook_text=hook_text,
         topic_emoji=topic_emoji,
-        worry_lines=list(template.worry_lines),
+        worry_lines=worry_lines,
         solution_text=solution_text,
         checklist=checklist,
         closing_text=closing_text,
