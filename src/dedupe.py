@@ -42,6 +42,8 @@ import unicodedata
 from pathlib import Path
 from typing import Any, NamedTuple
 
+from . import atomic_io
+
 
 class PostedIndex(NamedTuple):
     """投稿済み履歴から作る、重複判定用の索引。"""
@@ -396,13 +398,13 @@ def _normalize_incoming_item(raw_item: dict[str, Any]) -> dict[str, Any]:
 
 
 def _save_posted_items(posted_items: list[dict[str, Any]], path: Path) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
+    """投稿済み履歴をファイルへ保存する（atomic_io経由で、書き込み途中の
+    中断・例外によって既存の履歴ファイルが壊れた状態にならないようにする）。
+    """
     payload = {
         "posted_item_codes": sorted(
             {item["item_code"] for item in posted_items if item.get("item_code")}
         ),
         "posted_items": posted_items,
     }
-    with path.open("w", encoding="utf-8") as f:
-        json.dump(payload, f, ensure_ascii=False, indent=2)
-        f.write("\n")
+    atomic_io.write_json_atomic(path, payload)

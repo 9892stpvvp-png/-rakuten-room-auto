@@ -1588,3 +1588,36 @@ closing_variants以外に無かったこと**が根本原因だった。
 - 既存の全テスト（商品候補生成・重複判定・GitHub Actions関連の設定・
   TikTok生成等、今回変更していない機能のテスト）が引き続き成功することを
   確認した。
+
+## 26. 投稿済み履歴（`data/posted_items.json`）の書き込みをアトミック化（reliability-003）
+
+「23. TikTok日次生成の本番運用向け堅牢化」（`src/atomic_io.py`新設）では、
+`data/tiktok_history.json`・`tiktok/daily_content.json`・
+`tiktok/daily_content.md`の書き込みをアトミック化したが、ROOM側の
+投稿済み履歴（`data/posted_items.json`）を書き換える唯一の関数
+`dedupe._save_posted_items()`は対象外のままで、引き続き
+`path.open("w")`＋`json.dump()`で直接書き込んでいた。GitHub Actionsの
+ジョブタイムアウトや手動キャンセル等でこの書き込みの途中にプロセスが
+終了すると、日次実行のたびに読み書きする本番の重複チェック履歴が
+壊れた状態で残ってしまう可能性があった。
+
+### 対応
+
+`dedupe._save_posted_items()`を、新規実装を追加せず既存の
+`atomic_io.write_json_atomic()`を再利用する形に変更した（同じ書き込み
+処理を重複実装しないため）。読み込み側（`load_posted_items`等）・
+重複判定ロジック（`match_posted_reason`等）・`append_posted_items()`の
+シグネチャや戻り値は変更していない。
+
+### テスト
+
+- `tests/test_dedupe.py`に`AppendPostedItemsAtomicWriteTest`を追加し、
+  次を確認した。
+  - 書き込み途中（`os.fdopen`）で例外が起きても、既存の
+    `posted_items.json`の内容が変更前のまま残ること
+  - 一時ファイルが残らないこと
+  - `_save_posted_items()`が実際に`atomic_io.write_json_atomic()`を
+    経由していること（実装の再利用を回帰させないため）
+- 既存の`AppendPostedItemsTest`（正常な保存・再読込、item_code／URL／
+  商品名／match_keywordsによる重複判定の既存挙動）を含め、全217件の
+  自動テストが引き続き成功することを確認した。
