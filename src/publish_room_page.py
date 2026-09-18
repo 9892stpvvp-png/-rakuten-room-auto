@@ -14,6 +14,8 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
+from . import atomic_io
+
 JST = timezone(timedelta(hours=9))
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -88,10 +90,9 @@ def main() -> None:
 
     page_data = build_room_page_data(candidates)
 
-    ROOM_PAGE_DATA_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with ROOM_PAGE_DATA_PATH.open("w", encoding="utf-8") as f:
-        json.dump(page_data, f, ensure_ascii=False, indent=2)
-        f.write("\n")
+    # 投稿ページ（room/index.html）が直接読み込むファイルのため、書き込み途中で
+    # プロセスが終了しても壊れたJSONが残らないよう、atomic_io経由で書き出す。
+    atomic_io.write_json_atomic(ROOM_PAGE_DATA_PATH, page_data)
 
     print(
         f"投稿ページ用データを書き出しました: {ROOM_PAGE_DATA_PATH}"

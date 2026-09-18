@@ -1621,3 +1621,56 @@ closing_variants以外に無かったこと**が根本原因だった。
 - 既存の`AppendPostedItemsTest`（正常な保存・再読込、item_code／URL／
   商品名／match_keywordsによる重複判定の既存挙動）を含め、全217件の
   自動テストが引き続き成功することを確認した。
+
+## 27. 候補一覧・投稿ページ用データの書き込みをアトミック化（reliability-004）
+
+「26. 投稿済み履歴の書き込みをアトミック化（reliability-003）」の
+「次にChatGPTが判断すべき点」で保留となっていた、`src/storage.py`の
+`save_candidates()`（`data/candidates/candidates_*.json`・`.md`）と
+`src/publish_room_page.py`の`main()`（`room/data/candidates.json`）の
+2箇所を監査した。いずれも`path.open("w")`＋`json.dump()`／
+`Path.write_text()`で直接書き込んでおり、書き込み途中にプロセスが
+終了すると壊れたファイルが残る可能性があった。
+
+- `data/candidates/candidates_*.json`は`publish_room_page.py`の
+  `find_latest_candidates_json()`が「最も新しいファイル」としてそのまま
+  読み込むため、壊れかけのファイルが残ると次のステップ（投稿ページ用
+  データ生成）が壊れたJSONを読み込んで失敗する可能性があった。
+- `room/data/candidates.json`は投稿ページ（`room/index.html`）が
+  ブラウザから直接読み込むファイルであり、壊れると投稿ページの表示に
+  影響する。
+
+### 対応
+
+いずれも新規実装を追加せず、既存の`atomic_io.write_json_atomic()`・
+`atomic_io.write_text_atomic()`を再利用する形に変更した。
+
+- `src/storage.py`の`save_candidates()`: JSON・Markdownの両方を
+  `atomic_io`経由の書き込みに変更した。戻り値（保存先パスのタプル）・
+  Markdown整形（`render_candidates_markdown()`等）は変更していない。
+- `src/publish_room_page.py`の`main()`: `room/data/candidates.json`の
+  書き込みを`atomic_io.write_json_atomic()`経由に変更した。
+  `build_room_page_data()`によるデータ整形・`find_latest_candidates_json()`
+  による最新ファイル検索のロジックは変更していない。
+
+商品検索条件・重複判定・紹介文生成・TikTok関連（`src/tiktok_*.py`）・
+`data/posted_items.json`まわり（前章で対応済み）には一切手を加えていない。
+
+### テスト
+
+- `tests/test_storage.py`を新規追加し、次を確認した。
+  - 正常にJSON・Markdownが保存され、戻り値のパスが存在すること
+  - 出力先ディレクトリが無い場合でも自動作成されること
+  - 書き込み途中（`os.fdopen`）で例外が起きても、出力先ディレクトリに
+    壊れかけのファイルが残らないこと
+  - JSON・Markdownの保存が実際に`atomic_io`経由であること
+- `tests/test_publish_room_page.py`に`MainAtomicWriteTest`を追加し、
+  次を確認した。
+  - `main()`が正常に`room/data/candidates.json`を書き出すこと
+  - 書き込み途中で例外が起きても、既存の`room/data/candidates.json`が
+    変更前のまま残り、一時ファイルも残らないこと
+  - `main()`が実際に`atomic_io.write_json_atomic()`経由で書き込んでいること
+- 既存の全自動テスト（`python-dotenv`未インストールによる
+  `tests.test_main`の収集エラーを除く）が引き続き成功することを確認した
+  （このサンドボックス環境固有の制約で今回の変更とは無関係。詳細は
+  `docs/AI_STATUS.md`参照）。
