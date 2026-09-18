@@ -71,3 +71,4 @@ jobs:
             Do not modify docs/AI_TASK.md yourself.
           claude_args: |
             --max-turns 40
+            --allowedTools "Read,Glob,Grep,Edit,Write,Bash(git:*),Bash(python:*),Bash(python3:*),Bash(pytest:*),Bash(gh pr create:*)"
