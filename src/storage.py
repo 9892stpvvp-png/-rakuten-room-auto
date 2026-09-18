@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-import json
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+
+from . import atomic_io
 
 
 def save_candidates(candidates: list[dict[str, Any]], output_dir: Path) -> tuple[Path, Path]:
@@ -13,21 +14,22 @@ def save_candidates(candidates: list[dict[str, Any]], output_dir: Path) -> tuple
 
     JSON: プログラムで再利用しやすいデータ形式
     Markdown: 人間がGitHub上やエディタでそのまま読める一覧（全件）
-    """
-    output_dir.mkdir(parents=True, exist_ok=True)
 
+    書き込みはatomic_io経由で行い、GitHub Actionsのジョブタイムアウト・
+    手動キャンセル等で書き込み途中にプロセスが終了しても、書きかけの
+    壊れたファイルが残らないようにする（publish_room_page.pyが
+    find_latest_candidates_json()でこのJSONを最新候補として読み込むため）。
+    """
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     json_path = output_dir / f"candidates_{timestamp}.json"
     markdown_path = output_dir / f"candidates_{timestamp}.md"
 
-    with json_path.open("w", encoding="utf-8") as f:
-        json.dump(candidates, f, ensure_ascii=False, indent=2)
-
-    markdown_path.write_text(
+    atomic_io.write_json_atomic(json_path, candidates)
+    atomic_io.write_text_atomic(
+        markdown_path,
         render_candidates_markdown(
             candidates, title=f"投稿候補一覧（{timestamp}）", include_extra=True
         ),
-        encoding="utf-8",
     )
 
     return json_path, markdown_path

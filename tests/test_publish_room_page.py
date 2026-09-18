@@ -10,10 +10,12 @@
 
 from __future__ import annotations
 
+import json
 import tempfile
 import unittest
 from datetime import datetime, timezone
 from pathlib import Path
+from unittest import mock
 
 from src import publish_room_page as pub
 
@@ -146,6 +148,70 @@ class FindLatestCandidatesJsonTest(unittest.TestCase):
             latest = pub.find_latest_candidates_json(directory)
             assert latest is not None
             self.assertEqual(latest.name, "candidates_20260913_153000.json")
+
+
+class MainAtomicWriteTest(unittest.TestCase):
+    """main()がroom/data/candidates.jsonをatomic_io経由で書き出すことの回帰テスト。
+
+    このファイルは投稿ページ（room/index.html）が直接読み込むため、書き込み
+    途中でプロセスが終了しても壊れたJSONが残らないことを確認する。
+    """
+
+    def _make_candidates_file(self, directory: Path) -> Path:
+        candidates_file = directory / "candidates_20260913_153000.json"
+        candidates_file.write_text(
+            json.dumps([{"item_code": "shop:a", "name": "商品A"}], ensure_ascii=False),
+            encoding="utf-8",
+        )
+        return candidates_file
+
+    def test_writes_room_page_data_successfully(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            candidates_file = self._make_candidates_file(Path(tmpdir))
+            room_page_path = Path(tmpdir) / "room" / "data" / "candidates.json"
+
+            with mock.patch.object(
+                pub, "find_latest_candidates_json", return_value=candidates_file
+            ), mock.patch.object(pub, "ROOM_PAGE_DATA_PATH", room_page_path):
+                pub.main()
+
+            saved = json.loads(room_page_path.read_text(encoding="utf-8"))
+            self.assertEqual(saved["items"][0]["item_code"], "shop:a")
+
+    def test_existing_file_untouched_and_no_temp_left_when_write_fails(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            candidates_file = self._make_candidates_file(Path(tmpdir))
+            room_page_dir = Path(tmpdir) / "room" / "data"
+            room_page_dir.mkdir(parents=True)
+            room_page_path = room_page_dir / "candidates.json"
+            room_page_path.write_text('{"items": []}', encoding="utf-8")
+
+            with mock.patch.object(
+                pub, "find_latest_candidates_json", return_value=candidates_file
+            ), mock.patch.object(pub, "ROOM_PAGE_DATA_PATH", room_page_path), mock.patch(
+                "os.fdopen", side_effect=OSError("disk full")
+            ):
+                with self.assertRaises(OSError):
+                    pub.main()
+
+            self.assertEqual(room_page_path.read_text(encoding="utf-8"), '{"items": []}')
+            remaining = list(room_page_dir.iterdir())
+            self.assertEqual(remaining, [room_page_path])
+
+    def test_uses_atomic_io_write_json_atomic(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            candidates_file = self._make_candidates_file(Path(tmpdir))
+            room_page_path = Path(tmpdir) / "room" / "data" / "candidates.json"
+
+            with mock.patch.object(
+                pub, "find_latest_candidates_json", return_value=candidates_file
+            ), mock.patch.object(pub, "ROOM_PAGE_DATA_PATH", room_page_path), mock.patch(
+                "src.publish_room_page.atomic_io.write_json_atomic",
+                wraps=pub.atomic_io.write_json_atomic,
+            ) as mocked_write:
+                pub.main()
+
+            mocked_write.assert_called_once()
 
 
 if __name__ == "__main__":
