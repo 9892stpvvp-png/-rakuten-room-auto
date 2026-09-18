@@ -55,3 +55,5 @@ Task ID: reliability-003
 <!-- auto-start retrigger after bot allowlist: 2026-09-18 -->
 
 <!-- auto-start retrigger after checkout fix: 2026-09-18 -->
+
+<!-- auto-start retrigger after tool permissions fix: 2026-09-18 -->
