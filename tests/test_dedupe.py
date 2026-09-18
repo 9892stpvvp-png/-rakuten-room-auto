@@ -10,6 +10,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from src import dedupe
 
@@ -593,6 +594,46 @@ class AppendPostedItemsTest(unittest.TestCase):
             dedupe.append_posted_items([{"item_code": "shop:a"}], path)
             saved = json.loads(path.read_text(encoding="utf-8"))
             self.assertEqual(saved["posted_items"][0]["match_keywords"], [])
+
+
+class AppendPostedItemsAtomicWriteTest(unittest.TestCase):
+    """書き込み途中で例外が起きても、既存の posted_items.json が壊れた状態で
+    残らないことを確認する（atomic_io経由での保存の回帰テスト）。"""
+
+    def test_existing_file_is_untouched_when_write_fails(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "posted_items.json"
+            dedupe.append_posted_items([{"item_code": "shop:a"}], path)
+            original_content = path.read_text(encoding="utf-8")
+
+            with mock.patch("os.fdopen", side_effect=OSError("disk full")):
+                with self.assertRaises(OSError):
+                    dedupe.append_posted_items([{"item_code": "shop:b"}], path)
+
+            self.assertEqual(path.read_text(encoding="utf-8"), original_content)
+            saved = json.loads(original_content)
+            self.assertEqual(saved["posted_item_codes"], ["shop:a"])
+
+    def test_no_leftover_temp_files_when_write_fails(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "posted_items.json"
+            dedupe.append_posted_items([{"item_code": "shop:a"}], path)
+
+            with mock.patch("os.fdopen", side_effect=OSError("disk full")):
+                with self.assertRaises(OSError):
+                    dedupe.append_posted_items([{"item_code": "shop:b"}], path)
+
+            remaining = list(Path(tmpdir).iterdir())
+            self.assertEqual(remaining, [path])
+
+    def test_uses_atomic_io_write_json_atomic(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "posted_items.json"
+            with mock.patch(
+                "src.dedupe.atomic_io.write_json_atomic", wraps=dedupe.atomic_io.write_json_atomic
+            ) as mocked_write:
+                dedupe.append_posted_items([{"item_code": "shop:a"}], path)
+            mocked_write.assert_called_once()
 
 
 if __name__ == "__main__":

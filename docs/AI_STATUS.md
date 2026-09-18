@@ -1,119 +1,55 @@
 # AI STATUS
 
-Task ID: user-request-description-generator-fix（ユーザーからの直接依頼）
+Task ID: reliability-003
 Status: DONE
 
 ## 最終更新
-Claude Code が、紹介文生成ロジック（`src/description_generator.py`）の用途誤り・同一文章化の問題を調査し、原因に対応した最小限の修正を行った。
+Claude Code が、`data/posted_items.json`（投稿済み履歴）の読み書き経路を監査し、書き込み処理をアトミック化した。
 
-## 原因
+## 監査結果
 
-`GENERIC_TEMPLATES`（商品タイプが`PRODUCT_TYPE_TEMPLATES`で特定できない場合に使う、カテゴリー共通のテンプレート）を調査した結果、次の2点が根本原因だった。
+`data/posted_items.json`を書き換える処理は`src/dedupe.py`の`append_posted_items()`（内部で`_save_posted_items()`を呼ぶ）の1箇所だけで、他に直接書き込む箇所は無かった。
 
-1. **`GENERIC_TEMPLATES["洗剤"]`のchecklist_coreが、用途を商品名から確認せず常に「普段のお洗濯や食器洗いに使いやすい」と断定していた。** `PRODUCT_TYPE_TEMPLATES`（商品タイプ専用の16テンプレート）には「暮らしの便利グッズ」枠の商品タイプしか登録されておらず、洗剤・水・お茶等の「消耗品・飲料」枠は1件も無いため、必ずカテゴリー共通のGENERIC_TEMPLATESにフォールバックしていた。そのフォールバック側が、洗濯専用・食器専用のどの洗剤にも同じ2つの用途を毎回断定していたため、洗濯専用の商品でも食器洗い用途が誤って混入していた。
-2. **GENERIC_TEMPLATESは1カテゴリーにつき1つの固定テンプレートで、closing_variants（締めの一言）だけが2パターン用意されていた。** さらに、✔️メリットの3項目目に使う`FEATURE_CLAUSES`には洗剤・飲料特有の特徴語（詰め替え・無香料・無糖・ノンカフェイン等）が1件も登録されておらず、同じカテゴリー内のほとんどの商品で3項目目もchecklist_fallback（共通の言い回し）になっていた。そのため実質的に「毎日ほぼ同じ文章」になっていた。
+- `_save_posted_items()`はこれまで`path.open("w", encoding="utf-8")` + `json.dump()`で直接書き込んでいた。GitHub Actionsのジョブタイムアウト・手動キャンセル・予期しないクラッシュ等で書き込みの途中にプロセスが終了すると、書きかけの不完全な（壊れた）JSONがそのまま残る可能性があった。
+- PR #9で追加済みの`src/atomic_io.py`（`write_text_atomic` / `write_json_atomic`）は、`data/tiktok_history.json`・`tiktok/daily_content.json`・`tiktok/daily_content.md`の保存（`src/tiktok_selector.py`・`src/tiktok_daily.py`）では既に使われていたが、`data/posted_items.json`の保存だけは未対応のまま残っていた（docs/DESIGN.md 23章の対応範囲外）。
+- 読み込み側（`load_posted_items` / `load_posted_item_codes`）・重複判定ロジック（`match_posted_reason`等、item_code→URL→商品名→match_keywordsの優先順位）には問題を確認しなかった（変更不要と判断）。
 
-## 変更したファイル
-- `src/description_generator.py`
-- `tests/test_description_generator.py`
-- `docs/DESIGN.md`（25章に原因・対応内容を記録）
+## 実施内容
+
+- `src/dedupe.py`の`_save_posted_items()`を、新規実装を追加せず既存の`atomic_io.write_json_atomic()`を再利用する形に変更した（同種の書き込み実装を重複させないため）。
+- `append_posted_items()`のシグネチャ・戻り値（`AppendResult`）・重複判定ロジック・読み込み側の関数は一切変更していない。
+- `docs/DESIGN.md`に26章として、原因・対応内容を記録した。
+
+## 変更ファイル
+- `src/dedupe.py`（`_save_posted_items()`を`atomic_io.write_json_atomic()`経由に変更）
+- `tests/test_dedupe.py`（アトミック書き込みの回帰テストを追加）
+- `docs/DESIGN.md`（26章を追加）
 - `docs/AI_STATUS.md`（このファイル）
 
-商品検索条件（`src/main.py`・`config/`）、`data/posted_items.json`、投稿済み重複判定（`src/dedupe.py`）、GitHub Actionsの既存ワークフローには一切手を加えていない。
+商品検索条件（`src/main.py`・`config/`）、重複判定ロジック本体、TikTok関連（`src/tiktok_*.py`）、GitHub Actionsの既存ワークフローには一切手を加えていない。
 
-## 具体的な改善内容
+## テスト結果
 
-1. **`DETERGENT_SUBTYPE_TEMPLATES`（新規）**：商品名から「洗濯用」（洗濯・衣類用・部屋干し・柔軟剤）「食器用」（食器・台所）「住宅用＝掃除用」（住宅用・浴室用・トイレ用・換気扇用）のいずれかが確認できる場合、その用途専用のテンプレートを使う。確認できない場合（用途を明記していない商品）は、引き続き`GENERIC_TEMPLATES["洗剤"]`を使うが、checklist_coreを「普段のお手入れに使いやすい」という、特定の用途を断定しない安全な言い回しに修正した。
-2. **`_PostTemplate`に`hook_variants`・`worry_variants`・`solution_variants`（複数パターン）を追加**（デフォルト空タプル＝既存16件のPRODUCT_TYPE_TEMPLATESは無変更）。洗剤（用途別含む）・キッチン消耗品・日用品・水・お茶・ジュースの各テンプレートに①②③を2パターンずつ追加し、商品コードに応じて異なる組み合わせが選ばれるようにした。closing_variantsも2件→4件に増やした。
-3. **`FEATURE_CLAUSES`に消耗品・飲料向けの特徴語を追加**：詰め替え、無香料、業務用（洗剤）、無糖、食塩不使用、ノンカフェイン、紙パック、水出し（飲料）。商品名に明記されている場合だけ反映し、推測では追加しない。
-4. **`generate_description()`・`get_template_components()`の重複していたテンプレート選択ロジックを`_select_template()`・`_pick_hook_worry_solution()`に共通化。** これによりTikTok台本生成にも同じ用途判定・安全なフォールバックが自動適用される。
+追加したテスト（`tests/test_dedupe.py` `AppendPostedItemsAtomicWriteTest`）で確認した内容:
+- 正常に保存・再読込できること（既存の`AppendPostedItemsTest`で確認済み、今回も回帰なし）
+- 書き込み途中（`os.fdopen`）で例外が発生しても、既存の`posted_items.json`の内容が変更前のまま残ること
+- 書き込み失敗時に一時ファイルが残らないこと
+- `_save_posted_items()`が実際に`atomic_io.write_json_atomic()`を経由していること（重複実装の回帰防止）
+- 重複判定（item_code / URL / 商品名 / match_keywords）の既存挙動に変化がないこと（既存の`MatchPostedReasonTest`・`IsPostedAndRemoveDuplicatesTest`等が全て成功）
 
-### 意図的に対応を見送った点（過剰な変更を避けるため）
-- 6ブロックの並び順自体は変更していない（既存テストの前提・ROOM投稿としての読みやすさを優先し、文言のバリエーションで多様性を実現する方針にした）。
-- ✔️メリットの箇条書き数（3個固定）は変更していない（要望では許可されていたが必須ではなく、影響範囲が変化量に見合わないと判断）。
-- 直近投稿との類似度チェック・再生成（要望■5）は実装していない（「可能であれば」という任意要件。新しい履歴ファイルの新設が必要で影響範囲が大きいため、今回は文言パターンを増やすことで再発しにくくする方針にした）。
-
-## 修正前後の紹介文サンプル
-
-### 実際に問題が起きた商品名での修正前後（洗濯洗剤）
-
-**修正前**（本番で実際に生成されていた文章。`GENERIC_TEMPLATES["洗剤"]`固定）:
-```
-🧴 洗剤のストック、そろそろ減ってない？✨
-
-洗剤や柔軟剤って、
-気づいたら切れていること多いですよね…😅
-
-ストックしておけば切らす心配を減らせそうな洗剤◎
-
-✔️ 普段のお洗濯や食器洗いに使いやすい      ← 食器洗いは確認できない用途
-✔️ ストックしておけば買い忘れを防ぎやすい
-✔️ 毎日の家事に取り入れやすい
-
-買い忘れをなくしたい人に便利そう☺️
-
-#暮らしの便利グッズ #洗剤 #便利グッズ
-```
-
-**修正後**（同じ商品名。商品名の「洗濯」から洗濯用洗剤と判定）:
-```
-🧺 洗濯洗剤のストック、そろそろ減ってない？✨
-
-毎日のお洗濯で使う洗剤って、
-気づいたら切れていること多いですよね…😅
-
-毎日のお洗濯に使いやすそうな洗濯用洗剤◎
-
-✔️ 普段のお洗濯に使いやすい
-✔️ ストックしておけば買い忘れを防ぎやすい
-✔️ 毎日の洗濯に取り入れやすい
-
-洗濯用洗剤のストック切れを防ぎたい人におすすめ☺️
-
-#暮らしの便利グッズ #洗剤 #便利グッズ
-```
-
-### 別の食器用洗剤商品（用途・特徴が正しく反映される確認）
-```
-🍽️ 食器用洗剤のストック、そろそろ減ってない？✨
-
-食器を洗うたびに使う洗剤だから、
-ストックが減るのも早いですよね…😅
-
-ストックしておけば切らす心配を減らせそうな食器用洗剤◎
-
-✔️ 普段の食器洗いに使いやすい
-✔️ ストックしておけば買い忘れを防ぎやすい
-✔️ 詰め替え用でごみを減らしやすい          ← 商品名の「詰め替え」から反映
-
-毎日の食器洗いをスムーズに続けたい人に良さそう☺️
-
-#暮らしの便利グッズ #洗剤 #便利グッズ
-```
-
-### 異なる飲料商品でのバリエーション確認（同じ「ジュース」カテゴリー）
-- 「野菜ジュース 200ml 36本」→ 締め「気分転換したいときに便利そう」
-- 「オレンジジュース 果汁100% 1L」→ 書き出し「ジュースのストック、気づいたら切れてない？」、締め「気になる人はチェックしてみてほしい」
-- 「無糖 炭酸水 500ml 24本」→ ✔️3項目目「糖分を気にせず選びやすい」（商品名の「無糖」から反映）
-
-3商品とも書き出し・締め・✔️メリットの少なくともいずれかが異なり、完全に同一の紹介文にはならないことを確認した。
-
-## 追加したテスト
-- `tests/test_description_generator.py`
-  - `DetergentSubtypeTest`：洗濯用・食器用・住宅用洗剤で確認できない用途（食器洗い・お洗濯）を書かないこと、用途が確認できない商品は特定の用途を断定しないこと、洗剤カテゴリー以外では洗剤専用テンプレートを使わないことを確認（6テスト）。
-  - `ConsumableVarietyTest`：異なる飲料・洗剤商品で紹介文が完全一致しないこと、商品固有の特徴（無糖・ノンカフェイン・詰め替え等）が反映されること、確認できない特徴を勝手に追加しないこと、6ブロック構成が崩れないことを確認（7テスト）。
-  - 既存の`test_detergent_hook_matches_requested_wording`等3件は、hook_variants追加に伴い「複数用意された安全な文言のいずれか」であることを確認する形に更新（単一固定文言との完全一致チェックは、今回意図的に複数パターン化したため）。
-
-## 全テスト結果
-- `python3 -m pytest -q` → **230 passed**（既存217件＋今回追加した13件、すべて成功）
-- `python3 -m unittest discover -s tests` でも同様に230件成功を確認
+実行結果:
+- `python3 -m unittest tests.test_dedupe tests.test_atomic_io -v` → **73 passed**
+- `python3 -m unittest discover -s tests -v` → **217 passed**、`tests.test_main`のみ収集時に`ModuleNotFoundError: No module named 'dotenv'`で失敗（このサンドボックス環境に`python-dotenv`が未インストールのため。`src/main.py`のトップレベルimportが原因で、今回の変更とは無関係。`requirements.txt`には元から記載済みで、CI環境や`pip install -r requirements.txt`を実行済みの環境では発生しない）。
 - 秘密情報（Application ID、Access Key等）は表示・記録していません
 
-## 既存機能への影響
-- 商品検索条件・`data/posted_items.json`・投稿済み重複判定（item_code/URL/商品名/match_keywords）・GitHub Actionsの既存スケジュール（`search_candidates.yml`・`run_scheduled_search.yml`・`import_posted_items.yml`）には一切変更していない。
-- `PRODUCT_TYPE_TEMPLATES`（暮らしの便利グッズ16テンプレート）は無変更（`hook_variants`等はデフォルト空タプルのため、既存の挙動と完全に同じ）。
-- `refine_category()`・カテゴリー判定ロジック・ハッシュタグ組み立てロジックは無変更。
-- TikTok台本生成（`get_template_components()`経由）にも同じ用途判定・安全なフォールバックが自動適用され、TikTok側の同種の問題（洗濯洗剤の台本に食器洗いが混ざる等）も同時に修正されている。TikTok関連の既存テスト（`test_tiktok_content_generator.py`・`test_tiktok_daily.py`・`test_tiktok_selector.py`）もすべて成功。
+## 本番運用上の残課題
+- 特になし。`data/posted_items.json`の書き込みは、他のJSON/Markdown出力（`tiktok_history.json`・`daily_content.json`等）と同じアトミック書き込み方式に統一された。
+
+## 外部サービス/ユーザー操作が必要な項目
+- 特になし。今回の変更は内部の書き込み処理のみで、ユーザー操作・外部サービスの利用方法に変更はない。
+
+## 次にChatGPTが判断すべき点
+- `src/storage.py`（候補一覧`data/candidates/candidates_*.json`）・`src/publish_room_page.py`（`room/data/candidates.json`）も同様に`path.open("w")` + `json.dump()`で直接書き込んでいるが、これらは投稿済み履歴（重複防止の基盤データ）ではなく毎回作り直す生成物であるため、今回のタスク範囲（投稿済み履歴の破損リスク低減）には含めなかった。壊れた場合の影響は「次回生成まで表示が乱れる」程度に留まり、`posted_items.json`ほど重要ではないと考えているが、同様にアトミック化する価値があるかはChatGPT側で判断してほしい。
 
 ## セキュリティ
 Application ID、Access Key、トークン、パスワード等の秘密情報はここに記載しないこと。
