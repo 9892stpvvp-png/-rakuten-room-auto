@@ -61,6 +61,14 @@ def make_item(
 # config/settings.example.yaml のdefault_hashtagsと同じもの（本番と同じ条件でテストするため）。
 BASE_HASHTAGS = ["#暮らしの便利グッズ"]
 
+# 2026-09-19の本番実行（room/data/candidates.json）で実際に取得された、
+# 購入制限（お一人様1本限り）のある商品名。複数のテストクラスで使う。
+GRAPE_JUICE_NAME = (
+    "お1人様ご家族様1本限り！ドール グレープ　100％ 200ml※皆様、日頃お世話になって"
+    "おります。申し訳ございませんが、一人でも多くの方に試しいただきたいと思いますので"
+    "お一人様ご家族様1本まででお願いいたします。 【2sp_121217_red】"
+)
+
 # 以下は実際にGitHub Actionsの本番実行(2026-09-13)で取得された商品名・商品説明。
 REAL_SOUP_MAKER = make_item(
     name=(
@@ -741,6 +749,225 @@ class ConsumableVarietyTest(unittest.TestCase):
                 self.assertIn("😅", blocks[1])
                 self.assertTrue(blocks[2].endswith("◎"))
                 self.assertTrue(blocks[4].endswith("☺️"))
+
+
+class Sept19BatchRegressionTest(unittest.TestCase):
+    """2026-09-19に生成されたroom/data/candidates.jsonの10件で実際に
+    見つかった問題（description-match-002）の回帰テスト。商品名は本番で
+    実際に取得された表記をそのまま使っている。"""
+
+    HANGER_NAME = (
+        "極太PVCコーティング 滑らないハンガー 100本セット （軽くて丈夫！衣類が滑らず、"
+        "かさばらないからクローゼットもスッキリの便利なハンガー） 10本単位で選べる16色 "
+        "収納 洋服 和服 軽い 軽量 洗濯 外干し 部屋干し ステンレス ランドリー 上着 "
+        "ジャケット コート スーツ"
+    )
+    CARDBOARD_STOCKER_NAME = (
+        "持ち運びできる段ボールストッカー プラス 段ボールストッカー ダンボールストッカー "
+        "段ボール 整理 束ねる まとめる ダンボール 持ちやすい 便利グッズ ひも通し 紐通し "
+        "ゴミ リサイクル 収納 片付け ゴミ捨て 移動 持ち運び コジット メール便送料無料"
+    )
+    HAIR_IRON_POUCH_NAME = (
+        "＼レビューで選べる特典あり／ ヘアアイロンポーチ ヘアアイロンケース カバー スリム "
+        "ミニ 耐熱 38mm 対応 持ち運び 旅行 便利グッズ 熱いまま 吊り下げ ヘアアイロン収納 "
+        "耐熱ポーチ 小さめ アイロンポーチ ヘアアイロン 収納 かわいい おしゃれ コテ"
+    )
+    BUTTER_CUTTER_NAME = (
+        "leye オークス ワイヤーでスーッと切れるバターカッター LS1551 5gカット 200g 450g "
+        "ステンレスカッター バター小分け 時短グッズ 製パン パン作り 製菓 お菓子作り ケーキ "
+        "計量 おしゃれ 調理器具 キッチンツール 日本製"
+    )
+    STAIN_REMOVER_NAME = (
+        "《20ml×2個セット》総合1位 衣類のしみ抜き剤『スポッとる』【送料無料】"
+        "諦めていた服のシミが落ちる！クリーニング屋ふみさんの染み抜き剤"
+    )
+    LAUNDRY_DETERGENT_NAME = "【1種類を選べる】アタックZERO 洗濯洗剤 ワンハンド 本体(380g×4セット)【アタックZERO】"
+
+    # 1. 滑らないハンガーの商品紹介に、商品固有の特徴が最低1つ以上反映される。
+    def test_hanger_reflects_product_specific_feature(self):
+        item = make_item(name=self.HANGER_NAME)
+        description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("ハンガー", description)
+        # カテゴリー共通の「身の回りの物の置き場所」に頼っていないことの確認。
+        self.assertNotIn("身の回りの物の置き場所", description)
+        checklist = _blocks(description)[3]
+        self.assertTrue(
+            any(keyword in checklist for keyword in ("滑り", "100本", "まとめて")),
+            checklist,
+        )
+
+    # 2. 段ボールストッカーが「身の回りの物の収納」だけで終わらず、
+    #    段ボール整理に関係する内容になる。
+    def test_cardboard_stocker_is_about_cardboard_not_generic_storage(self):
+        item = make_item(name=self.CARDBOARD_STOCKER_NAME)
+        description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("段ボール", description)
+        self.assertNotIn("身の回りの物の置き場所", description)
+        self.assertNotIn("身の回りの物をすっきりまとめやすい", description)
+
+    # 3. 耐熱ヘアアイロンポーチに、取得済み情報から確認できる特徴が反映される。
+    def test_hair_iron_pouch_reflects_confirmed_features(self):
+        item = make_item(name=self.HAIR_IRON_POUCH_NAME)
+        description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS)
+        self.assertTrue(
+            any(keyword in description for keyword in ("ヘアアイロン", "耐熱")),
+            description,
+        )
+        self.assertNotIn("身の回りの物の置き場所", description)
+
+    # 4. バターカッターに、バターを切る用途と商品固有情報が反映される。
+    def test_butter_cutter_reflects_use_and_product_specific_info(self):
+        item = make_item(name=self.BUTTER_CUTTER_NAME)
+        description = dg.generate_description(item, category="キッチン", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("バター", description)
+        self.assertNotIn("毎日の料理や後片付け", description)
+        checklist = _blocks(description)[3]
+        self.assertTrue(
+            any(keyword in checklist for keyword in ("5gカット", "計量")),
+            checklist,
+        )
+
+    # 5. 衣類しみ抜き剤に、「毎日のように使う洗剤」など根拠のない使用頻度を
+    #    追加しない。
+    def test_stain_remover_does_not_claim_daily_use(self):
+        item = make_item(name=self.STAIN_REMOVER_NAME)
+        description = dg.generate_description(item, category="洗剤", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("毎日のように使う洗剤", description)
+        self.assertNotIn("毎日", description)
+        self.assertIn("シミ", description)
+
+    # 6. 「お一人様1本まで」等の購入制限がある商品に、「まとめ買い」
+    #    「まとめてストック」など矛盾する表現を生成しない（一般化された判定）。
+    def test_purchase_limited_grape_juice_has_no_bulk_buying_phrase(self):
+        item = make_item(name=GRAPE_JUICE_NAME)
+        description = dg.generate_description(item, category="ジュース", base_hashtags=BASE_HASHTAGS)
+        for phrase in ("まとめ買い", "まとめて", "大量"):
+            self.assertNotIn(phrase, description, description)
+
+    def test_purchase_limit_detection_is_generalized_not_hardcoded(self):
+        # 今回の商品名だけの特別対応ではなく、購入制限を示す表現全般を
+        # 検出できることを確認する（別カテゴリー・別の言い回しでも機能する）。
+        self.assertTrue(dg._is_purchase_limited("お一人様1点まで 高級はちみつ 300g"))
+        self.assertTrue(dg._is_purchase_limited("数量限定 プレミアム紅茶 100g"))
+        self.assertTrue(dg._is_purchase_limited("3本まで 特選オリーブオイル"))
+        self.assertFalse(dg._is_purchase_limited("お茶 ペットボトル 24本セット"))
+
+    def test_purchase_limited_water_has_no_bulk_buying_phrase(self):
+        # ジュース以外のカテゴリーでも同様に機能することの確認。
+        item = make_item(name="お一人様1本限り 高級炭酸水 500ml")
+        description = dg.generate_description(item, category="水", base_hashtags=BASE_HASHTAGS)
+        for phrase in ("まとめ買い", "まとめて", "大量"):
+            self.assertNotIn(phrase, description, description)
+
+    def test_quantity_phrase_does_not_pick_up_purchase_limit_number(self):
+        # 「1本限り」は商品の内容量ではないため、数量抽出（4項目目）に
+        # 誤って使われず、実際の内容量（200ml）が使われることを確認する。
+        phrase = dg._extract_quantity_phrase(GRAPE_JUICE_NAME)
+        self.assertEqual(phrase, "200ml")
+
+    # 8. 前回修正した洗濯用洗剤について、「食器洗い」が再発しない。
+    def test_laundry_detergent_still_does_not_mention_dishwashing(self):
+        item = make_item(name=self.LAUNDRY_DETERGENT_NAME)
+        description = dg.generate_description(item, category="洗剤", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("食器洗い", description)
+        self.assertIn("洗濯", description)
+
+    # 9. 取得できない特徴を勝手に追加しない。
+    def test_no_invented_features_for_products_without_confirmed_facts(self):
+        # 商品名に容量・特徴語が一切無い場合、4項目目（数量由来）は追加されず、
+        # 存在しない特徴も書かれない。
+        item = make_item(name="なんの変哲もない収納ラック")
+        description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS)
+        checklist_lines = _blocks(description)[3].splitlines()
+        self.assertEqual(len(checklist_lines), 3, checklist_lines)
+
+    def test_no_invented_quantity_for_grape_juice_dishwashing_or_caffeine(self):
+        item = make_item(name=GRAPE_JUICE_NAME)
+        description = dg.generate_description(item, category="ジュース", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("カフェイン", description)
+        self.assertNotIn("紙パック", description)
+
+
+class BatchDiversityTest(unittest.TestCase):
+    """generate_descriptions_for_batch()のテスト。同じバッチ内で
+    ①キャッチコピー・⑤締めの一言が両方一致してしまう場合に、別パターンを
+    選び直すことを確認する（■7・同一生成バッチ内の類似回避）。"""
+
+    def test_batch_resolves_a_real_signature_collision_from_2026_09_19(self):
+        # 2026-09-19の本番データ（room/data/candidates.json）で実際に、
+        # からだにユーグレナ（いちごオレ）とドールグレープが同じ①⑤の組み合わせに
+        # なっていた（個別生成の場合）。item_codeも実際の値をそのまま使う
+        # （①⑤の組み合わせはitem_codeから決まる商品コードに依存するため）。
+        item_a = make_item(
+            name=(
+                "からだにユーグレナ 旬摘みスッキリいちごオレ 24本 ユーグレナ ミドリムシ "
+                "みどりむし ミドリむし 健康食品 健康飲料 栄養補助食品 栄養ドリンク "
+                "野菜ジュース 男性 女性 ビタミン ミネラル アミノ酸 鉄 野菜 フルーツ 果物 "
+                "鉄分 ドリンク 腸内環境 食物繊維 紙パック"
+            ),
+            item_code="midorimushishop:10000479",
+        )
+        item_b = make_item(
+            name=GRAPE_JUICE_NAME,
+            item_code="laitnature:10000872",
+        )
+
+        individual_a = dg.generate_description(item_a, category="ジュース", base_hashtags=BASE_HASHTAGS)
+        individual_b = dg.generate_description(item_b, category="ジュース", base_hashtags=BASE_HASHTAGS)
+        self.assertEqual(
+            dg._description_shape_signature(individual_a),
+            dg._description_shape_signature(individual_b),
+            "このテストの前提（個別生成では衝突する）が崩れています",
+        )
+
+        batch_descriptions = dg.generate_descriptions_for_batch(
+            [item_a, item_b], ["ジュース", "ジュース"], base_hashtags=BASE_HASHTAGS
+        )
+        signatures = {dg._description_shape_signature(d) for d in batch_descriptions}
+        self.assertEqual(len(signatures), 2, batch_descriptions)
+
+    def test_batch_never_crashes_and_returns_same_count_as_input(self):
+        items = [make_item(name=f"テスト商品{i}", item_code=f"code-{i}") for i in range(12)]
+        categories = ["収納"] * 12
+        descriptions = dg.generate_descriptions_for_batch(items, categories, base_hashtags=BASE_HASHTAGS)
+        self.assertEqual(len(descriptions), 12)
+        for description in descriptions:
+            self.assertIsInstance(description, str)
+            self.assertTrue(description)
+
+    def test_batch_does_not_change_output_when_no_collision(self):
+        # 衝突が無い場合は、1件ずつgenerate_description()した場合と同じ結果になる。
+        items = [
+            make_item(name="水切りボウル 便利グッズ", item_code="a"),
+            make_item(name="ロボット掃除機 全自動", item_code="b"),
+        ]
+        categories = ["キッチン", "時短"]
+        batch_descriptions = dg.generate_descriptions_for_batch(items, categories, base_hashtags=BASE_HASHTAGS)
+        individual_descriptions = [
+            dg.generate_description(item, category=category, base_hashtags=BASE_HASHTAGS)
+            for item, category in zip(items, categories)
+        ]
+        self.assertEqual(batch_descriptions, individual_descriptions)
+
+
+# 同カテゴリーの商品を複数生成した場合でも、完全同一または商品名だけを
+# 入れ替えたようなほぼ同一文章にならないことの確認（■7）。
+class CategoryDiversityRegressionTest(unittest.TestCase):
+    def test_multiple_storage_products_do_not_produce_near_identical_descriptions(self):
+        names = [
+            "極太PVCコーティング 滑らないハンガー 100本セット 収納 洗濯 部屋干し",
+            "持ち運びできる段ボールストッカー 段ボール 整理 束ねる リサイクル",
+            "耐熱 ヘアアイロンポーチ 38mm対応 旅行 吊り下げ",
+        ]
+        descriptions = [
+            dg.generate_description(make_item(name=name), category="収納", base_hashtags=BASE_HASHTAGS)
+            for name in names
+        ]
+        signatures = {dg._description_shape_signature(d) for d in descriptions}
+        self.assertEqual(len(signatures), 3, descriptions)
+
+        checklists = [_blocks(d)[3] for d in descriptions]
+        self.assertEqual(len(set(checklists)), 3, checklists)
 
 
 class TemplateComponentsForReuseTest(unittest.TestCase):

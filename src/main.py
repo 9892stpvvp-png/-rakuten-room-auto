@@ -147,16 +147,7 @@ def main() -> None:
         similarity_threshold=settings.get("similarity_threshold", 0.55),
     )
 
-    # フェーズ3: 紹介文を生成する（商品固有の特徴が分かればそれを反映する）。
-    for item in unique_items:
-        item["description"] = description_generator.generate_description(
-            item,
-            category=item["_category"],
-            base_hashtags=base_hashtags,
-            max_length=settings.get("description_max_length", 500),
-        )
-
-    # フェーズ4: 「暮らしの便利グッズ」5件＋「消耗品・飲料」5件のバランスで上位候補を選ぶ
+    # フェーズ3: 「暮らしの便利グッズ」5件＋「消耗品・飲料」5件のバランスで上位候補を選ぶ
     # （どちらかの枠が5件に満たない場合だけ、もう片方の枠から補充する）。
     convenience_items = [item for item in unique_items if item["_group"] == ranking.CONVENIENCE_GROUP]
     consumable_items = [item for item in unique_items if item["_group"] == ranking.CONSUMABLE_GROUP]
@@ -168,6 +159,21 @@ def main() -> None:
         convenience_max_per_category=settings.get("summary_max_per_category", 3),
         consumable_max_per_category=settings.get("consumable_max_per_category", 2),
     )
+
+    # フェーズ4: 紹介文を生成する（商品固有の特徴が分かればそれを反映する）。
+    # 選ばれた最終候補（最大10件）に対してまとめて生成することで、同じ日の
+    # バッチ内で①キャッチコピー・⑤締めの一言が両方一致してしまう（構成が
+    # 強く似た文章になる）組み合わせを避けやすくしている
+    # （generate_descriptions_for_batch）。選ばれなかった候補の紹介文まで
+    # 生成しないため、以前（全unique_itemsに対して1件ずつ生成）より無駄も無い。
+    descriptions = description_generator.generate_descriptions_for_batch(
+        candidates,
+        [item["_category"] for item in candidates],
+        base_hashtags=base_hashtags,
+        max_length=settings.get("description_max_length", 500),
+    )
+    for item, description in zip(candidates, descriptions):
+        item["description"] = description
 
     json_path, markdown_path = storage.save_candidates(candidates, CANDIDATES_DIR)
     print(f"{len(candidates)}件の投稿候補を保存しました。")

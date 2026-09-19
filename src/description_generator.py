@@ -60,6 +60,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any, NamedTuple
 
 DEFAULT_CATEGORY = "暮らし全般"
@@ -523,6 +524,110 @@ PRODUCT_TYPE_TEMPLATES: list[tuple[str, _PostTemplate]] = [
             ],
         ),
     ),
+    # ここから下は、description-match-002での監査（2026-09-19生成分の10件）で
+    # GENERIC_TEMPLATESの汎用文言に頼りすぎていた商品タイプへの対応として追加。
+    # いずれも商品名から確認できる事実（滑り止め加工・本数・段ボール専用・
+    # 耐熱・対応サイズ・切り方）だけを使っている。
+    (
+        "ハンガー",
+        _PostTemplate(
+            hook_text="ハンガー、衣類が滑って落ちたりしない？",
+            topic_emoji="👕",
+            worry_lines=[
+                "普通のハンガーだと、",
+                "衣類がずり落ちたりかさばったりしがちですよね…😅",
+            ],
+            solution_text="衣類が滑りにくく、まとめて揃えやすいハンガー",
+            checklist_core=["衣類が滑り落ちにくい", "まとめて揃えて使いやすい"],
+            checklist_fallback="クローゼットをすっきり整えやすい",
+            closing_variants=[
+                "ハンガーをまとめて揃えたい人におすすめ",
+                "衣類が滑り落ちるのを防ぎたい人に便利そう",
+                "クローゼットをすっきり整えたい人に良さそう",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "段ボールストッカー",
+        _PostTemplate(
+            hook_text="たまった段ボール、置き場所に困ってない？",
+            topic_emoji="📦",
+            worry_lines=[
+                "資源ごみに出すまでの段ボールって、",
+                "床に積んで場所を取りがちですよね…😅",
+            ],
+            solution_text="段ボールをまとめて立てて収納しやすい段ボールストッカー",
+            checklist_core=["段ボールをまとめて収納しやすい", "ゴミ出し・リサイクル時に運びやすい"],
+            checklist_fallback="段ボールの置き場所を決めやすい",
+            closing_variants=[
+                "段ボールの置き場所に困っている人におすすめ",
+                "資源ごみをまとめておきたい人に便利そう",
+                "ゴミ出しをスムーズにしたい人に良さそう",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "ダンボールストッカー",
+        _PostTemplate(
+            hook_text="たまった段ボール、置き場所に困ってない？",
+            topic_emoji="📦",
+            worry_lines=[
+                "資源ごみに出すまでの段ボールって、",
+                "床に積んで場所を取りがちですよね…😅",
+            ],
+            solution_text="段ボールをまとめて立てて収納しやすい段ボールストッカー",
+            checklist_core=["段ボールをまとめて収納しやすい", "ゴミ出し・リサイクル時に運びやすい"],
+            checklist_fallback="段ボールの置き場所を決めやすい",
+            closing_variants=[
+                "段ボールの置き場所に困っている人におすすめ",
+                "資源ごみをまとめておきたい人に便利そう",
+                "ゴミ出しをスムーズにしたい人に良さそう",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "ヘアアイロンポーチ",
+        _PostTemplate(
+            hook_text="使ったばかりのヘアアイロン、そのまま収納できたら楽じゃない？",
+            topic_emoji="💇",
+            worry_lines=[
+                "ヘアアイロンって、",
+                "冷めるまで置き場所に困ったりしますよね…😅",
+            ],
+            solution_text="熱いまま収納しやすい耐熱仕様のヘアアイロンポーチ",
+            checklist_core=["熱いまま収納しやすい", "旅行や持ち運びにも使いやすい"],
+            checklist_fallback="ヘアアイロンの置き場所を決めやすい",
+            closing_variants=[
+                "ヘアアイロンをすぐ収納したい人におすすめ",
+                "旅行にヘアアイロンを持って行きたい人に便利そう",
+                "使ったあとの置き場所に困っている人に良さそう",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "バターカッター",
+        _PostTemplate(
+            hook_text="バター、いつも同じ量に切り分けられてる？",
+            topic_emoji="🧈",
+            worry_lines=[
+                "バターを包丁で切ると、",
+                "量がバラバラになりがちですよね…😅",
+            ],
+            solution_text="ワイヤーでスーッと切れて計量しやすいバターカッター",
+            checklist_core=["バターを一定量に切り分けやすい", "計量しながら使いやすい"],
+            checklist_fallback="製菓・製パンの下準備に取り入れやすい",
+            closing_variants=[
+                "バターの量をきっちり揃えたい人におすすめ",
+                "製菓・製パンで計量に手間取っている人に便利そう",
+                "バターを切り分ける手間を減らしたい人に良さそう",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
 ]
 
 
@@ -623,14 +728,17 @@ GENERIC_TEMPLATES: dict[str, _PostTemplate] = {
         hook_variants=(
             "洗剤のストック、そろそろ減ってない？",
             "その洗剤、そろそろ切れそうじゃない？",
+            "気になる汚れ、その洗剤でお手入れできそう",
         ),
         worry_variants=(
             ("洗剤や柔軟剤って、", "気づいたら切れていること多いですよね…😅"),
             ("毎日のように使う洗剤だから、", "ストックが減るのも早いですよね…😅"),
+            ("普段の暮らしの中で、", "汚れが気になる場面ってありますよね…😅"),
         ),
         solution_variants=(
             "ストックしておけば切らす心配を減らせそうな洗剤",
             "普段使いにストックしておきたい洗剤",
+            "気になる場面で使いやすい洗剤",
         ),
     ),
     "キッチン消耗品": _PostTemplate(
@@ -649,14 +757,17 @@ GENERIC_TEMPLATES: dict[str, _PostTemplate] = {
         hook_variants=(
             "いつの間にかなくなるキッチン用品、まとめて準備しておきたいよね",
             "キッチンの消耗品、気づいたら切れてない？",
+            "キッチンでの作業、消耗品があると助かるよね",
         ),
         worry_variants=(
             ("ラップやポリ袋って、", "気づいたら切れていて困ること多いですよね…😅"),
             ("キッチンで毎日使う消耗品だから、", "ストックが減るのも早いですよね…😅"),
+            ("料理や後片付けのときに、", "使い捨てできる消耗品があると助かりますよね…😅"),
         ),
         solution_variants=(
             "まとめてストックしておけそうなキッチン消耗品",
             "毎日のキッチン作業に使いやすそうなキッチン消耗品",
+            "普段のキッチン作業に取り入れやすいキッチン消耗品",
         ),
     ),
     "日用品": _PostTemplate(
@@ -675,14 +786,17 @@ GENERIC_TEMPLATES: dict[str, _PostTemplate] = {
         hook_variants=(
             "切らすと地味に困る日用品、まとめてストックしておきたいよね",
             "日用品のストック、気づいたら切れてない？",
+            "日用品、家にあると地味に助かるよね",
         ),
         worry_variants=(
             ("ティッシュやトイレットペーパーって、", "切れるタイミングが地味に読めないですよね…😅"),
             ("毎日使う日用品だから、", "気づいたら切れていること多いですよね…😅"),
+            ("普段の暮らしの中で、", "日用品があるとちょっとした場面で助かりますよね…😅"),
         ),
         solution_variants=(
             "まとめてストックしておけそうな日用品",
             "毎日の暮らしに取り入れやすそうな日用品",
+            "普段の暮らしに取り入れやすい日用品",
         ),
     ),
     "水": _PostTemplate(
@@ -701,14 +815,17 @@ GENERIC_TEMPLATES: dict[str, _PostTemplate] = {
         hook_variants=(
             "お水のストック、切らしたくないよね",
             "飲み水のストック、気づいたら切れてない？",
+            "水分補給、こまめにできてる？",
         ),
         worry_variants=(
             ("飲み水のストックって、", "気づいたら切らしていること多いですよね…😅"),
             ("毎日飲むお水だから、", "ストックが減るのも早いですよね…😅"),
+            ("暑い日や運動のあとって、", "水分補給が大事なのについ後回しにしがちですよね…😅"),
         ),
         solution_variants=(
             "まとめてストックしておけそうなお水",
             "普段の水分補給にストックしておきたいお水",
+            "こまめな水分補給に取り入れやすいお水",
         ),
     ),
     "お茶": _PostTemplate(
@@ -727,14 +844,17 @@ GENERIC_TEMPLATES: dict[str, _PostTemplate] = {
         hook_variants=(
             "毎日飲むお茶、まとめて用意しておくとラク",
             "お茶のストック、気づいたら切れてない？",
+            "食事のお供に、お茶を用意しておくと便利だよね",
         ),
         worry_variants=(
             ("毎日お茶を飲む人だと、", "ストックが切れるタイミングが気になりますよね…😅"),
             ("毎日のように飲むお茶だから、", "気づいたら切れていること多いですよね…😅"),
+            ("来客や食事のときにお茶がないと、", "地味に困ることありますよね…😅"),
         ),
         solution_variants=(
             "まとめてストックしておけそうなお茶",
             "毎日の水分補給にストックしておきたいお茶",
+            "食事のお供やちょっとした時間に飲みやすいお茶",
         ),
     ),
     "ジュース": _PostTemplate(
@@ -753,14 +873,17 @@ GENERIC_TEMPLATES: dict[str, _PostTemplate] = {
         hook_variants=(
             "飲みたいときにストックがあると嬉しいよね",
             "ジュースのストック、気づいたら切れてない？",
+            "小腹が空いたときや気分転換に、飲み物があると嬉しいよね",
         ),
         worry_variants=(
             ("ジュースやソフトドリンクって、", "気づいたら切らしていること多いですよね…😅"),
             ("飲みたいときに限って、", "ストックが切れていること多いですよね…😅"),
+            ("ちょっと一息つきたいときに、", "手元に飲み物が無いと残念な気持ちになりますよね…😅"),
         ),
         solution_variants=(
             "まとめてストックしておけそうな飲み物",
             "気分転換にストックしておきたい飲み物",
+            "気分転換のひとときに取り入れやすい飲み物",
         ),
     ),
 }
@@ -799,6 +922,36 @@ _LAUNDRY_DETERGENT_TEMPLATE = _PostTemplate(
     solution_variants=(
         "ストックしておけば切らす心配を減らせそうな洗濯用洗剤",
         "毎日のお洗濯に使いやすそうな洗濯用洗剤",
+    ),
+)
+
+_STAIN_REMOVER_TEMPLATE = _PostTemplate(
+    # しみ抜き剤は「毎日使う洗剤」ではなく、気になるシミができたときに
+    # ピンポイントで使うタイプの商品のため、洗濯用洗剤テンプレートの
+    # 「毎日のように使う」という頻度の断定を持ち込まない専用テンプレート。
+    hook_text="そのシミ、諦める前に試してみない？",
+    topic_emoji="🧴",
+    worry_lines=["食べこぼしや泥はねのシミって、", "気づいたときには落ちにくくなっていますよね…😅"],
+    solution_text="気になるシミができたときに使いやすいしみ抜き剤",
+    checklist_core=["気になるシミのお手入れに使いやすい", "気づいたときにサッと使える"],
+    checklist_fallback="衣類のシミが気になる場面で取り入れやすい",
+    closing_variants=[
+        "諦めていたシミに悩む人におすすめ",
+        "気になるシミを何とかしたい人に便利そう",
+        "食べこぼしやはねジミに悩む人に良さそう",
+        "気になる人はチェックしてみてほしい",
+    ],
+    hook_variants=(
+        "そのシミ、諦める前に試してみない？",
+        "気になるシミ、そのままにしていない？",
+    ),
+    worry_variants=(
+        ("食べこぼしや泥はねのシミって、", "気づいたときには落ちにくくなっていますよね…😅"),
+        ("お気に入りの服についたシミ、", "そのまま諦めてしまうこと多いですよね…😅"),
+    ),
+    solution_variants=(
+        "気になるシミができたときに使いやすいしみ抜き剤",
+        "気になるシミにピンポイントで使いやすいしみ抜き剤",
     ),
 )
 
@@ -861,6 +1014,11 @@ _HOUSEHOLD_CLEANING_DETERGENT_TEMPLATE = _PostTemplate(
 # どちらも洗濯用洗剤のテンプレートを使う）。先に一致したものを採用する
 # （PRODUCT_TYPE_TEMPLATESと同じ判定方式）。
 DETERGENT_SUBTYPE_TEMPLATES: list[tuple[str, _PostTemplate]] = [
+    # しみ抜き剤は「洗濯」等の言葉を含む商品名もあるため、洗濯用洗剤の
+    # キーワードより先に判定する（しみ抜き剤としての用途を優先するため）。
+    ("しみ抜き", _STAIN_REMOVER_TEMPLATE),
+    ("シミ抜き", _STAIN_REMOVER_TEMPLATE),
+    ("染み抜き", _STAIN_REMOVER_TEMPLATE),
     ("洗濯", _LAUNDRY_DETERGENT_TEMPLATE),
     ("衣類用", _LAUNDRY_DETERGENT_TEMPLATE),
     ("部屋干し", _LAUNDRY_DETERGENT_TEMPLATE),
@@ -971,6 +1129,87 @@ SUBTOPIC_HASHTAGS: list[tuple[str, str | dict[str, str]]] = [
     ("トラベル", "#トラベルグッズ"),
 ]
 
+# 商品名から容量・個数・カット量など「確認できる数字付きの事実」を
+# 抜き出すための正規表現。商品ごとの固有情報を✔️メリットの追加項目として
+# 使うためのもの（推測せず、商品名にそのまま書かれている表記だけを使う）。
+# より具体的なパターンを先に判定する（例：「5gカット」は「5g」より先に見る）。
+_QUANTITY_PATTERNS: tuple[re.Pattern[str], ...] = (
+    re.compile(r"\d+(?:\.\d+)?\s*(?:ml|mL|L|ℓ)\s*[×xX]\s*\d+\s*(?:本|個|セット|袋|枚)"),
+    re.compile(r"\d+(?:\.\d+)?\s*g\s*カット"),
+    re.compile(r"\d+\s*(?:本|個|枚|袋|セット)(?:入り)?"),
+    re.compile(r"\d+(?:\.\d+)?\s*(?:g|kg|ml|mL|L|ℓ)\b"),
+)
+
+
+# 「1本限り」「3個まで」のような購入制限の表記は、商品の内容量
+# （何本・何個入りの商品か）ではないため、_extract_quantity_phrase()の
+# 対象から除外する（直後にこれらの語が続く数字付き表記は購入制限とみなす）。
+_QUANTITY_MATCH_EXCLUDE_SUFFIX = re.compile(r"^\s*(?:限り|まで|限定)")
+
+
+def _extract_quantity_phrase(name: str) -> str:
+    """商品名から、容量・個数・カット量等の「確認できる数字付きの事実」を
+    最初に見つかった1件だけ抜き出す（無ければ空文字）。抜き出した文字列は
+    商品名にそのまま書かれている表記であり、推測や言い換えは行わない。
+
+    「1本限り」のような購入制限の表記（_is_purchase_limited()が検出する
+    パターンと同種）は、商品の内容量ではないため対象から除外する
+    （例：「お1人様ご家族様1本限り！ドール グレープ100％200ml」から
+    「1本」ではなく「200ml」を抜き出す）。
+    """
+    for pattern in _QUANTITY_PATTERNS:
+        for match in pattern.finditer(name):
+            remainder = name[match.end():]
+            if _QUANTITY_MATCH_EXCLUDE_SUFFIX.match(remainder):
+                continue
+            return match.group(0)
+    return ""
+
+
+# 商品名に含まれていれば「購入制限がある商品」とみなすキーワード・パターン。
+# 「お一人様1点まで」のような購入制限がある商品に対して、「まとめ買い」
+# 「まとめてストック」等の矛盾する文章を生成しないようにするためのもの。
+_PURCHASE_LIMIT_KEYWORDS: tuple[str, ...] = (
+    "お一人様", "おひとり様", "お1人様", "一人様",
+    "購入制限", "数量限定", "お一人",
+)
+_PURCHASE_LIMIT_PATTERNS: tuple[re.Pattern[str], ...] = (
+    re.compile(r"\d+\s*(?:本|個|点|セット)\s*(?:限り|まで|限定)"),
+)
+
+
+def _is_purchase_limited(name: str) -> bool:
+    """商品名から、購入制限（お一人様1点まで等）が確認できるかどうかを返す。"""
+    if any(keyword in name for keyword in _PURCHASE_LIMIT_KEYWORDS):
+        return True
+    return any(pattern.search(name) for pattern in _PURCHASE_LIMIT_PATTERNS)
+
+
+# 購入制限がある商品では選ばないようにする、まとめ買い・大量購入を
+# 連想させる言い回し。
+_BULK_BUYING_PHRASES: tuple[str, ...] = ("まとめ買い", "まとめて", "複数", "大量")
+
+
+def _variant_text(variant: str | tuple[str, ...]) -> str:
+    """hook_variants等（文字列）とworry_variants（文字列のタプル）の
+    どちらでも、中身のテキストを1つの文字列にして返す（フィルター判定用）。"""
+    if isinstance(variant, tuple):
+        return "".join(variant)
+    return variant
+
+
+def _filter_bulk_buying(variants: tuple[Any, ...], purchase_limited: bool) -> tuple[Any, ...]:
+    """purchase_limited（購入制限がある商品）の場合、まとめ買いを連想させる
+    言い回しを候補から取り除く。取り除いた結果0件になってしまう場合は、
+    安全側に倒して元の候補全体をそのまま返す（0件で選択できなくなることを
+    避けるため）。"""
+    if not purchase_limited or not variants:
+        return variants
+    filtered = tuple(
+        variant for variant in variants if not any(phrase in _variant_text(variant) for phrase in _BULK_BUYING_PHRASES)
+    )
+    return filtered if filtered else variants
+
 
 def _select_template(name: str, category: str) -> tuple[_PostTemplate, str, str]:
     """商品名・カテゴリーから、使うテンプレートと location（場所の言葉）・
@@ -1001,7 +1240,12 @@ def _select_template(name: str, category: str) -> tuple[_PostTemplate, str, str]
     return template, location, topic_emoji
 
 
-def _pick_hook_worry_solution(template: _PostTemplate, location: str, seed: int) -> tuple[str, list[str], str]:
+def _pick_hook_worry_solution(
+    template: _PostTemplate,
+    location: str,
+    seed: int,
+    purchase_limited: bool = False,
+) -> tuple[str, list[str], str]:
     """①キャッチコピー・②悩み・③解決文の本文を選ぶ。
 
     テンプレートにhook_variants等（複数パターン）が用意されていれば商品コード
@@ -1009,25 +1253,65 @@ def _pick_hook_worry_solution(template: _PostTemplate, location: str, seed: int)
     （PRODUCT_TYPE_TEMPLATESの16件は変更していないため、この関数を通しても
     挙動は従来のまま）。同じテンプレートを使う商品同士でも、複数パターンが
     あるカテゴリーでは毎日ほぼ同じ文章になりにくくするためのもの。
+
+    purchase_limited（お一人様1点まで等の購入制限が商品名から確認できる場合）
+    はTrueにすると、まとめ買いを連想させる言い回し（_BULK_BUYING_PHRASES）を
+    候補から除外してから選ぶ。
     """
-    if template.hook_variants:
-        hook_text = template.hook_variants[seed % len(template.hook_variants)]
+    hook_variants = _filter_bulk_buying(template.hook_variants, purchase_limited)
+    if hook_variants:
+        hook_text = hook_variants[seed % len(hook_variants)]
     else:
         hook_text = template.hook_text
     hook_text = hook_text.format(location=location)
 
-    if template.worry_variants:
-        worry_lines = list(template.worry_variants[(seed // 7) % len(template.worry_variants)])
+    worry_variants = _filter_bulk_buying(template.worry_variants, purchase_limited)
+    if worry_variants:
+        worry_lines = list(worry_variants[(seed // 7) % len(worry_variants)])
     else:
         worry_lines = list(template.worry_lines)
 
-    if template.solution_variants:
-        solution_text = template.solution_variants[(seed // 13) % len(template.solution_variants)]
+    solution_variants = _filter_bulk_buying(template.solution_variants, purchase_limited)
+    if solution_variants:
+        solution_text = solution_variants[(seed // 13) % len(solution_variants)]
     else:
         solution_text = template.solution_text
     solution_text = solution_text.format(location=location)
 
     return hook_text, worry_lines, solution_text
+
+
+def _pick_closing(template: _PostTemplate, seed: int, purchase_limited: bool = False) -> str:
+    """⑤締めの一言を選ぶ。purchase_limitedがTrueの場合、まとめ買いを
+    連想させる言い回しを候補から除外してから選ぶ（■5対応：購入制限のある
+    商品で「まとめ買い」等の矛盾する文章を生成しないようにするため）。
+    """
+    closing_variants = _filter_bulk_buying(tuple(template.closing_variants), purchase_limited)
+    return closing_variants[seed % len(closing_variants)]
+
+
+def _build_checklist(template: _PostTemplate, name: str, category: str, location: str) -> list[str]:
+    """④✔️メリットの項目を組み立てる。
+
+    商品名から読み取れる構造・仕様の特徴（FEATURE_CLAUSES）があれば3項目目
+    として使い、無ければテンプレートの安全な言い回し（checklist_fallback）で
+    補う（従来どおり）。さらに、商品名に容量・個数・カット量等の確認できる
+    数字付きの事実（_extract_quantity_phrase）があり、かつ他の項目とまだ
+    重複していない場合に限り、4項目目として追加する（箇条書きの数を必ず
+    3個に固定しない、という運用方針の反映。何も見つからなければ従来どおり
+    3項目のまま）。
+    """
+    checklist_core = [text.format(location=location) for text in template.checklist_core]
+
+    clause, _clause_emoji = _top_feature_clause(name, category)
+    third_item = clause if clause else template.checklist_fallback.format(location=location)
+    checklist = checklist_core + [third_item]
+
+    quantity_phrase = _extract_quantity_phrase(name)
+    if quantity_phrase and not any(quantity_phrase in existing for existing in checklist):
+        checklist.append(f"{quantity_phrase}で使いやすい")
+
+    return checklist
 
 
 def generate_description(
@@ -1051,16 +1335,14 @@ def generate_description(
     # 変えるための目印（商品コードが無ければ商品名を使う）。
     seed_source = item.get("item_code") or name
     seed = sum(ord(c) for c in seed_source) if seed_source else 0
+    purchase_limited = _is_purchase_limited(name)
 
     template, location, topic_emoji = _select_template(name, category)
-    hook_text, worry_lines, solution_text = _pick_hook_worry_solution(template, location, seed)
-    checklist_core = [text.format(location=location) for text in template.checklist_core]
-
-    clause, _clause_emoji = _top_feature_clause(name, category)
-    third_item = clause if clause else template.checklist_fallback.format(location=location)
-    checklist = checklist_core + [third_item]
-
-    closing_text = template.closing_variants[seed % len(template.closing_variants)]
+    hook_text, worry_lines, solution_text = _pick_hook_worry_solution(
+        template, location, seed, purchase_limited
+    )
+    checklist = _build_checklist(template, name, category, location)
+    closing_text = _pick_closing(template, seed, purchase_limited)
 
     hook_line = f"{topic_emoji} {hook_text}✨"
     worry_block = "\n".join(worry_lines)
@@ -1077,6 +1359,61 @@ def generate_description(
         description = description[: max_length - 1].rstrip() + "…"
 
     return description
+
+
+def _description_shape_signature(description: str) -> tuple[str, str]:
+    """紹介文の①キャッチコピー行・⑤締めの行だけを取り出す。本文全体を
+    比較するより軽量な「構成の指紋」として、バッチ内で紹介文の構成が
+    強く似ていないかを確認するために使う（①②③④⑤⑥の6ブロックのうち、
+    ①と⑤が両方一致していれば、読んだ印象としてもかなり似た文章になる）。
+    """
+    blocks = description.split("\n\n")
+    hook_line = blocks[0] if len(blocks) > 0 else ""
+    closing_line = blocks[4] if len(blocks) > 4 else ""
+    return hook_line, closing_line
+
+
+def generate_descriptions_for_batch(
+    items: list[dict[str, Any]],
+    categories: list[str],
+    base_hashtags: list[str],
+    max_length: int = 500,
+) -> list[str]:
+    """1回の実行でまとめて紹介文を生成する際に使う。generate_description()を
+    そのまま使うが、同じバッチ内で①キャッチコピー・⑤締めの一言が両方
+    一致してしまう（構成が強く似た文章になる）組み合わせが出た場合だけ、
+    item_codeに目印を付けて別パターン（hook_variants等の別の候補）を
+    選び直す（最大3回まで再試行し、それでも解消しない場合はそのまま
+    採用する。無限ループにはしない）。
+
+    generate_description()自体のテンプレート選択・安全ルールは一切
+    変更しない。あくまで「同じ日の10件が、たまたま同じパターンの
+    組み合わせになった場合の保険」として後段に追加している処理。
+
+    items・categoriesは同じ長さのリストで、items[i]をcategories[i]の
+    カテゴリーで紹介文にする。
+    """
+    descriptions: list[str] = []
+    seen_signatures: set[tuple[str, str]] = set()
+
+    for item, category in zip(items, categories):
+        candidate_item = item
+        description = generate_description(candidate_item, category, base_hashtags, max_length)
+        signature = _description_shape_signature(description)
+
+        attempt = 1
+        while signature in seen_signatures and attempt <= 3:
+            candidate_item = dict(item)
+            base_code = item.get("item_code") or item.get("name") or ""
+            candidate_item["item_code"] = f"{base_code}#batch{attempt}"
+            description = generate_description(candidate_item, category, base_hashtags, max_length)
+            signature = _description_shape_signature(description)
+            attempt += 1
+
+        seen_signatures.add(signature)
+        descriptions.append(description)
+
+    return descriptions
 
 
 class TemplateComponents(NamedTuple):
@@ -1118,16 +1455,14 @@ def get_template_components(item: dict[str, Any], category: str) -> TemplateComp
 
     seed_source = item.get("item_code") or name
     seed = sum(ord(c) for c in seed_source) if seed_source else 0
+    purchase_limited = _is_purchase_limited(name)
 
     template, location, topic_emoji = _select_template(name, category)
-    hook_text, worry_lines, solution_text = _pick_hook_worry_solution(template, location, seed)
-    checklist_core = [text.format(location=location) for text in template.checklist_core]
-
-    clause, _clause_emoji = _top_feature_clause(name, category)
-    third_item = clause if clause else template.checklist_fallback.format(location=location)
-    checklist = checklist_core + [third_item]
-
-    closing_text = template.closing_variants[seed % len(template.closing_variants)]
+    hook_text, worry_lines, solution_text = _pick_hook_worry_solution(
+        template, location, seed, purchase_limited
+    )
+    checklist = _build_checklist(template, name, category, location)
+    closing_text = _pick_closing(template, seed, purchase_limited)
 
     return TemplateComponents(
         hook_text=hook_text,

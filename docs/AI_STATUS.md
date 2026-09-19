@@ -1,108 +1,90 @@
 # AI STATUS
 
-Task ID: reliability-004
+Task ID: user-request-description-generator-fix-phase2（ユーザーからの直接依頼、前回コミット6f80439の続き）
 Status: DONE
 
 ## 最終更新
-Claude Codeが、`data/`・`tiktok/`配下など日次運用で更新される永続JSON/テキストの
-書き込み経路を監査し、まだ直接上書きだった2箇所（`data/candidates/`の候補一覧・
-`room/data/candidates.json`の投稿ページ用データ）を既存の`src/atomic_io.py`を
-再利用してアトミック化した。
+Claude Codeが、2026-09-19生成分の`room/data/candidates.json`（10件）を実際に確認し、「カテゴリー→テンプレート→商品名を少し差し込む」という依存構造を減らし、商品固有情報を優先する方向で紹介文生成ロジックを改善した。
 
-## 監査結果
+## 根本原因
 
-今回の対象は「PR #9・reliability-003で対応済みの箇所と重複しない、日次生成で
-更新される永続ファイルの書き込み経路」。`src/`配下の書き込み処理を全て洗い出した
-結果は以下の通り。
+`room/data/candidates.json`（2026/09/19 15:44生成）の10件を実際に確認し、以下を特定した。
 
-**既にアトミック化済み（変更不要）:**
-- `data/posted_items.json`（`src/dedupe.py`の`_save_posted_items()`）… reliability-003で対応済み
-- `data/tiktok_history.json`（`src/tiktok_selector.py`）… PR #9で対応済み
-- `tiktok/daily_content.json`・`tiktok/daily_content.md`（`src/tiktok_daily.py`）… PR #9で対応済み
-
-**直接上書きのまま残っていた（今回対応）:**
-- `data/candidates/candidates_*.json`・`.md`（`src/storage.py`の`save_candidates()`）
-  … `path.open("w")` + `json.dump()` / `Path.write_text()`で直接書き込んでいた。
-  この候補一覧は`publish_room_page.py`の`find_latest_candidates_json()`が
-  「最も新しいファイル」としてそのまま読み込むため、書き込み途中にプロセスが
-  終了して壊れたファイルが残ると、次のステップ（投稿ページ用データ生成）が
-  壊れたJSONを読み込んで失敗する可能性があった。
-- `room/data/candidates.json`（`src/publish_room_page.py`の`main()`）
-  … 同じく直接書き込みだった。このファイルは投稿ページ（`room/index.html`）が
-  ブラウザから直接読み込むファイルであり、壊れると投稿ページの表示に影響する。
-
-**対象外と判断（読み込み専用・ログ用途・スコープ外）:**
-- `src/main.py`・`src/tiktok_daily.py`の`write_github_step_summary()`
-  （`GITHUB_STEP_SUMMARY`への追記）… GitHub Actionsが管理する実行1回限りの
-  一時ファイルで、永続データではない。追記(`"a"`)前提のため、`os.replace()`による
-  アトミック置き換えとは書き込みモデルが異なり、対象外と判断した。
-- `data/past_posted_items_seed.json`・`data/past_posted_items_unresolved.json`
-  … 手動投入用のシードファイルで、日次生成では書き込まれない（読み込みのみ）。
-- 各種`settings_path.open("r")`等の読み込み処理… 書き込みではないため対象外。
-
-## 実施内容
-
-- `src/storage.py`の`save_candidates()`: `data/candidates/candidates_*.json`と
-  `.md`の書き込みを、`atomic_io.write_json_atomic()` / `atomic_io.write_text_atomic()`
-  経由に変更した。新規実装は追加していない（既存の`atomic_io.py`を再利用）。
-  戻り値（保存先パスのタプル）・Markdown整形処理は変更していない。
-- `src/publish_room_page.py`の`main()`: `room/data/candidates.json`の書き込みを
-  `atomic_io.write_json_atomic()`経由に変更した。データ整形
-  （`build_room_page_data()`）・最新ファイル検索（`find_latest_candidates_json()`）
-  のロジックは変更していない。
-- `docs/DESIGN.md`に27章として、監査結果・対応内容を記録した。
-- `docs/AI_STATUS.md`（このファイル）。
-
-商品検索条件（`src/main.py`・`config/`）、重複判定ロジック、紹介文生成、
-TikTok関連（`src/tiktok_*.py`）、`data/posted_items.json`まわり（前回対応済み）、
-GitHub Actionsの既存ワークフローには一切手を加えていない。
+1. **収納3商品（ハンガー・段ボールストッカー・ヘアアイロンポーチ）**: 商品名がPRODUCT_TYPE_TEMPLATES（商品タイプ専用テンプレート）のどのキーワードにも一致せず、`GENERIC_TEMPLATES["収納"]`（カテゴリー共通の汎用文言）に必ずフォールバックしていた。汎用文言は「身の回りの物の置き場所」を主題にしており、商品固有の特徴（滑り止め・段ボール専用・耐熱等）を反映する仕組みが無かった。
+2. **バターカッター**: 同様にPRODUCT_TYPE_TEMPLATESに一致せず、`GENERIC_TEMPLATES["キッチン"]`の「毎日の料理や後片付け」という一般的な文言になっていた。
+3. **消耗品・飲料（洗剤・水・お茶・ジュース等）**: `GENERIC_TEMPLATES`のhook/worry/solutionが「ストック」を主題にした言い回ししか用意されておらず、商品ごとの紹介角度の違いがほぼ無かった。
+4. **衣類しみ抜き剤**: 洗剤カテゴリーの用途別サブタイプ（洗濯用・食器用・住宅用）のどれにも一致せず、`GENERIC_TEMPLATES["洗剤"]`のフォールバックが使われ、「毎日のように使う洗剤だから」という、しみ抜き剤には当てはまらない使用頻度の断定を含んでいた。
+5. **購入制限のあるグレープジュース**: 「お1人様ご家族様1本限り」と明記されているにもかかわらず、closing_variants・solution_variantsの選択が商品名の購入制限を一切考慮しておらず、「まとめてストックしておけそう」「まとめ買いしておきたい人に便利そう」という、商品情報と明確に矛盾する文章が生成される可能性があった（実際に本番データで発生していた）。
 
 ## 変更ファイル
-- `src/storage.py`（`save_candidates()`を`atomic_io`経由に変更）
-- `src/publish_room_page.py`（`main()`を`atomic_io`経由に変更）
-- `tests/test_storage.py`（新規追加：正常保存・アトミック書き込みの回帰テスト）
-- `tests/test_publish_room_page.py`（`MainAtomicWriteTest`を追加）
-- `docs/DESIGN.md`（27章を追加）
+- `src/description_generator.py`
+- `src/main.py`（フェーズ3・4の順序変更のみ。検索・フィルタ・重複判定ロジックは無変更）
+- `tests/test_description_generator.py`
+- `docs/DESIGN.md`（28章に原因・対応内容を記録）
 - `docs/AI_STATUS.md`（このファイル）
 
-## テスト結果
+商品検索条件、便利グッズ5＋消耗品/飲料5の構成、`data/posted_items.json`、投稿済み重複判定、GitHub Actionsの実行時刻、投稿済み商品登録ワークフローには一切手を加えていない。
 
-追加したテストで確認した内容:
-- `tests/test_storage.py`（`SaveCandidatesTest`・`SaveCandidatesAtomicWriteTest`）
-  - 正常にJSON・Markdownが保存され、戻り値のパスが存在すること
-  - 出力先ディレクトリが無い場合でも自動作成されること
-  - 書き込み途中（`os.fdopen`）で例外が発生しても、出力先ディレクトリに
-    壊れかけのファイルが残らないこと
-  - JSON・Markdownの保存が実際に`atomic_io.write_json_atomic()` /
-    `write_text_atomic()`を経由していること（重複実装の回帰防止）
-- `tests/test_publish_room_page.py`（`MainAtomicWriteTest`）
-  - `main()`が正常に`room/data/candidates.json`を書き出すこと
-  - 書き込み途中で例外が発生しても、既存の`room/data/candidates.json`が
-    変更前のまま残り、一時ファイルも残らないこと
-  - `main()`が実際に`atomic_io.write_json_atomic()`を経由していること
+## 実装内容
 
-実行結果:
-- `python3 -m unittest tests.test_storage tests.test_publish_room_page tests.test_atomic_io tests.test_dedupe -v` → **93 passed**
-- `python3 -m unittest discover -s tests -v` → **224件収集、223 passed**、
-  `tests.test_main`のみ収集時に`ModuleNotFoundError: No module named 'dotenv'`で
-  失敗（reliability-003の時と同じ、このサンドボックス環境に`python-dotenv`が
-  未インストールのためで、今回の変更とは無関係。`src/main.py`のトップレベル
-  importが原因。`requirements.txt`には元から記載済みで、CI環境や
-  `pip install -r requirements.txt`実行済みの環境では発生しない）。
-- 秘密情報（Application ID、Access Key等）は表示・記録していません
+1. **`PRODUCT_TYPE_TEMPLATES`に4件追加**：ハンガー・段ボールストッカー（ダンボールストッカー含む）・ヘアアイロンポーチ・バターカッター。いずれも商品名から確認できる事実だけを使用。
+2. **洗剤の「しみ抜き」サブタイプ新設**（`_STAIN_REMOVER_TEMPLATE`）：「洗濯」等より先に判定し、洗濯用洗剤テンプレートへのフォールバックを防止。使用頻度を断定しない専用文言にした。
+3. **`_extract_quantity_phrase()`（新規）**：商品名から容量・個数・カット量等の数字付き事実を正規表現で抽出し、既存項目と重複しない場合のみ✔️メリットの4項目目として追加（箇条書き数を3個に固定しない）。「1本限り」等の購入制限表記は内容量ではないため除外するロジックを含む。
+4. **`_is_purchase_limited()`・`_filter_bulk_buying()`（新規）**：商品名から購入制限（お一人様・◯本限り・数量限定等、正規表現による一般化判定）を検出し、該当する場合はhook/worry/solution/closingの候補から「まとめ買い」「まとめて」「複数」「大量」を含む言い回しを除外してから選択。
+5. **消耗品・飲料GENERIC_TEMPLATESに3つ目のhook/worry/solutionパターンを追加**：「ストック」以外の紹介角度（水分補給のタイミング・食事のお供・気分転換等）を増やした。
+6. **`generate_descriptions_for_batch()`（新規）**：最終候補（最大10件）をまとめて生成し、①キャッチコピー・⑤締めが両方一致する組み合わせが出た場合だけ別パターンを選び直す（最大3回再試行）。`src/main.py`のフェーズ3・4の順序を入れ替え、選定後の最終候補だけに適用するよう変更（`ranking.py`は`description`を参照しないため選定結果への影響なし）。
 
-## 本番運用上の残課題
-- 特になし。日次運用で更新される永続JSON/テキストの主要な書き込み経路
-  （投稿済み履歴・TikTok履歴・TikTok日次コンテンツ・候補一覧・投稿ページ用
-  データ）は全て`atomic_io`経由のアトミック書き込みに統一された。
+### 意図的に対応を見送った点
+- 汎用的な「紹介角度」分類エンジン（時短/収納/省スペース等を包括的に自動判定する仕組み）は実装していない。正規表現・キーワード抽出の範囲にとどめ、推測による性能・効果の創作を避けることを優先した。
+- 直近投稿履歴（前日・前週等）との類似度チェックは実装していない（要望内で任意とされていた項目。新しい履歴ファイルが必要で影響範囲が大きいため）。同一バッチ内の重複回避（5番）で最低ラインを満たした。
 
-## 外部サービス/ユーザー操作が必要な項目
-- 特になし。今回の変更は内部の書き込み処理のみで、ユーザー操作・外部サービスの
-  利用方法に変更はない。
+## 追加テスト
+`tests/test_description_generator.py`に16件追加。
+- `Sept19BatchRegressionTest`（12件）：ハンガー/段ボールストッカー/ヘアアイロンポーチ/バターカッターへの商品固有特徴反映、しみ抜き剤の頻度断定なし、購入制限商品でのまとめ買い表現なし（一般化判定の確認含む）、数量抽出が購入制限の数字を誤って拾わないこと、洗濯用洗剤の食器洗い再発なし、確認できない特徴の非追加。
+- `BatchDiversityTest`（3件）：実データでの衝突解消、衝突なし時の非改変、件数保持。
+- `CategoryDiversityRegressionTest`（1件）：同カテゴリー複数商品での非同一性。
 
-## 次にChatGPTが判断すべき点
-- 特になし。前回（reliability-003）で保留となっていた2箇所（`storage.py`・
-  `publish_room_page.py`）へ今回対応したことで、監査対象は一巡した。
+## 全テスト結果
+- `python3 -m pytest -q` → **256 passed**（既存240件＋今回追加16件、すべて成功）
+- `python3 -m unittest discover -s tests` でも256件成功を確認
+
+## 6商品の修正前後（2026-09-19実データ）
+
+### ① ハンガー
+- 修正前: 「👕 クローゼットの物の置き場所、決まってる？」〜「クローゼットの物をすっきりまとめられそうな収納グッズ」（他の収納2商品とほぼ同じ構成）
+- 修正後: 「👕 ハンガー、衣類が滑って落ちたりしない？」〜✔️「衣類が滑り落ちにくい」「まとめて揃えて使いやすい」「100本で使いやすい」
+
+### ② 段ボールストッカー
+- 修正前: 「🏠 身の回りの物の置き場所、決まってる？」（ハンガー・ヘアアイロンポーチと同一の汎用文言）
+- 修正後: 「📦 たまった段ボール、置き場所に困ってない？」〜✔️「段ボールをまとめて収納しやすい」「ゴミ出し・リサイクル時に運びやすい」
+
+### ③ ヘアアイロンポーチ
+- 修正前: 「🏠 身の回りの物の置き場所、決まってる？」（同一の汎用文言）
+- 修正後: 「💇 使ったばかりのヘアアイロン、そのまま収納できたら楽じゃない？」〜✔️「熱いまま収納しやすい」「旅行や持ち運びにも使いやすい」
+
+### ④ バターカッター
+- 修正前: 「🍳 毎日の料理や後片付け、地味に手間じゃない？」（キッチンカテゴリー汎用文言）
+- 修正後: 「🧈 バター、いつも同じ量に切り分けられてる？」〜✔️「バターを一定量に切り分けやすい」「計量しながら使いやすい」「5gカットで使いやすい」
+
+### ⑤ スポッとる（衣類しみ抜き剤）
+- 修正前: 「🧴 洗剤のストック、そろそろ減ってない？」「毎日のように使う洗剤だから、ストックが減るのも早いですよね」（根拠のない使用頻度の断定）
+- 修正後: 「🧴 そのシミ、諦める前に試してみない？」「お気に入りの服についたシミ、そのまま諦めてしまうこと多いですよね」〜✔️「気になるシミのお手入れに使いやすい」「20ml×2個で使いやすい」（頻度の断定なし）
+
+### ⑥ ドール グレープ100%（お1人様1本限り）
+- 修正前: 「まとめてストックしておけそうな飲み物」「まとめ買いしておきたい人に便利そう」（**購入制限と明確に矛盾**）
+- 修正後: 「気分転換にストックしておきたい飲み物」〜✔️「200mlで使いやすい」「飲み物のストック切れを防ぎたい人におすすめ」（まとめ買い表現なし、実際の内容量200mlを正しく反映）
+
+## 残っている制約
+- 「紹介角度」の選択は正規表現・キーワードベースの限定的なもので、商品説明文（itemCaption）は特徴抽出に使っていない（25章以前からの既存方針を維持。書式のばらつき・無関係な説明文混入のリスクがあるため）。
+- 数量抽出（`_extract_quantity_phrase`）は単純な正規表現のため、「380g×4セット」のように複数の数値が組み合わさった表記は、どちらか一方（この例では「4セット」）しか抜き出せない場合がある。誤りではないが、情報としてはやや不完全なことがある。
+- 直近投稿履歴（前日以前）との類似度チェックは未実装（要望内で任意とされていた項目）。同一バッチ内の重複回避のみ対応済み。
+- 今回の修正は`docs/AI_TASK.md`に別途キューされている「description-match-001」（スポンジ/ほこり取りダスターの誤分類、候補のランダム性導入）とは別のタスクで、そちらは今回対応していない。
+
+## 既存機能への影響
+- 商品検索条件（`src/main.py`の検索・フィルタ部分）・便利グッズ5+消耗品/飲料5の構成（`ranking.py`）・重複判定（`src/dedupe.py`）・`data/posted_items.json`・GitHub Actionsの既存ワークフロー（実行時刻・投稿済み商品登録）には一切変更していない。
+- `src/main.py`は紹介文生成のタイミングをフェーズ3（`unique_items`全件）からフェーズ4（選定後の最終候補のみ）に移動したが、`ranking.select_balanced_top()`・`ranking.deduplicate_similar_items()`は`description`フィールドを参照しないため、選定結果自体には影響しない。
+- `PRODUCT_TYPE_TEMPLATES`の既存16件、`DETERGENT_SUBTYPE_TEMPLATES`の既存3件（洗濯用・食器用・住宅用）は無変更。
+- TikTok台本生成（`get_template_components()`経由）にも同じ改善（商品固有特徴の優先・購入制限フィルター）が自動適用される。
 
 ## セキュリティ
 Application ID、Access Key、トークン、パスワード等の秘密情報はここに記載しないこと。
