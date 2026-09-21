@@ -27,21 +27,26 @@ def load_settings() -> dict:
         return yaml.safe_load(f)
 
 
-def _parse_keyword_entry(entry: str | dict) -> tuple[str, str, str]:
-    """settings.yamlのkeywords要素から (検索キーワード, カテゴリ名, 枠) を取り出す。
+def _parse_keyword_entry(entry: str | dict) -> tuple[str, str, str, list[str]]:
+    """settings.yamlのkeywords要素から (検索キーワード, カテゴリ名, 枠, 追加検索ワード) を取り出す。
 
     「枠」は ranking.CONVENIENCE_GROUP（暮らしの便利グッズ）か
     ranking.CONSUMABLE_GROUP（消耗品・飲料）のいずれか。省略された場合、
     または文字列だけのエントリの場合は、これまでどおり「暮らしの便利グッズ」
     として扱う。
+
+    「追加検索ワード」（extra_keywords）は、keywordの検索結果が条件フィルタ・
+    重複除外の後に0件だった場合だけ試す、同じテーマ内の別の検索ワード一覧
+    （省略された場合は空リスト）。
     """
     if isinstance(entry, dict):
         return (
             entry["keyword"],
             entry.get("category", description_generator.DEFAULT_CATEGORY),
             entry.get("group", ranking.CONVENIENCE_GROUP),
+            list(entry.get("extra_keywords", []) or []),
         )
-    return entry, description_generator.DEFAULT_CATEGORY, ranking.CONVENIENCE_GROUP
+    return entry, description_generator.DEFAULT_CATEGORY, ranking.CONVENIENCE_GROUP, []
 
 
 def _display_group(group: str, category: str) -> str:
@@ -51,6 +56,125 @@ def _display_group(group: str, category: str) -> str:
     if category in ranking.BEVERAGE_CATEGORIES:
         return "飲料"
     return "消耗品"
+
+
+def _fetch_and_filter_keyword(
+    keyword: str,
+    category: str,
+    group: str,
+    *,
+    app_id: str,
+    access_key: str | None,
+    hits: int,
+    endpoint: str | None,
+    allowed_origin: str | None,
+    criteria: dict,
+    ng_keywords: list[str],
+    off_theme_keywords: list[str],
+    alcohol_keywords: list[str],
+    consumable_durable_accessory_keywords: list[str],
+    posted_index: "dedupe.PostedIndex",
+    seen_item_codes: set[str],
+) -> tuple[list[dict], dict[str, int], dict[str, int]]:
+    """1つの検索ワードで検索し、既存の全フィルタ・重複除外をそのまま適用する
+    （レビュー評価・件数等の品質条件は一切緩めない）。
+
+    元は1つのkeywordsエントリにつき1回しか呼ばれない処理だったが、
+    _collect_items_for_entry()から検索ワードを変えて複数回呼べるように
+    独立させた（候補不足時の追加探索・診断用）。
+
+    戻り値は (フィルタ後の商品一覧, 投稿済み除外の内訳, 診断用の件数統計)。
+    """
+    try:
+        raw_items = rakuten_api.search_items(
+            keyword=keyword,
+            app_id=app_id,
+            access_key=access_key,
+            hits=hits,
+            endpoint=endpoint,
+            allowed_origin=allowed_origin,
+        )
+    except rakuten_api.RakutenApiError as exc:
+        raise SystemExit(str(exc)) from exc
+
+    items = filters.filter_by_review(
+        raw_items,
+        min_review_average=criteria["min_review_average"],
+        min_review_count=criteria["min_review_count"],
+    )
+    items = filters.filter_by_ng_keywords(items, ng_keywords)
+    items = filters.filter_by_off_theme_keywords(items, off_theme_keywords)
+    if category in ranking.BEVERAGE_CATEGORIES:
+        items = filters.filter_by_alcohol_keywords(items, alcohol_keywords)
+    if group == ranking.CONSUMABLE_GROUP:
+        items = filters.filter_by_durable_accessory_keywords(
+            items, consumable_durable_accessory_keywords
+        )
+    after_quality_filters = len(items)
+
+    items, posted_breakdown = dedupe.remove_duplicates_with_breakdown(items, posted_index)
+
+    before_within_run = len(items)
+    items = dedupe.remove_within_run_duplicates(items, seen_item_codes)
+
+    stats = {
+        "raw": len(raw_items),
+        "after_quality_filters": after_quality_filters,
+        "posted_excluded": sum(posted_breakdown.values()),
+        "within_run_excluded": before_within_run - len(items),
+        "kept": len(items),
+    }
+    return items, posted_breakdown, stats
+
+
+def _collect_items_for_entry(
+    keyword: str,
+    extra_keywords: list[str],
+    category: str,
+    group: str,
+    **kwargs,
+) -> tuple[list[dict], dict]:
+    """1つのkeywordsエントリ分の商品を集める。
+
+    keyword（本来の検索ワード）の結果が、既存の条件フィルタ・重複除外を
+    通したあとに0件だった場合だけ、extra_keywords（同じテーマ内の別の
+    検索ワード）を前から順に試す（1件以上見つかるか、全て試し終わるまで）。
+    どの検索ワードでも_fetch_and_filter_keyword()＝既存のフィルタ処理を
+    そのまま使うため、レビュー評価・件数等の品質条件は一切緩めていない
+    （候補が本当に無ければ0件のまま返す＝無理に候補を作らない）。
+
+    戻り値は (集めた商品一覧, 診断情報の辞書)。診断情報は、なぜ目標件数に
+    届かなかったかをGitHub ActionsのSummaryで確認できるようにするためのもの
+    （keywords_tried＝実際に検索したキーワード一覧、keyword_stats＝
+    キーワードごとの件数統計、posted_breakdown＝投稿済み除外の内訳合計、
+    found＝最終的に見つかった件数）。
+    """
+    all_items: list[dict] = []
+    keywords_tried: list[str] = []
+    keyword_stats: list[dict] = []
+    posted_breakdown_total = {"item_code": 0, "url": 0, "product_name": 0, "match_keywords": 0}
+
+    for candidate_keyword in (keyword, *extra_keywords):
+        items, posted_breakdown, stats = _fetch_and_filter_keyword(
+            candidate_keyword, category, group, **kwargs
+        )
+        keywords_tried.append(candidate_keyword)
+        keyword_stats.append({"keyword": candidate_keyword, **stats})
+        for key, value in posted_breakdown.items():
+            posted_breakdown_total[key] += value
+        all_items.extend(items)
+        if all_items:
+            break
+
+    diagnostics = {
+        "category": category,
+        "group": group,
+        "keywords_tried": keywords_tried,
+        "keyword_stats": keyword_stats,
+        "posted_breakdown": posted_breakdown_total,
+        "found": len(all_items),
+    }
+    return all_items, diagnostics
 
 
 def main() -> None:
@@ -92,41 +216,36 @@ def main() -> None:
     # フェーズ1: キーワードごとに検索し、条件を満たさない商品・重複を取り除く。
     # 「暮らしの便利グッズ」枠と「消耗品・飲料」枠は、keywordsの各エントリに
     # 付けた group（ranking.CONVENIENCE_GROUP / ranking.CONSUMABLE_GROUP）で判別する。
+    # 1つのkeywordが0件だった場合だけ、そのエントリのextra_keywords（同じ
+    # テーマ内の別の検索ワード）を試す（_collect_items_for_entry参照）。
+    # レビュー評価・件数等の品質条件はどの検索ワードでも一切緩めていない。
     filtered_items = []
+    category_diagnostics: list[dict] = []
+    search_kwargs = dict(
+        app_id=app_id,
+        access_key=access_key,
+        hits=settings.get("items_per_keyword", 10),
+        endpoint=endpoint,
+        allowed_origin=allowed_origin,
+        criteria=criteria,
+        ng_keywords=ng_keywords,
+        off_theme_keywords=off_theme_keywords,
+        alcohol_keywords=alcohol_keywords,
+        consumable_durable_accessory_keywords=consumable_durable_accessory_keywords,
+        posted_index=posted_index,
+        seen_item_codes=seen_item_codes,
+    )
     for entry in settings["keywords"]:
-        keyword, category, group = _parse_keyword_entry(entry)
+        keyword, category, group, extra_keywords = _parse_keyword_entry(entry)
 
-        try:
-            items = rakuten_api.search_items(
-                keyword=keyword,
-                app_id=app_id,
-                access_key=access_key,
-                hits=settings.get("items_per_keyword", 10),
-                endpoint=endpoint,
-                allowed_origin=allowed_origin,
-            )
-        except rakuten_api.RakutenApiError as exc:
-            raise SystemExit(str(exc)) from exc
-
-        items = filters.filter_by_review(
-            items,
-            min_review_average=criteria["min_review_average"],
-            min_review_count=criteria["min_review_count"],
+        items, diagnostics = _collect_items_for_entry(
+            keyword, extra_keywords, category, group, **search_kwargs
         )
-        items = filters.filter_by_ng_keywords(items, ng_keywords)
-        items = filters.filter_by_off_theme_keywords(items, off_theme_keywords)
-        if category in ranking.BEVERAGE_CATEGORIES:
-            items = filters.filter_by_alcohol_keywords(items, alcohol_keywords)
-        if group == ranking.CONSUMABLE_GROUP:
-            items = filters.filter_by_durable_accessory_keywords(
-                items, consumable_durable_accessory_keywords
-            )
-        items, posted_exclusion_breakdown = dedupe.remove_duplicates_with_breakdown(items, posted_index)
-        posted_excluded_by_item_code += posted_exclusion_breakdown["item_code"]
-        posted_excluded_by_url += posted_exclusion_breakdown["url"]
-        posted_excluded_by_product_name += posted_exclusion_breakdown["product_name"]
-        posted_excluded_by_match_keywords += posted_exclusion_breakdown["match_keywords"]
-        items = dedupe.remove_within_run_duplicates(items, seen_item_codes)
+        category_diagnostics.append(diagnostics)
+        posted_excluded_by_item_code += diagnostics["posted_breakdown"]["item_code"]
+        posted_excluded_by_url += diagnostics["posted_breakdown"]["url"]
+        posted_excluded_by_product_name += diagnostics["posted_breakdown"]["product_name"]
+        posted_excluded_by_match_keywords += diagnostics["posted_breakdown"]["match_keywords"]
 
         for item in items:
             item["_group"] = group
@@ -201,6 +320,17 @@ def main() -> None:
             excluded_by_match_keywords=posted_excluded_by_match_keywords,
             new_candidate_count=len(candidates),
             history_total=posted_history_total,
+        )
+    )
+    convenience_actual = sum(1 for item in candidates if item["_group"] == ranking.CONVENIENCE_GROUP)
+    consumable_actual = sum(1 for item in candidates if item["_group"] == ranking.CONSUMABLE_GROUP)
+    write_github_step_summary(
+        storage.build_supply_diagnostics_markdown(
+            category_diagnostics,
+            convenience_count=convenience_actual,
+            consumable_count=consumable_actual,
+            convenience_target=settings.get("convenience_target", 5),
+            consumable_target=settings.get("consumable_target", 5),
         )
     )
     write_github_step_summary(

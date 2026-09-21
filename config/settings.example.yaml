@@ -21,60 +21,82 @@ allowed_origin: "https://9892stpvvp-png.github.io/-rakuten-room-auto/"
 # - category: 紹介文の言い回し・ハッシュタグを選ぶために使う。
 #   便利グッズ枠は「掃除／収納／キッチン／時短／暮らし全般」、
 #   消耗品・飲料枠は「洗剤／キッチン消耗品／日用品／水／お茶／ジュース」のいずれか。
+# - extra_keywords（省略可）: keywordの検索結果が条件フィルタ・重複除外の後に
+#   0件だった場合だけ、追加で試す同じテーマ内の別の検索ワード（前から順に、
+#   1件以上見つかるか、全て試し終わるまで試す）。品質条件（レビュー評価・
+#   件数等）は緩めず、検索ワードの幅だけを広げてカテゴリの偏り・候補不足を
+#   減らすためのもの（reliability-005 / description-match-002での監査対応）。
 keywords:
   # --- 暮らしの便利グッズ（5件） ---
   - keyword: "掃除 便利グッズ"
     category: "掃除"
     group: "convenience"
+    extra_keywords: ["お掃除グッズ", "バス 掃除グッズ", "トイレ 掃除グッズ"]
   - keyword: "収納 便利グッズ"
     category: "収納"
     group: "convenience"
+    extra_keywords: ["収納グッズ", "整理整頓グッズ", "クローゼット 収納"]
   - keyword: "キッチン 時短グッズ"
     category: "キッチン"
     group: "convenience"
+    extra_keywords: ["調理器具 便利グッズ", "キッチン 便利グッズ"]
   - keyword: "時短家電"
     category: "時短"
     group: "convenience"
+    extra_keywords: ["時短グッズ", "家事 時短"]
   - keyword: "生活雑貨 便利グッズ"
     category: "暮らし全般"
     group: "convenience"
+    extra_keywords: ["玄関 便利グッズ", "旅行グッズ 便利", "洗濯 便利グッズ"]
   # --- 消耗品・飲料（5件）。繰り返し購入されやすい日用品・飲料を対象にする ---
   - keyword: "洗濯洗剤"
     category: "洗剤"
     group: "consumable"
+    extra_keywords: ["部屋干し 洗剤"]
   - keyword: "食器用洗剤"
     category: "洗剤"
     group: "consumable"
+    extra_keywords: ["台所用洗剤"]
   - keyword: "キッチンスポンジ"
     category: "キッチン消耗品"
     group: "consumable"
+    extra_keywords: ["食器洗いスポンジ"]
   - keyword: "食品用ラップ"
     category: "キッチン消耗品"
     group: "consumable"
+    extra_keywords: ["キッチン消耗品"]
   - keyword: "トイレットペーパー"
     category: "日用品"
     group: "consumable"
+    extra_keywords: ["トイレ用洗剤"]
   - keyword: "掃除シート"
     category: "日用品"
     group: "consumable"
+    extra_keywords: ["除菌シート"]
   - keyword: "ミネラルウォーター"
     category: "水"
     group: "consumable"
+    extra_keywords: ["天然水"]
   - keyword: "炭酸水"
     category: "水"
     group: "consumable"
+    extra_keywords: ["強炭酸水"]
   - keyword: "緑茶 ペットボトル"
     category: "お茶"
     group: "consumable"
+    extra_keywords: ["お茶 ペットボトル"]
   - keyword: "麦茶 ペットボトル"
     category: "お茶"
     group: "consumable"
+    extra_keywords: ["はと麦茶"]
   - keyword: "野菜ジュース"
     category: "ジュース"
     group: "consumable"
+    extra_keywords: ["フルーツジュース"]
   - keyword: "100%ジュース"
     category: "ジュース"
     group: "consumable"
+    extra_keywords: ["果汁100% ジュース"]
 
 # 商品選定条件（必須）
 selection_criteria:

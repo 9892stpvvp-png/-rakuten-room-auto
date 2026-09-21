@@ -82,6 +82,39 @@ def build_posted_history_summary_markdown(
     return "\n".join(lines) + "\n"
 
 
+def build_supply_diagnostics_markdown(
+    category_diagnostics: list[dict[str, Any]],
+    convenience_count: int,
+    consumable_count: int,
+    convenience_target: int,
+    consumable_target: int,
+) -> str:
+    """GitHub ActionsのSummaryに表示する、候補生成の内訳（目標件数に届かなかった
+    場合の原因確認用）。
+
+    「暮らしの便利グッズ」「消耗品・飲料」それぞれの実際の件数／目標件数と、
+    カテゴリー（keywordsの各エントリ）ごとに、条件フィルタ・投稿済み除外を
+    通過した件数、実際に試した検索ワード（extra_keywordsで追加探索した
+    場合はその一覧も）を一覧にする。目標件数に届いている日も参考として
+    常に表示する。
+    """
+    lines = [
+        "## 候補生成の内訳（不足時の原因確認用）",
+        "",
+        f"- 暮らしの便利グッズ: {convenience_count}/{convenience_target}件",
+        f"- 消耗品・飲料: {consumable_count}/{consumable_target}件",
+        "",
+        "| カテゴリー | 枠 | 条件通過（投稿済み除外後） | 試した検索ワード |",
+        "|---|---|---|---|",
+    ]
+    for diag in category_diagnostics:
+        group_label = "便利グッズ" if diag["group"] == "convenience" else "消耗品・飲料"
+        keywords_display = " → ".join(diag["keywords_tried"])
+        lines.append(f"| {diag['category']} | {group_label} | {diag['found']}件 | {keywords_display} |")
+    lines.append("")
+    return "\n".join(lines) + "\n"
+
+
 def render_candidates_markdown(
     candidates: list[dict[str, Any]],
     title: str,

@@ -751,6 +751,98 @@ class ConsumableVarietyTest(unittest.TestCase):
                 self.assertTrue(blocks[4].endswith("☺️"))
 
 
+class Sept21BatchRegressionTest(unittest.TestCase):
+    """2026-09-21に生成されたroom/data/candidates.jsonで実際に見つかった
+    問題（description-match-002）の回帰テスト。商品名は本番で実際に
+    取得された表記をそのまま使っている。"""
+
+    SPONGE_NAME = (
+        "最短翌日 ダスキンスポンジ 6個セット キッチン 台所用 抗菌 送料無料 プレゼント 母の日 "
+        "だすきん ポイント消費 最安値 ハードタイプ 台所用スポンジ ダスキン スポンジ "
+        "ポイント消化 送料無 ダスキンのスポンジ ダスキンスポンジ送料無料 3個入り "
+        "ダスキン食器洗いスポンジ"
+    )
+    LIMESCALE_SHEET_NAME = (
+        "【錫村商店公式】水垢落とし 研磨 シート 尿石 トイレ 洗面台 陶器【落ちない水垢に】"
+        "水垢ペーパー 2枚入り｜洗剤不要でしっかり除去 プロ仕様"
+    )
+    RICE_COOKER_NAME = (
+        "nikome ニコメ 一人暮らし 炊飯器 2合 少量 ミニ マルチライスクッカー 多機能炊飯器 "
+        "コンパクト 小型 おしゃれ かわいい お弁当 簡単操作 ほったらかし調理 時短 調理 家電 "
+        "便利 調理家電 新生活 ギフト プレゼント 時短家電 便利家電 電気調理器具"
+    )
+    BARLEY_TEA_NAME = (
+        "国産 はとむぎ茶 6g×50包 （300g 大容量 ティーバッグ） ほんぢ園 ＜はと麦茶 100% "
+        "ペットボトル よりお得！ ティーパック ハト麦茶 ハトムギ ノンカフェイン 【LC】＞ "
+        "送料無料 ／セ／ ●"
+    )
+
+    # 1. 食器洗いスポンジに「使い捨て」と勝手に追加されない。
+    def test_dish_sponge_does_not_claim_disposable(self):
+        item = make_item(name=self.SPONGE_NAME)
+        description = dg.generate_description(item, category="キッチン消耗品", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("使い捨て", description)
+        self.assertIn("食器洗い", description)
+
+    # 2. 水垢落とし研磨シートにティッシュ/トイレットペーパーの文章が出ない。
+    def test_limescale_sheet_does_not_get_tissue_toilet_paper_wording(self):
+        item = make_item(name=self.LIMESCALE_SHEET_NAME)
+        description = dg.generate_description(item, category="日用品", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("ティッシュ", description)
+        self.assertNotIn("トイレットペーパー", description)
+
+    # 3. 水垢ペーパーに水垢掃除に関係する商品固有情報が反映される。
+    def test_limescale_sheet_reflects_product_specific_info(self):
+        item = make_item(name=self.LIMESCALE_SHEET_NAME)
+        description = dg.generate_description(item, category="日用品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("水垢", description)
+        checklist = _blocks(description)[3]
+        self.assertTrue(
+            any(keyword in checklist for keyword in ("トイレ", "洗面台", "陶器", "洗剤を使わず")),
+            checklist,
+        )
+
+    # 4. 2合炊飯器が一般的な時短家電文だけにならず、炊飯器の商品情報が反映される。
+    def test_rice_cooker_does_not_fall_back_to_generic_time_saving_appliance(self):
+        item = make_item(name=self.RICE_COOKER_NAME)
+        description = dg.generate_description(item, category="時短", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("その家事、もっと時短できるかも", description)
+        self.assertIn("炊飯", description)
+
+    def test_rice_cooker_reflects_confirmed_feature(self):
+        item = make_item(name=self.RICE_COOKER_NAME)
+        description = dg.generate_description(item, category="時短", base_hashtags=BASE_HASHTAGS)
+        checklist = _blocks(description)[3]
+        self.assertTrue(
+            any(keyword in checklist for keyword in ("一人暮らし", "ほったらかし")),
+            checklist,
+        )
+
+    # 5. 6g×50包の商品について単純に「6gで使いやすい」だけにならない。
+    def test_barley_tea_quantity_extraction_keeps_full_pack_info(self):
+        phrase = dg._extract_quantity_phrase(self.BARLEY_TEA_NAME)
+        self.assertEqual(phrase, "6g×50包")
+        item = make_item(name=self.BARLEY_TEA_NAME)
+        description = dg.generate_description(item, category="お茶", base_hashtags=BASE_HASHTAGS)
+        checklist = _blocks(description)[3]
+        self.assertIn("6g×50包", checklist)
+        self.assertNotIn("✔️ 6gで使いやすい", checklist)
+
+    # 6. 前回修正した洗濯洗剤→食器洗い誤用途が再発しない（回帰確認）。
+    def test_laundry_detergent_still_does_not_mention_dishwashing_regression(self):
+        item = make_item(name="【1種類を選べる】アタックZERO 洗濯洗剤 ワンハンド 本体(380g×4セット)")
+        description = dg.generate_description(item, category="洗剤", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("食器洗い", description)
+        self.assertIn("洗濯", description)
+
+    # 7. 購入制限商品に「まとめ買い」が再発しない（回帰確認）。
+    def test_purchase_limited_item_still_has_no_bulk_buying_phrase_regression(self):
+        item = make_item(name=GRAPE_JUICE_NAME)
+        description = dg.generate_description(item, category="ジュース", base_hashtags=BASE_HASHTAGS)
+        for phrase in ("まとめ買い", "まとめて", "大量"):
+            self.assertNotIn(phrase, description, description)
+
+
 class Sept19BatchRegressionTest(unittest.TestCase):
     """2026-09-19に生成されたroom/data/candidates.jsonの10件で実際に
     見つかった問題（description-match-002）の回帰テスト。商品名は本番で

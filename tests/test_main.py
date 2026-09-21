@@ -52,6 +52,25 @@ def _default_fake_search(keyword: str, **_kwargs) -> list[dict]:
     return [_make_item(f"shop:{slug}_{i}", f"{keyword} 商品{i}") for i in range(3)]
 
 
+def _all_keywords_for_categories(categories: list[str]) -> list[str]:
+    """settings.example.yamlの実際のkeywordsから、指定したカテゴリーに属する
+    エントリの検索ワード（keyword本体＋extra_keywords）を全て集める。
+
+    「あるカテゴリーが（追加探索も含めて）完全に候補切れ」というシナリオを
+    テストする際、settings.example.yaml側でextra_keywordsの中身が変わっても
+    テストが追従できるよう、キーワード文字列をハードコードせずここで
+    動的に取得する。
+    """
+    settings = main_module.load_settings()
+    keywords: list[str] = []
+    for entry in settings["keywords"]:
+        keyword, category, _group, extra_keywords = main_module._parse_keyword_entry(entry)
+        if category in categories:
+            keywords.append(keyword)
+            keywords.extend(extra_keywords)
+    return keywords
+
+
 class RunPipelineTest(unittest.TestCase):
     def setUp(self):
         self.tmpdir = tempfile.TemporaryDirectory()
@@ -179,12 +198,14 @@ class RunPipelineTest(unittest.TestCase):
         self.assertNotIn("shop:new_code_for_shared_product", codes)
 
     def test_posted_history_exclusion_triggers_fallback_to_reach_ten(self):
-        # 4つの便利グッズキーワードの商品をすべて投稿済み履歴に登録し、
-        # 便利グッズ枠を大きく不足させる（_default_fake_searchは同じキーワードから
-        # 似た名前の商品を3件返すため、フェーズ2の類似商品統合で1件に絞られる。
-        # つまり残る1キーワード分も最終的には1件になる）。
-        # 消耗品・飲料枠から補充されて合計10件になることを確認する。
-        excluded_keywords = ["収納 便利グッズ", "キッチン 時短グッズ", "時短家電", "生活雑貨 便利グッズ"]
+        # 4つの便利グッズカテゴリー（収納・キッチン・時短・暮らし全般）について、
+        # 本来の検索ワードだけでなくextra_keywords（追加探索用）で見つかる
+        # 商品もすべて投稿済み履歴に登録し、便利グッズ枠を大きく不足させる
+        # （_default_fake_searchは同じキーワードから似た名前の商品を3件返すため、
+        # フェーズ2の類似商品統合で1件に絞られる。つまり残る1カテゴリー分も
+        # 最終的には1件になる）。消耗品・飲料枠から補充されて合計10件になる
+        # ことを確認する。
+        excluded_keywords = _all_keywords_for_categories(["収納", "キッチン", "時短", "暮らし全般"])
         excluded_codes = []
         for kw in excluded_keywords:
             slug = _slug(kw)
@@ -383,10 +404,14 @@ class RunPipelineTest(unittest.TestCase):
         self.assertNotIn("shop:cleaning_w", codes)
 
     def test_convenience_shortfall_is_filled_from_consumable(self):
+        # 「収納・キッチン・時短・暮らし全般」は、本来の検索ワードだけでなく
+        # extra_keywords（追加探索）を試しても0件のまま、というシナリオ。
+        scarce_keywords = set(_all_keywords_for_categories(["収納", "キッチン", "時短", "暮らし全般"]))
+
         def fake_search_scarce_convenience(keyword: str, **kwargs):
             if keyword == "掃除 便利グッズ":
                 return [_make_item("shop:only_cleaning_item", "掃除 便利グッズ 商品0")]
-            if keyword in ("収納 便利グッズ", "キッチン 時短グッズ", "時短家電", "生活雑貨 便利グッズ"):
+            if keyword in scarce_keywords:
                 return []
             return _default_fake_search(keyword, **kwargs)
 
@@ -397,6 +422,93 @@ class RunPipelineTest(unittest.TestCase):
         self.assertEqual(len(convenience), 1)
         self.assertEqual(len(consumable), 9)
         self.assertEqual(len(candidates), 10)
+
+    def test_extra_keyword_is_used_when_primary_keyword_yields_nothing(self):
+        # 「収納 便利グッズ」の結果が0件でも、settings.example.yamlに登録した
+        # extra_keywordsの1つ目（"収納グッズ"）で見つかれば、そちらを使って
+        # 収納カテゴリーが埋まることを確認する（2026-09-21実行分での
+        # 候補不足（7件）への対応：単一キーワード依存で候補が0件になる
+        # カテゴリーへの追加探索）。
+        def fake_search(keyword: str, **kwargs):
+            if keyword == "収納 便利グッズ":
+                return []
+            return _default_fake_search(keyword, **kwargs)
+
+        candidates = self._run_main(fake_search)
+        storage_names = [c["name"] for c in candidates if c.get("_category") == "収納"]
+        self.assertTrue(
+            any("収納グッズ" in name for name in storage_names),
+            f"extra_keywordsが使われていない: {storage_names}",
+        )
+
+    def test_extra_keywords_are_not_queried_when_primary_already_has_results(self):
+        # 無駄なAPI呼び出しを避けるため、本来の検索ワードで十分な結果が
+        # あるときはextra_keywordsを一切検索しないことを確認する。
+        queried_keywords: list[str] = []
+
+        def fake_search(keyword: str, **kwargs):
+            queried_keywords.append(keyword)
+            return _default_fake_search(keyword, **kwargs)
+
+        self._run_main(fake_search)
+
+        settings = main_module.load_settings()
+        all_extra_keywords: set[str] = set()
+        for entry in settings["keywords"]:
+            _keyword, _category, _group, extra_keywords = main_module._parse_keyword_entry(entry)
+            all_extra_keywords.update(extra_keywords)
+
+        queried_extra_keywords = all_extra_keywords & set(queried_keywords)
+        self.assertEqual(queried_extra_keywords, set(), f"不要に検索された: {queried_extra_keywords}")
+
+    def test_extra_keyword_results_still_go_through_quality_filters(self):
+        # 追加探索（extra_keywords）で見つかった商品にも、レビュー評価4.0以上・
+        # 件数100件以上等の既存の品質条件がそのまま適用されることを確認する
+        # （候補不足を理由に条件を緩めていないことの確認）。
+        def fake_search(keyword: str, **kwargs):
+            if keyword == "収納 便利グッズ":
+                return []
+            if keyword == "収納グッズ":
+                # レビュー件数が条件（100件以上）を満たさない商品。
+                return [_make_item("shop:low_review_storage", "収納グッズ 低評価品", review_count=10)]
+            return _default_fake_search(keyword, **kwargs)
+
+        candidates = self._run_main(fake_search)
+        codes = [c["item_code"] for c in candidates]
+        self.assertNotIn("shop:low_review_storage", codes)
+
+    def test_shortfall_is_not_padded_when_supply_is_genuinely_insufficient(self):
+        # 便利グッズ・消耗品/飲料のどちらも、本来の検索ワード・extra_keywords
+        # 全てを試しても十分な件数が見つからない場合、無理に10件へ埋めない
+        # （重複や条件未達の商品を追加しない）ことを確認する。
+        def fake_search(keyword: str, **kwargs):
+            if keyword == "掃除 便利グッズ":
+                return [_make_item("shop:only_cleaning_item", "掃除 便利グッズ 商品0")]
+            return []
+
+        candidates = self._run_main(fake_search)
+        self.assertEqual(len(candidates), 1)
+        self.assertEqual(candidates[0]["item_code"], "shop:only_cleaning_item")
+
+    def test_supply_diagnostics_summary_shows_counts_and_keywords_tried(self):
+        summary_path = Path(self.tmpdir.name) / "step_summary.md"
+        os.environ["GITHUB_STEP_SUMMARY"] = str(summary_path)
+        self.addCleanup(lambda: os.environ.pop("GITHUB_STEP_SUMMARY", None))
+
+        def fake_search(keyword: str, **kwargs):
+            if keyword == "収納 便利グッズ":
+                return []
+            return _default_fake_search(keyword, **kwargs)
+
+        self._run_main(fake_search)
+
+        content = summary_path.read_text(encoding="utf-8")
+        self.assertIn("候補生成の内訳（不足時の原因確認用）", content)
+        self.assertIn("暮らしの便利グッズ: 5/5件", content)
+        self.assertIn("消耗品・飲料: 5/5件", content)
+        # 収納カテゴリーの行に、本来の検索ワードと実際に使われた追加検索ワードの
+        # 両方が記録されていることを確認する。
+        self.assertIn("収納 便利グッズ → 収納グッズ", content)
 
 
 if __name__ == "__main__":
