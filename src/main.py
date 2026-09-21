@@ -7,6 +7,8 @@
 from __future__ import annotations
 
 import os
+import random
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import yaml
@@ -19,6 +21,35 @@ SETTINGS_PATH = PROJECT_ROOT / "config" / "settings.yaml"
 SETTINGS_EXAMPLE_PATH = PROJECT_ROOT / "config" / "settings.example.yaml"
 POSTED_ITEMS_PATH = PROJECT_ROOT / "data" / "posted_items.json"
 CANDIDATES_DIR = PROJECT_ROOT / "data" / "candidates"
+
+JST = timezone(timedelta(hours=9))
+
+
+def _daily_random_seed(now: datetime | None = None) -> str:
+    """当日（JST日付）で安定するランダムシードを作る。
+
+    同じ日のうちに実行し直しても同じランダム順になり（再実行しても
+    候補が毎回バラバラにならない）、日付が変わると自然に別のシードになる
+    （固定ローテーションにはせず、日ごとに変化する程度のランダム性を持たせる）。
+    """
+    now = now or datetime.now(JST)
+    return now.astimezone(JST).strftime("%Y-%m-%d")
+
+
+def _posted_entry_product_type(entry: dict) -> str:
+    """投稿済み履歴の1件から、商品タイプ（無ければカテゴリー）を判定する。
+
+    候補選定時のitem["_product_type"]（description_generator.classify_product_type）
+    と判定ロジックを揃えるため、まずmatch_product_type_keyword()で具体的な
+    商品の種類を判定し、一致しなければ保存されているcategoryをそのまま使う
+    （category自体が無い＝この情報からは判定できない過去データは、
+    空文字を返して集計対象から自然に外れるようにする。DEFAULT_CATEGORYへの
+    フォールバックはしない＝情報が無いものを実在のカテゴリーと誤認しない）。
+    """
+    keyword = description_generator.match_product_type_keyword(entry.get("product_name", "") or "")
+    if keyword:
+        return keyword
+    return entry.get("category", "") or ""
 
 
 def load_settings() -> dict:
@@ -207,6 +238,20 @@ def main() -> None:
     posted_items_history = dedupe.load_posted_items(POSTED_ITEMS_PATH)
     posted_index = dedupe.build_posted_index(posted_items_history)
     posted_history_total = len(posted_items_history)
+
+    # 商品タイプ・カテゴリーの偏り防止: 直近7日以内（posted_atが保存されている
+    # 投稿だけを対象。日時を推測して補うことはしない）に投稿した回数を数えて、
+    # 同じ商品タイプ・カテゴリーが連日続けて選ばれる優先度を段階的に下げる
+    # （完全除外はしない。詳細はranking.priority_tier参照）。
+    recent_product_type_counts = ranking.compute_recent_type_counts(
+        posted_items_history, _posted_entry_product_type
+    )
+    recent_category_counts = ranking.compute_recent_type_counts(
+        posted_items_history, lambda entry: entry.get("category", "") or ""
+    )
+    # 同じ日のうちの再実行では同じ順になり、日付が変われば自然に変わる
+    # シードで乱数を用意する（優先度・レビュー実績が同点の商品の並び順にだけ使う）。
+    selection_rng = random.Random(_daily_random_seed())
     posted_excluded_by_item_code = 0
     posted_excluded_by_url = 0
     posted_excluded_by_product_name = 0
@@ -258,6 +303,9 @@ def main() -> None:
             else:
                 item["_category"] = category
             item["_display_group"] = _display_group(item["_group"], item["_category"])
+            item["_product_type"] = description_generator.classify_product_type(
+                item.get("name", ""), item["_category"]
+            )
         filtered_items.extend(items)
 
     # フェーズ2: 同じカテゴリ内で用途がほぼ同じ類似商品を1件に絞る。
@@ -277,6 +325,9 @@ def main() -> None:
         consumable_target=settings.get("consumable_target", 5),
         convenience_max_per_category=settings.get("summary_max_per_category", 3),
         consumable_max_per_category=settings.get("consumable_max_per_category", 2),
+        recent_type_counts=recent_product_type_counts,
+        recent_category_counts=recent_category_counts,
+        rng=selection_rng,
     )
 
     # フェーズ4: 紹介文を生成する（商品固有の特徴が分かればそれを反映する）。
@@ -331,6 +382,25 @@ def main() -> None:
             consumable_count=consumable_actual,
             convenience_target=settings.get("convenience_target", 5),
             consumable_target=settings.get("consumable_target", 5),
+        )
+    )
+    selected_types = sorted(
+        {item.get("_product_type", "") for item in candidates if item.get("_product_type")}
+    )
+    deprioritized_types = sorted(
+        {
+            item.get("_product_type", "")
+            for item in unique_items
+            if item.get("_product_type")
+            and ranking.priority_tier(item, recent_product_type_counts, recent_category_counts) > 0
+        }
+    )
+    restored_types = sorted(set(selected_types) & set(deprioritized_types))
+    write_github_step_summary(
+        storage.build_product_type_diversity_markdown(
+            selected_types=selected_types,
+            deprioritized_types=deprioritized_types,
+            restored_types=restored_types,
         )
     )
     write_github_step_summary(

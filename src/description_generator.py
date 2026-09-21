@@ -1525,6 +1525,22 @@ def match_product_type_keyword(name: str) -> str | None:
     return None
 
 
+def classify_product_type(name: str, category: str) -> str:
+    """候補選定（同じ商品タイプの連投防止）で使う「商品タイプ」を判定する。
+
+    紹介文生成と商品タイプ判定がバラバラにならないよう、まず
+    match_product_type_keyword()（紹介文テンプレートの判定に使っている
+    ものと同じキーワード一覧）で具体的な商品の種類（例：「スポンジ」
+    「段ボールストッカー」）が分かればそれを使う。一致しなければ、
+    検索キーワードに付けたカテゴリー（例：「水」「お茶」「洗剤」）を
+    そのまま商品タイプとして扱う（新しい手書き辞書は追加しない）。
+    """
+    keyword = match_product_type_keyword(name or "")
+    if keyword:
+        return keyword
+    return category or DEFAULT_CATEGORY
+
+
 def get_template_components(item: dict[str, Any], category: str) -> TemplateComponents:
     """商品情報から、generate_description()と同じテンプレート・判定ロジックで
     悩み・解決・メリット等の内容を取り出す（紹介文としては組み立てない）。

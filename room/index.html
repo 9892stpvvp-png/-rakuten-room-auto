@@ -375,7 +375,7 @@
 
   function buildPostedExportRecords() {
     // 「投稿済みにする」で登録済みの商品を、data/posted_items.json へ取り込める
-    // 形式（item_code / item_url / product_name / posted_at）の配列にする。
+    // 形式（item_code / item_url / product_name / posted_at / category）の配列にする。
     return Object.keys(state.posted).map(function (itemCode) {
       var raw = state.posted[itemCode];
       if (raw && typeof raw === "object") {
@@ -384,6 +384,7 @@
           item_url: raw.item_url || "",
           product_name: raw.product_name || "",
           posted_at: raw.posted_at || "",
+          category: raw.category || "",
         };
       }
       // 以前のバージョン（真偽値のみ保存）で登録された商品への互換対応。
@@ -396,6 +397,7 @@
         item_url: (matched && matched.item_url) || "",
         product_name: (matched && matched.name) || "",
         posted_at: "",
+        category: (matched && matched.category) || "",
       };
     });
   }
@@ -422,6 +424,7 @@
         item_url: (item && item.item_url) || "",
         product_name: (item && item.name) || "",
         posted_at: new Date().toISOString(),
+        category: (item && item.category) || "",
       };
     } else {
       delete state.posted[itemCode];

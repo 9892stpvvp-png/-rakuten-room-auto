@@ -115,6 +115,35 @@ def build_supply_diagnostics_markdown(
     return "\n".join(lines) + "\n"
 
 
+def build_product_type_diversity_markdown(
+    selected_types: list[str],
+    deprioritized_types: list[str],
+    restored_types: list[str],
+) -> str:
+    """GitHub ActionsのSummaryに表示する、商品タイプの偏り防止の状況。
+
+    ・今回選ばれた商品タイプ
+    ・直近の投稿で多いため優先度を下げた商品タイプ（完全除外ではない）
+    ・候補不足のため、優先度を下げつつも結局復帰して選ばれた商品タイプ
+    を一覧にする。簡潔さを優先し、件数などの詳細は載せない。
+    """
+
+    def _bullet_block(title: str, values: list[str]) -> list[str]:
+        block = [f"**{title}**："]
+        if values:
+            block.extend(f"・{value}" for value in values)
+        else:
+            block.append("（なし）")
+        block.append("")
+        return block
+
+    lines = ["## 商品タイプの偏り防止", ""]
+    lines.extend(_bullet_block("今回選ばれた商品タイプ", selected_types))
+    lines.extend(_bullet_block("最近多いため優先度を下げた商品タイプ", deprioritized_types))
+    lines.extend(_bullet_block("不足のため復帰させた商品タイプ", restored_types))
+    return "\n".join(lines) + "\n"
+
+
 def render_candidates_markdown(
     candidates: list[dict[str, Any]],
     title: str,

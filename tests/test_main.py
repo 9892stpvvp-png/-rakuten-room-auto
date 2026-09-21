@@ -511,5 +511,157 @@ class RunPipelineTest(unittest.TestCase):
         self.assertIn("収納 便利グッズ → 収納グッズ", content)
 
 
+class DailyRandomSeedTest(unittest.TestCase):
+    """同じ商品タイプ・カテゴリーの連投防止で使う乱数シード（_daily_random_seed）。
+
+    「同じ日のうちの再実行では同じ順、日付が変われば自然に変わる」ことを確認する。
+    """
+
+    def test_same_jst_date_produces_the_same_seed(self):
+        from datetime import datetime, timedelta, timezone
+
+        jst = timezone(timedelta(hours=9))
+        morning = datetime(2026, 9, 21, 1, 0, tzinfo=jst)
+        evening = datetime(2026, 9, 21, 23, 0, tzinfo=jst)
+        self.assertEqual(
+            main_module._daily_random_seed(morning), main_module._daily_random_seed(evening)
+        )
+
+    def test_different_dates_produce_different_seeds(self):
+        from datetime import datetime, timedelta, timezone
+
+        jst = timezone(timedelta(hours=9))
+        day1 = datetime(2026, 9, 21, 12, 0, tzinfo=jst)
+        day2 = datetime(2026, 9, 22, 12, 0, tzinfo=jst)
+        self.assertNotEqual(
+            main_module._daily_random_seed(day1), main_module._daily_random_seed(day2)
+        )
+
+
+class PostedEntryProductTypeTest(unittest.TestCase):
+    """投稿済み履歴1件から商品タイプを判定する_posted_entry_product_type。
+
+    候補側のitem["_product_type"]（description_generator.classify_product_type）と
+    同じ判定ロジック（match_product_type_keyword優先）を使うこと、
+    categoryが無い過去データを勝手にDEFAULT_CATEGORY等へ補完しないことを確認する。
+    """
+
+    def test_uses_specific_product_type_keyword_when_matched(self):
+        entry = {"product_name": "ダスキン スポンジ 3個セット", "category": "キッチン消耗品"}
+        self.assertEqual(main_module._posted_entry_product_type(entry), "スポンジ")
+
+    def test_falls_back_to_stored_category_when_no_keyword_matches(self):
+        entry = {"product_name": "よくある収納ラック", "category": "収納"}
+        self.assertEqual(main_module._posted_entry_product_type(entry), "収納")
+
+    def test_missing_category_is_not_fabricated(self):
+        # categoryが保存されていない過去データは、判定できる情報が無いので
+        # 空文字を返す（DEFAULT_CATEGORY等を勝手に補わない＝集計対象から自然に外れる）。
+        entry = {"product_name": "何かの商品"}
+        self.assertEqual(main_module._posted_entry_product_type(entry), "")
+
+
+class ProductTypeDiversityPipelineTest(unittest.TestCase):
+    """商品タイプの偏り防止（priority_tier）をパイプライン全体で確認する統合テスト。
+
+    「スポンジを投稿した翌日に別メーカーのスポンジが出た場合」の再現。
+    """
+
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmpdir.cleanup)
+        tmp_path = Path(self.tmpdir.name)
+        self.candidates_dir = tmp_path / "candidates"
+        self.posted_items_path = tmp_path / "posted_items.json"
+
+        candidates_patcher = mock.patch.object(main_module, "CANDIDATES_DIR", self.candidates_dir)
+        posted_patcher = mock.patch.object(main_module, "POSTED_ITEMS_PATH", self.posted_items_path)
+        candidates_patcher.start()
+        posted_patcher.start()
+        self.addCleanup(candidates_patcher.stop)
+        self.addCleanup(posted_patcher.stop)
+
+        os.environ["RAKUTEN_APP_ID"] = "dummy-app-id-for-tests"
+        os.environ["RAKUTEN_ACCESS_KEY"] = "dummy-access-key-for-tests"
+        os.environ.pop("GITHUB_STEP_SUMMARY", None)
+        self.addCleanup(lambda: os.environ.pop("RAKUTEN_APP_ID", None))
+        self.addCleanup(lambda: os.environ.pop("RAKUTEN_ACCESS_KEY", None))
+
+    def _run_main(self, fake_search) -> list[dict]:
+        with mock.patch.object(rakuten_api, "search_items", side_effect=fake_search):
+            main_module.main()
+        latest = sorted(self.candidates_dir.glob("candidates_*.json"))[-1]
+        with latest.open(encoding="utf-8") as f:
+            return json.load(f)
+
+    def _seed_posted_history_with_recent_sponge(self):
+        from datetime import datetime, timedelta, timezone
+
+        recent = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
+        self.posted_items_path.parent.mkdir(parents=True, exist_ok=True)
+        with self.posted_items_path.open("w", encoding="utf-8") as f:
+            json.dump(
+                {
+                    "posted_item_codes": ["shop:old_sponge"],
+                    "posted_items": [
+                        {
+                            "item_code": "shop:old_sponge",
+                            "item_url": "https://item.rakuten.co.jp/shop/old_sponge/",
+                            "product_name": "旧スポンジ商品A",
+                            "posted_at": recent,
+                            "category": "キッチン消耗品",
+                        }
+                    ],
+                },
+                f,
+            )
+
+    def test_sponge_from_a_different_brand_is_deprioritized_but_still_selectable(self):
+        # 「スポンジを投稿した翌日に別メーカーのスポンジが出た場合」の再現。
+        # item_code・URL・商品名が違う（＝完全重複ではない）ため既存の重複除外には
+        # 引っかからず、代わりに優先度調整（このテストの主題）だけが働く。
+        self._seed_posted_history_with_recent_sponge()
+
+        # 「消耗品・飲料」枠の他のキーワード（extra_keywordsを含む）は今回0件にし、
+        # 検証対象の2商品（スポンジ／ラップ）だけで優先順位を確認できるようにする。
+        settings = main_module.load_settings()
+        other_consumable_keywords: set[str] = set()
+        for entry in settings["keywords"]:
+            kw, _category, group, extra = main_module._parse_keyword_entry(entry)
+            if group == main_module.ranking.CONSUMABLE_GROUP:
+                other_consumable_keywords.add(kw)
+                other_consumable_keywords.update(extra)
+        other_consumable_keywords.discard("キッチンスポンジ")
+        other_consumable_keywords.discard("食品用ラップ")
+
+        def fake_search(keyword: str, **kwargs):
+            if keyword == "キッチンスポンジ":
+                return [
+                    _make_item(
+                        "shop:new_sponge_brandX", "ブランドX キッチンスポンジ 5個入り", review_count=9000
+                    )
+                ]
+            if keyword == "食品用ラップ":
+                return [_make_item("shop:wrap_item", "野菜つつむ 食品用ラップ", review_count=300)]
+            if keyword in other_consumable_keywords:
+                return []
+            return _default_fake_search(keyword, **kwargs)
+
+        candidates = self._run_main(fake_search)
+        codes = [c["item_code"] for c in candidates]
+
+        # 別メーカーのスポンジ（完全重複ではない）は除外されず、候補に残る。
+        self.assertIn("shop:new_sponge_brandX", codes)
+        self.assertIn("shop:wrap_item", codes)
+
+        sponge_item = next(c for c in candidates if c["item_code"] == "shop:new_sponge_brandX")
+        self.assertEqual(sponge_item["_product_type"], "スポンジ")
+
+        # 同じ「消耗品・飲料」枠・同じカテゴリーの中では、直近投稿していない
+        # 商品タイプ（ラップ）が優先され、スポンジより前に並ぶ
+        # （除外ではなく優先度を下げているだけ、という設計の確認）。
+        self.assertLess(codes.index("shop:wrap_item"), codes.index("shop:new_sponge_brandX"))
+
+
 if __name__ == "__main__":
     unittest.main()

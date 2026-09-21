@@ -9,9 +9,11 @@
 from __future__ import annotations
 
 import difflib
+import random
 import re
 from collections import defaultdict
-from typing import Any
+from datetime import datetime, timedelta, timezone
+from typing import Any, Callable
 
 # 毎日の候補を分ける2つの枠。settings.yamlのkeywordsの各エントリに
 # 付ける「group」の値として使う。
@@ -27,10 +29,84 @@ BEVERAGE_CATEGORIES: set[str] = {"水", "お茶", "ジュース"}
 _MULTIPACK_WORDS = ["ケース", "箱買い", "まとめ買い", "セット買い", "業務用"]
 _MULTIPACK_COUNT_PATTERN = re.compile(r"\d+\s*(本|缶|個|袋|枚)")
 
+# 直近の投稿回数を「優先度を下げる段階」に変換する際の上限
+# （3回以上はそれ以上下げない。無理に細かい数値を増やさないための単純な打ち切り）。
+_MAX_TYPE_TIER = 3
+
 
 def quality_score(item: dict[str, Any]) -> tuple[float, float]:
     """レビュー件数（購入・利用動向の目安）を最優先し、レビュー評価を次点で比較するためのスコア。"""
     return (item.get("review_count", 0), item.get("review_average", 0))
+
+
+def type_tier(count: int) -> int:
+    """直近の投稿回数を「優先度を下げる段階」に変換する
+    （0回→0、1回→1、2回→2、3回以上→3。既存コードに合わせた単純な打ち切り）。
+    """
+    if count <= 0:
+        return 0
+    return min(count, _MAX_TYPE_TIER)
+
+
+def priority_tier(
+    item: dict[str, Any],
+    recent_type_counts: dict[str, int] | None = None,
+    recent_category_counts: dict[str, int] | None = None,
+) -> int:
+    """商品の優先度の段階（0が最優先。数字が大きいほど下げる）を返す。
+
+    直近よく投稿している「商品タイプ」（item["_product_type"]、
+    description_generator.classify_product_type()の判定結果）と
+    「カテゴリー」（item["_category"]）それぞれの回数から段階を求め、
+    合算する（完全除外はしない＝この段階は並び順を後ろにずらすためだけに
+    使う。呼び出し側でtop_n件に絞る前の全件を渡していれば、優先度の
+    高い候補が足りない場合に自動的に繰り上がる）。
+    """
+    tier = 0
+    if recent_type_counts:
+        tier += type_tier(recent_type_counts.get(item.get("_product_type", ""), 0))
+    if recent_category_counts:
+        tier += type_tier(recent_category_counts.get(item.get("_category", ""), 0))
+    return tier
+
+
+def _parse_posted_at(value: str) -> datetime | None:
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except (ValueError, TypeError):
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed
+
+
+def compute_recent_type_counts(
+    posted_items: list[dict[str, Any]],
+    type_of: Callable[[dict[str, Any]], str],
+    *,
+    now: datetime | None = None,
+    lookback_days: int = 7,
+) -> dict[str, int]:
+    """直近lookback_days日以内に投稿した商品を、type_of()の判定結果ごとに数える。
+
+    投稿日時（posted_at）が保存されていない過去データ（旧形式の投稿済み履歴）は、
+    日時を勝手に推測できないため集計の対象から除外する（誤って優先度を
+    下げすぎないようにするための安全側の判断。データ自体は変更しない）。
+    """
+    now = now or datetime.now(timezone.utc)
+    cutoff = now - timedelta(days=lookback_days)
+    counts: dict[str, int] = defaultdict(int)
+    for entry in posted_items:
+        posted_at = entry.get("posted_at")
+        if not posted_at:
+            continue
+        parsed = _parse_posted_at(posted_at)
+        if parsed is None or parsed < cutoff:
+            continue
+        type_value = type_of(entry)
+        if type_value:
+            counts[type_value] += 1
+    return dict(counts)
 
 
 def deduplicate_similar_items(
@@ -73,9 +149,32 @@ def _is_similar_name(name_a: str, name_b: str, threshold: float) -> bool:
     return difflib.SequenceMatcher(None, name_a, name_b).ratio() >= threshold
 
 
-def sort_by_quality(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """レビュー件数・レビュー評価が良い順に並べ替える。"""
-    return sorted(items, key=quality_score, reverse=True)
+def sort_by_quality(
+    items: list[dict[str, Any]],
+    recent_type_counts: dict[str, int] | None = None,
+    recent_category_counts: dict[str, int] | None = None,
+    rng: random.Random | None = None,
+) -> list[dict[str, Any]]:
+    """レビュー件数・レビュー評価が良い順に並べ替える。
+
+    recent_type_counts／recent_category_countsを渡すと、直近よく投稿している
+    商品タイプ・カテゴリーの優先度を段階的に下げる（priority_tier参照）。
+    完全に除外するわけではないため、優先度の高い候補が足りない場合は
+    diversify_top・select_balanced_topの既存の繰り上げ処理がそのまま働く。
+    rngを渡すと、優先度・レビュー実績が同点の商品同士の並び順にだけ
+    ランダム性を持たせる（品質順そのものは変えない＝安定ソートのため、
+    先に指定したrngでシャッフルしてから並べ替える）。
+    """
+    working = list(items)
+    if rng is not None:
+        rng.shuffle(working)
+
+    def key(item: dict[str, Any]) -> tuple[int, float, float]:
+        tier = priority_tier(item, recent_type_counts, recent_category_counts)
+        count, average = quality_score(item)
+        return (tier, -count, -average)
+
+    return sorted(working, key=key)
 
 
 def diversify_top(
@@ -128,21 +227,33 @@ def is_multipack(item: dict[str, Any]) -> bool:
     return bool(_MULTIPACK_COUNT_PATTERN.search(text))
 
 
-def sort_consumable_items(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def sort_consumable_items(
+    items: list[dict[str, Any]],
+    recent_type_counts: dict[str, int] | None = None,
+    recent_category_counts: dict[str, int] | None = None,
+    rng: random.Random | None = None,
+) -> list[dict[str, Any]]:
     """「消耗品・飲料」枠の商品を並べ替える。
 
     飲料（BEVERAGE_CATEGORIES）については、複数本セット（is_multipack）の
     商品を単品の商品より優先する。それ以外（飲料以外の消耗品）は、
     これまでどおりレビュー実績（quality_score）だけで並べる。
+    recent_type_counts／recent_category_counts／rngの扱いはsort_by_qualityと同じ
+    （直近よく投稿しているタイプ・カテゴリーの優先度を段階的に下げつつ、
+    完全除外はしない。同点の並び順にだけランダム性を持たせる）。
     """
+    working = list(items)
+    if rng is not None:
+        rng.shuffle(working)
 
-    def sort_key(item: dict[str, Any]) -> tuple[int, float, float]:
+    def sort_key(item: dict[str, Any]) -> tuple[int, int, float, float]:
         category = item.get("_category", "")
         is_low_priority_single_beverage = category in BEVERAGE_CATEGORIES and not is_multipack(item)
+        tier = priority_tier(item, recent_type_counts, recent_category_counts)
         count, average = quality_score(item)
-        return (1 if is_low_priority_single_beverage else 0, -count, -average)
+        return (1 if is_low_priority_single_beverage else 0, tier, -count, -average)
 
-    return sorted(items, key=sort_key)
+    return sorted(working, key=sort_key)
 
 
 def select_balanced_top(
@@ -152,6 +263,9 @@ def select_balanced_top(
     consumable_target: int = 5,
     convenience_max_per_category: int = 3,
     consumable_max_per_category: int = 2,
+    recent_type_counts: dict[str, int] | None = None,
+    recent_category_counts: dict[str, int] | None = None,
+    rng: random.Random | None = None,
 ) -> list[dict[str, Any]]:
     """「暮らしの便利グッズ」枠と「消耗品・飲料」枠から、5件＋5件（合計最大10件）を選ぶ。
 
@@ -159,16 +273,21 @@ def select_balanced_top(
     どちらかの枠の候補が不足している場合（枠内の全候補を選んでもtarget件に
     満たない場合）だけ、もう片方の枠の残り候補から不足分を補充する。
     合計はconvenience_target + consumable_target件を超えない。
+
+    recent_type_counts／recent_category_counts／rngはsort_by_quality・
+    sort_consumable_itemsにそのまま渡す（直近よく投稿している商品タイプ・
+    カテゴリーの優先度を段階的に下げる。品質条件（レビュー評価・件数等）
+    には一切影響しない）。
     """
     total_target = convenience_target + consumable_target
 
     conv_ranked = diversify_top(
-        sort_by_quality(convenience_items),
+        sort_by_quality(convenience_items, recent_type_counts, recent_category_counts, rng),
         top_n=convenience_target,
         max_per_category=convenience_max_per_category,
     )
     cons_ranked = diversify_top(
-        sort_consumable_items(consumable_items),
+        sort_consumable_items(consumable_items, recent_type_counts, recent_category_counts, rng),
         top_n=consumable_target,
         max_per_category=consumable_max_per_category,
     )

@@ -1935,3 +1935,181 @@ extra_keywordsも含めて完全に候補切れ」という条件に更新する
 既存の全テスト（商品検索条件・重複判定・GitHub Actionsの既存ワークフロー・
 TikTok関連・前回までの紹介文修正等、今回変更していない機能のテスト）が
 引き続き成功することを確認した。
+
+## 31. 同じ商品タイプが連日候補に出やすい偏りを抑える（完全除外ではなく優先度調整）
+
+### 原因
+
+完全に同じ商品（item_code／URL／正規化した商品名／match_keywords）は
+既存の`dedupe.py`が今まで通り正しく除外していたが、「スポンジ」
+「段ボールストッカー」のように**商品タイプ**（個々のSKUではなく
+「その種類の商品」）が連日候補に出てくる問題は、これとは別の原因だった。
+
+1. `config/settings.yaml`のkeywordsは固定の検索ワード一覧で、日ごとに
+   検索ワード自体をローテーションする仕組みが無い。
+2. 楽天ウェブサービスAPI（`rakuten_api.search_items`）は常にレビュー件数
+   降順で返すため、同じキーワードで検索する限り、同じ商品タイプの
+   トップ商品（例：レビュー件数が突出したスポンジ）が毎回上位に来る。
+3. 投稿済み履歴による重複除外は「完全に同じ商品」だけを見ており、
+   「商品タイプ」という粒度の判定はそもそも持っていない。
+4. `ranking.py`の並び替え（`sort_by_quality`/`sort_consumable_items`）は
+   レビュー実績のみによる完全に決定的な順序で、ランダム性も商品タイプの
+   偏りを考慮する仕組みも無かった。
+
+以上の組み合わせにより、「個々の商品は重複していないが、同じ商品タイプ
+ばかりが上位に来る」状態が起きていた。
+
+### 実装方針
+
+「完全除外」と「同商品タイプの連投抑制」を明確に2段階に分ける。
+
+- 完全重複 → 従来通り`dedupe.py`が除外（変更なし）。
+- 同商品タイプの連投 → **除外はせず、並び順の優先度だけを下げる**。
+
+`ranking.diversify_top()`は「1巡目はカテゴリー上限を守って選ぶ→
+2巡目は上限を無視してtop_n件まで残りから埋める」という2巡構造を
+既に持っている。この構造は、**並べ替え時に優先度の低い商品を後ろに
+回すだけで、「優先度の高い候補が十分にあれば後回しにされ、足りなければ
+自動的に繰り上がる」という挙動をコードの追加なしに再利用できる**。
+そこで`diversify_top()`自体は変更せず、その手前の並べ替え
+（`sort_by_quality`/`sort_consumable_items`）に「優先度の段階
+（tier）」を主要な並び替えキーとして追加するだけにした。
+
+- `ranking.type_tier(count)`: 直近の投稿回数を0〜3の段階に変換する
+  （0回→0、1回→1、2回→2、3回以上→3。上限3で頭打ち）。
+- `ranking.priority_tier(item, recent_type_counts, recent_category_counts)`:
+  商品タイプ・カテゴリーそれぞれの段階を合算する（両方の粒度の偏りを
+  同じ仕組みで抑えるため）。
+- `sort_by_quality`/`sort_consumable_items`/`select_balanced_top`に
+  `recent_type_counts`・`recent_category_counts`・`rng`を追加の
+  キーワード引数として渡せるようにした（省略時は従来と完全に同じ動作
+  ＝後方互換）。並び替えキーの先頭に`priority_tier`を置き、レビュー実績
+  はその次点にした。
+
+### 商品タイプの判定方法
+
+新しい手書き辞書は作らず、既存の紹介文生成用インフラを再利用した。
+
+- `description_generator.classify_product_type(name, category)`を追加。
+  まず既存の`match_product_type_keyword(name)`（`PRODUCT_TYPE_TEMPLATES`の
+  見出し語、スポンジ・段ボールストッカー・ハンガー・水垢・炊飯器等
+  25種類）で具体的な商品の種類を判定し、一致しなければ検索キーワードに
+  付けたカテゴリー（例：「水」「お茶」「洗剤」「収納」）をそのまま
+  商品タイプとして扱う。
+- 紹介文生成（`generate_description`等）と候補選定（`ranking`）が同じ
+  `match_product_type_keyword`を根拠にするため、両者の商品タイプ判定が
+  バラバラにならない。
+
+### 直近履歴の扱い（7日・日時の捏造禁止）
+
+- `ranking.compute_recent_type_counts(posted_items, type_of, lookback_days=7)`
+  を追加。投稿済み履歴（`posted_items_history`）から、`posted_at`が
+  実際に保存されている（かつlookback_days以内の）レコードだけを対象に
+  商品タイプ・カテゴリーごとの件数を数える。
+- `posted_at`が無いレコード（現在の`data/posted_items.json`は105件中
+  39件が旧形式でposted_atが無い）は、日時を推測せず**集計対象から
+  スキップする**（安全側）。データ自体（既存105件）は一切書き換えない
+  ＝`main.py`はこの履歴ファイルへの書き込みを一切行わない
+  （書き込みは従来通り`dedupe.append_posted_items`だけが行う）。
+- `main.py`側の`_posted_entry_product_type(entry)`は、投稿済みレコードの
+  `product_name`・`category`から商品タイプを判定する。`category`が
+  保存されていないレコードは、`DEFAULT_CATEGORY`へフォールバックさせず
+  空文字（＝集計対象外）とし、情報が無いものを実在のカテゴリーと
+  誤認しないようにしている。
+
+### 今後の投稿からcategoryを保存できるようにする（後方互換の追加）
+
+`dedupe.py`の投稿済み履歴スキーマ・`_normalize_incoming_item()`は
+以前から`category`フィールドに対応していたが、投稿ページ
+（`room/index.html`）側がこれまで`category`を記録・書き出ししていなかった。
+`state.posted[itemCode]`への保存箇所と`buildPostedExportRecords()`に
+`category: (item && item.category) || ""`を追記し、今後「投稿済みにする」
+操作をした分から`category`が保存されるようにした。既存のlocalStorage・
+既存のエクスポート形式には無かったフィールドを追加しただけで、既存の
+動作（投稿済み表示・フィルタ・エクスポート）は変えていない。
+
+### 10件不足時の動作・ランダム性
+
+- `priority_tier`は並び順を後ろにずらすだけで、候補そのものを消さない。
+  `select_balanced_top`に渡す`convenience_items`/`consumable_items`は
+  従来通りフィルタ済みの全候補であるため、優先度の高い候補が足りなければ
+  `diversify_top`の2巡目・枠間の補充ロジック（変更なし）がそのまま働き、
+  同商品タイプでも自動的に繰り上がる。品質条件（レビュー評価・件数等）を
+  緩める処理は一切追加していない。
+- `main.py`は当日（JST日付文字列）を種にした`random.Random`
+  （`_daily_random_seed`）を1つ作り、`select_balanced_top`に渡す。
+  `sort_by_quality`/`sort_consumable_items`は、渡されたrngで候補一覧を
+  シャッフルしてから安定ソートするため、優先度・レビュー実績が完全に
+  同点の商品同士の並びだけがランダムになる（品質順そのものは変わらない）。
+  同じ日のうちの再実行では同じ順、日付が変われば自然に変わる。
+
+### 診断情報
+
+`storage.build_product_type_diversity_markdown()`を追加し、GitHub Actions
+のSummaryに「今回選ばれた商品タイプ」「最近多いため優先度を下げた商品
+タイプ」「不足のため復帰させた商品タイプ」を簡潔に表示する。
+
+### 変更したファイル
+
+- `src/description_generator.py`: `classify_product_type()`を追加。
+- `src/ranking.py`: `type_tier`/`priority_tier`/`compute_recent_type_counts`
+  を追加。`sort_by_quality`/`sort_consumable_items`/`select_balanced_top`に
+  `recent_type_counts`/`recent_category_counts`/`rng`（すべて省略可能）を追加。
+- `src/main.py`: 直近7日の商品タイプ・カテゴリー件数の集計、日次シード
+  乱数の生成、`item["_product_type"]`の設定、`select_balanced_top`への
+  引き渡し、偏り防止の診断情報出力を追加。
+- `src/storage.py`: `build_product_type_diversity_markdown()`を追加。
+- `room/index.html`: 投稿済み登録時に`category`を保存・エクスポート
+  するよう追記（後方互換の追加フィールド）。
+
+### 追加テスト
+
+- `tests/test_ranking.py`: `type_tier`/`priority_tier`/
+  `compute_recent_type_counts`の単体テスト、`sort_by_quality`への
+  tier・rng適用の単体テスト、`select_balanced_top`でのスポンジ・
+  段ボールストッカーの優先度調整（除外ではないこと・候補不足時に
+  復帰すること・直近に出ていない商品タイプはペナルティを受けないこと・
+  既存の5+5バランスが壊れないこと）、rngのseed再現性テスト。
+- `tests/test_description_generator.py`: `classify_product_type()`の
+  単体テスト（具体的キーワード優先・カテゴリーへのフォールバック・
+  `match_product_type_keyword`との整合性）。
+- `tests/test_main.py`: `_daily_random_seed`・`_posted_entry_product_type`
+  の単体テスト、および実際のパイプライン全体を通した統合テスト
+  （「スポンジを投稿した翌日に別メーカーのスポンジが出た場合」の再現。
+  完全重複ではないため除外されないこと・同じ枠内で商品タイプ未使用の
+  ラップが優先されて先に並ぶことを確認）。
+
+全テスト（`pytest -q`・`python -m unittest discover -s tests`）が
+300件成功することを確認した（本章の変更前は269件）。
+
+### 実データを使ったシミュレーション
+
+実際の`data/posted_items.json`（105件、うちposted_atあり66件）に対して
+`compute_recent_type_counts`を実行したところ、直近7日で「スポンジ」5回
+（tier=3）、「段ボールストッカー」3回（tier=3）、「ハンガー」3回
+（tier=3）等が実際に検出され、ユーザーが挙げた具体例が実データでも
+そのまま再現されることを確認した。
+
+### 既存機能への影響
+
+紹介文生成・GitHub Pages投稿画面・投稿済み登録ワークフロー・
+15:30 JSTの実行スケジュール・TikTok関連・楽天API認証には変更していない
+（`room/index.html`のcategory追記はエクスポート形式への追加フィールドの
+みで、既存の読み書き・表示ロジックは変えていない）。新しい引数はすべて
+省略可能で、省略時（デフォルト）の並び順・選定結果は変更前と完全に一致する
+ことをテストで確認している。
+
+### 残っている制約
+
+- 商品タイプの粒度は`PRODUCT_TYPE_TEMPLATES`に登録済みのキーワードに
+  依存する。例えば「緑茶」「麦茶」「そば茶」のように、カテゴリー
+  「お茶」の中でさらに細かく分けたい場合、該当のキーワードが
+  `PRODUCT_TYPE_TEMPLATES`に無ければカテゴリー単位（「お茶」）でしか
+  区別されない（新しい手書き辞書を増やしすぎないという方針を優先した）。
+- `category`のposted_items.jsonへの保存は、今回の`room/index.html`修正
+  より後に「投稿済みにする」操作をした分からのみ有効になる。過去の
+  投稿はcategoryが無いままのため、当面はカテゴリー単位の偏り防止が
+  一部の履歴でしか効かない（商品タイプ単位の判定は`product_name`だけで
+  可能なため、この制約を受けない）。
+- カテゴリー自体の偏り防止は「優先度を下げる」だけで、固定ローテーション
+  のような強制的な分散は行っていない（意図的な設計。ユーザー指示に基づく）。

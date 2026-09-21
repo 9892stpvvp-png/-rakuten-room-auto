@@ -1103,5 +1103,37 @@ class TemplateComponentsForReuseTest(unittest.TestCase):
             self.assertTrue(description)
 
 
+class ClassifyProductTypeTest(unittest.TestCase):
+    """候補選定側の商品タイプ連投防止（src/ranking.py）が使うclassify_product_type()。
+
+    紹介文生成で使っているPRODUCT_TYPE_TEMPLATES／match_product_type_keyword()を
+    そのまま再利用し、判定ロジックが紹介文生成と候補選定でバラバラにならない
+    ことを確認する。
+    """
+
+    def test_uses_the_specific_product_type_keyword_when_matched(self):
+        self.assertEqual(
+            dg.classify_product_type("ダスキン スポンジ 3個セット", "キッチン"), "スポンジ"
+        )
+
+    def test_generalizes_to_other_registered_keywords_too(self):
+        self.assertEqual(
+            dg.classify_product_type("折りたたみ 段ボールストッカー おしゃれ", "収納"),
+            "段ボールストッカー",
+        )
+
+    def test_falls_back_to_the_given_category_when_no_keyword_matches(self):
+        self.assertEqual(dg.classify_product_type("よくある収納ラック", "収納"), "収納")
+
+    def test_falls_back_to_default_category_when_neither_is_available(self):
+        self.assertEqual(dg.classify_product_type("何かの商品", ""), dg.DEFAULT_CATEGORY)
+
+    def test_stays_consistent_with_match_product_type_keyword(self):
+        for item, category in ALL_REAL_ITEMS_AND_CATEGORIES:
+            product_name = item.get("name", "")
+            expected = dg.match_product_type_keyword(product_name) or category
+            self.assertEqual(dg.classify_product_type(product_name, category), expected)
+
+
 if __name__ == "__main__":
     unittest.main()
