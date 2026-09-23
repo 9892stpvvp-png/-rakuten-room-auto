@@ -1135,5 +1135,142 @@ class ClassifyProductTypeTest(unittest.TestCase):
             self.assertEqual(dg.classify_product_type(product_name, category), expected)
 
 
+class Sept22BatchRegressionTest(unittest.TestCase):
+    """2026-09-22生成分のroom/data/candidates.jsonで実際に見つかった、
+    「商品名の意味を取り違えた紹介文」の回帰テスト（description-fix-003）。
+    商品名は本番で実際に取得された表記をそのまま使っている。"""
+
+    CLEANER_STAND_NAME = (
+        "tower《 山崎実業 コードレスクリーナースタンド タワー 》公式 白 黒 ダイソンスタンド dyson "
+        "掃除機 スタンド V8slim V7slim V11 V10 V8 V7 V6 DC59 DC61 DC62 DC75 コードレス "
+        "スティッククリーナースタンド 収納 おしゃれ 3540 3541 YAMAZAKI"
+    )
+    BOWL_COLANDER_NAME = (
+        "【レビューでプレゼント有り】ボルコラ ボール・コランダー セット ザル ボウル セット 耐熱 "
+        "リベラリスタ キッチン ざる プラスチック ふた付き フタ付き 温野菜 電子レンジ対応 "
+        "食洗機対応 時短 調理器具 便利 リスオンラインショップ"
+    )
+    RANGE_HOOD_FILTER_NAME = (
+        "＼全品ポイント2倍／【楽天総合1位】 スターフィルター 換気扇フィルター レンジフードフィルター "
+        "レンジフィルターカバー スターターセット 枠2枚+フィルター4枚 シロッコファン 不燃性ガラス "
+        "繊維タイプ 新居 新築 一人暮らし 節約 便利グッズ 新生活 引っ越"
+    )
+    KAWANE_TEA_NAME = (
+        "JAS有機栽培 川根茶ブランド 粉末茶 10秒簡単！500mlペットボトル茶50本分が作れる "
+        "お茶 個包装0.8g×50"
+    )
+    DISHWASHER_DETERGENT_NAME = (
+        "ランキング1位！3冠達成！【送料無料】finish ビッグパック 大容量 150個入り "
+        "フィニッシュ　タブレット 食洗機用洗剤 パワーキューブ ビッグパック 食器洗い機用洗剤 "
+        "キッチン用洗剤 　食洗機用洗剤　 食器洗浄機用　洗剤　食器洗い機用 "
+        "5g × 150粒 750g 台所用合成洗剤"
+    )
+    TOILET_TANK_CLEANER_NAME = "【木村石鹸 公式】C SERIES トイレタンクの洗浄剤　つけおき 除菌"
+
+    # 1. コードレスクリーナースタンドを掃除機本体として紹介しない。
+    def test_cleaner_stand_is_not_introduced_as_the_vacuum_itself(self):
+        item = make_item(name=self.CLEANER_STAND_NAME)
+        description = dg.generate_description(item, category="掃除", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("スタンド", description)
+        self.assertIn("収納", description)
+
+    # 2. クリーナースタンドに「汚れのお手入れ」が出ない（掃除機本体向けの文言が混ざらない）。
+    def test_cleaner_stand_does_not_get_stain_care_wording(self):
+        item = make_item(name=self.CLEANER_STAND_NAME)
+        description = dg.generate_description(item, category="掃除", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("汚れ", description)
+        self.assertNotIn("その汚れ、気になってませんか", description)
+
+    # 3. ボール/コランダーのフタから「ホコリ防止」を推測しない。
+    def test_lidded_bowl_set_does_not_claim_dust_prevention(self):
+        item = make_item(name=self.BOWL_COLANDER_NAME)
+        description = dg.generate_description(item, category="キッチン", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("ホコリ", description)
+
+    def test_lid_feature_clause_states_fact_only(self):
+        # フタ付き・蓋付き自体はFEATURE_CLAUSESとして残すが、確認できない
+        # 目的（ホコリを防ぐ）までは主張しない安全な言い回しにする。
+        self.assertEqual(dg._top_feature_clause("フタ付き 収納ケース", "収納"), ("フタ付きで使いやすい", "📦"))
+
+    # 4. レンジフードフィルターを一般キッチングッズだけで紹介しない。
+    def test_range_hood_filter_is_not_only_generic_kitchen_goods(self):
+        item = make_item(name=self.RANGE_HOOD_FILTER_NAME)
+        description = dg.generate_description(item, category="キッチン", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("毎日の料理や後片付け、地味に手間じゃない", description)
+        self.assertIn("換気扇", description)
+        self.assertIn("フィルター", description)
+
+    # 「一人暮らし」は広告用の対象者向けキーワードであり、商品本体の
+    # 特徴として優先して採用しない（FEATURE_CLAUSESから削除済み）。
+    def test_range_hood_filter_does_not_feature_target_audience_marketing_words(self):
+        item = make_item(name=self.RANGE_HOOD_FILTER_NAME)
+        description = dg.generate_description(item, category="キッチン", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("一人暮らし向けで使いやすい", description)
+
+    def test_holder_combined_quantity_is_kept_as_one_coherent_phrase(self):
+        # 「枠2枚+フィルター4枚」を分割して片方の数字だけを拾わない。
+        phrase = dg._extract_quantity_phrase(self.RANGE_HOOD_FILTER_NAME)
+        self.assertEqual(phrase, "枠2枚+フィルター4枚")
+
+    # 5. 「50本分」を「50本入り」と誤認しない。
+    def test_tea_bags_per_bottle_yield_is_not_mistaken_for_pack_count(self):
+        description_source_phrase = dg._extract_quantity_phrase(self.KAWANE_TEA_NAME)
+        self.assertNotEqual(description_source_phrase, "50本")
+        item = make_item(name=self.KAWANE_TEA_NAME)
+        description = dg.generate_description(item, category="お茶", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("50本で使いやすい", description)
+
+    # 6. 0.8g×50等の数量表現を意味を保って扱う。
+    def test_individually_packaged_quantity_keeps_its_meaning(self):
+        phrase = dg._extract_quantity_phrase(self.KAWANE_TEA_NAME)
+        self.assertEqual(phrase, "0.8g×50")
+
+    # 7. 食洗機用洗剤を一般的な手洗い用洗剤として紹介しない。
+    def test_dishwasher_detergent_is_not_introduced_as_hand_washing_detergent(self):
+        item = make_item(name=self.DISHWASHER_DETERGENT_NAME)
+        description = dg.generate_description(item, category="洗剤", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("普段の食器洗いに使いやすい", description)
+        self.assertIn("食洗機", description)
+
+    def test_dishwasher_detergent_subtype_matching_selects_expected_template(self):
+        self.assertIs(
+            dg._match_detergent_subtype(self.DISHWASHER_DETERGENT_NAME),
+            dg._DISHWASHER_DETERGENT_TEMPLATE,
+        )
+        # 手洗い用の「食器用洗剤」は、これまでどおり食洗機用とは別テンプレート。
+        self.assertIs(
+            dg._match_detergent_subtype("食器用洗剤 大容量 詰め替え用"),
+            dg._DISHWASHING_DETERGENT_TEMPLATE,
+        )
+
+    # 8. トイレタンク洗浄剤を一般日用品だけで紹介しない。
+    def test_toilet_tank_cleaner_is_not_only_generic_daily_goods(self):
+        item = make_item(name=self.TOILET_TANK_CLEANER_NAME)
+        description = dg.generate_description(item, category="日用品", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("切らすと地味に困る日用品", description)
+        self.assertIn("トイレタンク", description)
+        self.assertIn("つけおき", description)
+
+    # 9. 以前修正した洗濯洗剤→食器洗い誤用途が再発しない（回帰確認）。
+    def test_laundry_detergent_still_does_not_mention_dishwashing_regression(self):
+        item = make_item(name="【1種類を選べる】アタックZERO 洗濯洗剤 ワンハンド 本体(380g×4セット)")
+        description = dg.generate_description(item, category="洗剤", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("食器洗い", description)
+        self.assertIn("洗濯", description)
+
+    # 10. 購入制限商品→まとめ買い誤表現が再発しない（回帰確認）。
+    def test_purchase_limited_item_still_has_no_bulk_buying_phrase_regression(self):
+        item = make_item(name=GRAPE_JUICE_NAME)
+        description = dg.generate_description(item, category="ジュース", base_hashtags=BASE_HASHTAGS)
+        for phrase in ("まとめ買い", "まとめて", "大量"):
+            self.assertNotIn(phrase, description, description)
+
+    def test_one_person_household_removed_from_feature_clauses(self):
+        # 「一人暮らし」は商品本体の構造・仕様ではなく広告用の対象者向け
+        # キーワードのため、FEATURE_CLAUSESから削除されていることを確認する。
+        keywords = [keyword for keyword, _clause, _emoji in dg.FEATURE_CLAUSES]
+        self.assertNotIn("一人暮らし", keywords)
+
+
 if __name__ == "__main__":
     unittest.main()
