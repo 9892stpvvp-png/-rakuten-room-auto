@@ -9,6 +9,7 @@
     "aspa:10000003",
     "at-life:10050736",
     "auc-risecreation:10003265",
+    "bathroom:10002371",
     "bathroom:10002808",
     "biyoudou:10000164",
     "calico-a1:10000058",
@@ -21,6 +22,7 @@
     "eunicedress:10001735",
     "exception5251:10000572",
     "f222038-numazu:10000205",
+    "good-item:10000868",
     "green365:10000000",
     "hibec:10000019",
     "honjien-3:10000310",
@@ -32,8 +34,11 @@
     "jimo:10000191",
     "jimo:10000201",
     "k-home:10060922",
+    "k-home:10084246",
     "kaguzaku:10005215",
     "kaguzaku:10008425",
+    "katayamaen:10000442",
+    "kimurasoap:10000017",
     "kindai-ns:10001130",
     "laitnature:10000872",
     "larutan:10000154",
@@ -53,18 +58,23 @@
     "ownlife:10000777",
     "pia-konodai:10000180",
     "pia-konodai:10000499",
+    "rack-town:10001473",
     "rakuten24:11148575",
+    "risu-onlineshop:10002060",
     "sanki-shop:10000001",
     "shimoyama-onlineshop:10001811",
     "shimoyama-onlineshop:10002758",
     "shinbido:10002621",
     "shinbido:10002622",
+    "soukaidrink:10007430",
+    "starfilter:10000019",
     "suzumura-shoten:10000005",
     "taigu188:10000816",
     "takara-jiang:10034170",
     "value-create:10000010",
     "winwinproduct:10000988",
     "yamatoya-d:10000208",
+    "yamayuu:10016527",
     "yamayuu:10016536"
   ],
   "posted_items": [
@@ -1023,6 +1033,86 @@
       "product_name": "国産 はとむぎ茶 6g×50包 （300g 大容量 ティーバッグ） ほんぢ園 ＜はと麦茶 100% ペットボトル よりお得！ ティーパック ハト麦茶 ハトムギ ノンカフェイン 【LC】＞ 送料無料 ／セ／ ●",
       "posted_at": "2026-09-21T10:56:28.472Z",
       "category": "",
+      "match_keywords": []
+    },
+    {
+      "item_code": "yamayuu:10016527",
+      "item_url": "https://item.rakuten.co.jp/yamayuu/ti-cl-665-530/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "特典付【 tidy Sweep スウィープ 】ほうきちりとりセット ホーキ 箒 室内用 屋外用 ベランダ用 長柄 自立 軽い 掃除道具 コンパクト お掃除グッズ シンプル おしゃれ 白 グレー レモン ブラウン ベージュ ブルー カフェ 飲食店 オフィス ティディ スイープ",
+      "posted_at": "2026-09-23T04:06:46.540Z",
+      "category": "掃除",
+      "match_keywords": []
+    },
+    {
+      "item_code": "rack-town:10001473",
+      "item_url": "https://item.rakuten.co.jp/rack-town/si-515016_515017/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "【お買い物マラソン★9/24 01:59まで】 トースターラック おしゃれ 隠す収納 ブレッドケース 引き出し トースター 収納 スリム 大容量 台所 パンケース 北欧 一人暮らし 調味料 ストッカー ブレッドドロワー キッチン 収納グッズ ホワイト UtaU 公式【ゆうパック発送】",
+      "posted_at": "2026-09-23T04:07:14.608Z",
+      "category": "収納",
+      "match_keywords": []
+    },
+    {
+      "item_code": "bathroom:10002371",
+      "item_url": "https://item.rakuten.co.jp/bathroom/yj-03540/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "tower《 山崎実業 コードレスクリーナースタンド タワー 》公式 白 黒 ダイソンスタンド dyson 掃除機 スタンド V8slim V7slim V11 V10 V8 V7 V6 DC59 DC61 DC62 DC75 コードレス スティッククリーナースタンド 収納 おしゃれ 3540 3541 YAMAZAKI",
+      "posted_at": "2026-09-23T04:08:01.907Z",
+      "category": "掃除",
+      "match_keywords": []
+    },
+    {
+      "item_code": "risu-onlineshop:10002060",
+      "item_url": "https://item.rakuten.co.jp/risu-onlineshop/15930-8/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "【レビューでプレゼント有り】ボルコラ ボール・コランダー セット ザル ボウル セット 耐熱 リベラリスタ キッチン ざる プラスチック ふた付き フタ付き 温野菜 電子レンジ対応 食洗機対応 時短 調理器具 便利 リスオンラインショップ",
+      "posted_at": "2026-09-23T04:08:39.086Z",
+      "category": "キッチン",
+      "match_keywords": []
+    },
+    {
+      "item_code": "starfilter:10000019",
+      "item_url": "https://item.rakuten.co.jp/starfilter/sfset2/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "＼全品ポイント2倍／【楽天総合1位】 スターフィルター 換気扇フィルター レンジフードフィルター レンジフィルターカバー スターターセット 枠2枚+フィルター4枚 シロッコファン 不燃性ガラス 繊維タイプ 新居 新築 一人暮らし 節約 便利グッズ 新生活 引っ越",
+      "posted_at": "2026-09-23T04:09:30.320Z",
+      "category": "キッチン",
+      "match_keywords": []
+    },
+    {
+      "item_code": "soukaidrink:10007430",
+      "item_url": "https://item.rakuten.co.jp/soukaidrink/4902102139410/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "い・ろ・は・す 天然水 PET ラベルレス(1箱24本入(1本560ml))【2shdrk】【いろはす(I LOHAS)】[水 ミネラルウォーター]",
+      "posted_at": "2026-09-23T04:10:14.478Z",
+      "category": "水",
+      "match_keywords": []
+    },
+    {
+      "item_code": "k-home:10084246",
+      "item_url": "https://item.rakuten.co.jp/k-home/310997/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "【48本】 炭酸水 500ml ラベルレス アイリスオーヤマ 強炭酸水 無糖 強炭酸 炭酸 レモン グレープフルーツ プレーン クリスタルスパーク ラベルレス CRYSTALSPARK クリスタルスパーク",
+      "posted_at": "2026-09-23T04:10:56.011Z",
+      "category": "水",
+      "match_keywords": []
+    },
+    {
+      "item_code": "katayamaen:10000442",
+      "item_url": "https://item.rakuten.co.jp/katayamaen/r-pet500-50/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "JAS有機栽培 川根茶ブランド 粉末茶 10秒簡単！500mlペットボトル茶50本分が作れる お茶 個包装0.8g×50",
+      "posted_at": "2026-09-23T04:11:28.291Z",
+      "category": "お茶",
+      "match_keywords": []
+    },
+    {
+      "item_code": "good-item:10000868",
+      "item_url": "https://item.rakuten.co.jp/good-item/co-126/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "ランキング1位！3冠達成！【送料無料】finish ビッグパック 大容量 150個入り フィニッシュ　タブレット 食洗機用洗剤 パワーキューブ ビッグパック 食器洗い機用洗剤 キッチン用洗剤 　食洗機用洗剤　 食器洗浄機用　洗剤　食器洗い機用 5g × 150粒 750g 台所用合成洗剤",
+      "posted_at": "2026-09-23T04:11:52.918Z",
+      "category": "洗剤",
+      "match_keywords": []
+    },
+    {
+      "item_code": "kimurasoap:10000017",
+      "item_url": "https://item.rakuten.co.jp/kimurasoap/toilet_tank/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "【木村石鹸 公式】C SERIES トイレタンクの洗浄剤　つけおき 除菌",
+      "posted_at": "2026-09-23T04:12:26.842Z",
+      "category": "日用品",
       "match_keywords": []
     }
   ]
