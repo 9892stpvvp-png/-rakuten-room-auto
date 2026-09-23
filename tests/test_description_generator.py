@@ -1272,5 +1272,148 @@ class Sept22BatchRegressionTest(unittest.TestCase):
         self.assertNotIn("一人暮らし", keywords)
 
 
+class Sept23BatchRegressionTest(unittest.TestCase):
+    """2026-09-23生成分のroom/data/candidates.jsonで実際に見つかった、
+    「カテゴリーから具体的な用途を断定してしまう」問題の回帰テスト
+    （description-fix-004）。商品名は本番で実際に取得された表記をそのまま使っている。"""
+
+    HEAT_PLATE_NAME = (
+        "マイクロウェーブヒートプレートライト | 焼き魚がレンジで数分 マイクロウェーブヒートシリーズ "
+        "マイクロウェーブヒート レンジで焼き魚 レンジ調理 電子レンジ で焼き魚 電子レンジ調理 "
+        "調理器具 時短 便利 電子レンジ魚調理"
+    )
+    GRATER_NAME = (
+        "下村工業 プログレード 軽くおろせるやさしいおろし器 大根おろし おろし器 おろし金 卸金 "
+        "時短グッズ 燕三条 日本製 PG-668【送料無料】"
+    )
+    PET_DRYER_STAND_NAME = (
+        "ドライヤースタンド ペット用 犬 猫 フリーハンド ハンズフリー ヘアドライヤー 両手が空く "
+        "ペットの毛の乾燥も簡単便利。 ドライヤーホルダー 固定 犬 クリップ 時短グッズ シンプル "
+        "置型 黒 固定機 アーム 伸縮 簡単 使いやすい ヘアケア 便利グッズ 犬 猫"
+    )
+    A2CARE_NAME = (
+        "A2Care 除菌 消臭スプレー 300ml ANA 採用 感染対策 日本製 MA-T アルコールフリー 赤ちゃん "
+        "ペット 無香料 部屋 車内 玄関 ゴミ箱 トイレ 衣類 猫 タバコ 生乾き臭 カビ対策 消臭 消臭剤 "
+        "無臭空間 ノンアルコール ウイルス 花粉"
+    )
+    WASHING_MACHINE_TUB_CLEANER_NAME = (
+        "★【 洗濯槽快×10個セット 業務用箱なし 専用新ネット1枚付 】 カビ防止 除菌 消臭 部屋干し 梅雨 "
+        "洗濯槽クリーナー 洗濯槽 洗濯槽洗剤 洗濯機 洗たく槽 洗濯爽快 掃除 洗濯槽クリーニング "
+        "ホタテ 帆立 貝殻"
+    )
+
+    # 1. ヒートプレートを家電と判定しない。
+    def test_heat_plate_is_not_judged_as_an_appliance(self):
+        item = make_item(name=self.HEAT_PLATE_NAME)
+        description = dg.generate_description(item, category="時短", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("時短家電", description)
+        self.assertNotIn("家電", description)
+
+    # 2. 「電子レンジで使用」から電子レンジ本体と誤認しない。
+    def test_heat_plate_is_not_mistaken_for_the_microwave_itself(self):
+        item = make_item(name=self.HEAT_PLATE_NAME)
+        description = dg.generate_description(item, category="時短", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("電子レンジで", description)
+        self.assertIn("ヒートプレート", description)
+        # 「電子レンジ」で調理する器具であって、電子レンジ本体を紹介しているのではない。
+        self.assertNotIn("そんな家事の時間を短くしてくれそうな時短家電", description)
+
+    # 3. 手動おろし器を時短家電と判定しない。
+    def test_manual_grater_is_not_judged_as_a_time_saving_appliance(self):
+        item = make_item(name=self.GRATER_NAME)
+        description = dg.generate_description(item, category="時短", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("時短家電", description)
+        self.assertNotIn("家電", description)
+        self.assertIn("おろし", description)
+
+    # 4. おろし器に「家事をおまかせ」が出ない。
+    def test_manual_grater_does_not_get_hands_off_automation_wording(self):
+        item = make_item(name=self.GRATER_NAME)
+        description = dg.generate_description(item, category="時短", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("おまかせ", description)
+
+    # 5. ペット用ドライヤースタンドを収納用品と誤認しない。
+    def test_pet_dryer_stand_is_not_mistaken_for_a_storage_item(self):
+        item = make_item(name=self.PET_DRYER_STAND_NAME)
+        description = dg.generate_description(item, category="時短", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("まとめて収納できるスタンド", description)
+        self.assertNotIn("ヘアーアイロンもまとめて整理できる", description)
+
+    # 6. ハンズフリー/固定用途を反映する。
+    def test_pet_dryer_stand_reflects_hands_free_fixed_use(self):
+        item = make_item(name=self.PET_DRYER_STAND_NAME)
+        description = dg.generate_description(item, category="時短", base_hashtags=BASE_HASHTAGS)
+        self.assertTrue(
+            any(keyword in description for keyword in ("ハンズフリー", "固定")),
+            description,
+        )
+
+    def test_dryer_stand_without_hands_free_context_still_uses_storage_template(self):
+        # 文脈語（ハンズフリー・固定等）が無い、従来通りの収納用ドライヤー
+        # スタンドは、これまでどおり収納用テンプレートのままであることを確認する
+        # （上書きが過剰適用されて既存の挙動を壊していないことの確認）。
+        item = make_item(name="山崎実業 tower ドライヤースタンド 洗面所 収納 おしゃれ")
+        description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("まとめて収納できるスタンド", description)
+
+    # 7. 洗濯槽クリーナーを衣類用洗濯洗剤として紹介しない。
+    def test_washing_machine_tub_cleaner_is_not_introduced_as_laundry_detergent(self):
+        item = make_item(name=self.WASHING_MACHINE_TUB_CLEANER_NAME)
+        description = dg.generate_description(item, category="洗剤", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("毎日のお洗濯に使いやすい", description)
+        self.assertNotIn("普段のお洗濯に使いやすい", description)
+        self.assertIn("洗濯槽", description)
+
+    def test_washing_machine_tub_cleaner_subtype_matching_selects_expected_template(self):
+        self.assertIs(
+            dg._match_detergent_subtype(self.WASHING_MACHINE_TUB_CLEANER_NAME),
+            dg._WASHING_MACHINE_TUB_CLEANER_TEMPLATE,
+        )
+        # 通常の衣類用洗濯洗剤は、これまでどおり別テンプレート。
+        self.assertIs(
+            dg._match_detergent_subtype("泥汚れ用 洗濯洗剤 部屋干し対応"),
+            dg._LAUNDRY_DETERGENT_TEMPLATE,
+        )
+
+    # 8. A2Careをキッチン専用品として紹介しない。
+    def test_multi_purpose_spray_is_not_introduced_as_kitchen_only(self):
+        item = make_item(name=self.A2CARE_NAME)
+        description = dg.generate_description(item, category="キッチン消耗品", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("毎日のキッチン作業に使いやすい", description)
+        self.assertNotIn("キッチン専用", description)
+
+    # 9. カテゴリーだけでは具体用途を断定しない（商品名がPRODUCT_TYPE_TEMPLATES・
+    #    DETERGENT_SUBTYPE_TEMPLATESのどれにも一致しない、未知の商品タイプの場合）。
+    def test_unmatched_product_in_time_saving_category_does_not_assume_appliance(self):
+        item = make_item(name="なんの変哲もない暮らしの道具")
+        self.assertIsNone(dg._match_product_type(item["name"]))
+        description = dg.generate_description(item, category="時短", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("家電", description)
+        self.assertNotIn("おまかせ", description)
+
+    def test_unmatched_product_in_kitchen_supply_category_does_not_assume_kitchen_task(self):
+        item = make_item(name="なんの変哲もない暮らしの道具")
+        self.assertIsNone(dg._match_product_type(item["name"]))
+        description = dg.generate_description(item, category="キッチン消耗品", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("毎日のキッチン作業に使いやすい", description)
+
+    # 10. 未知の商品タイプでもカテゴリー由来の誤用途を生成しない
+    #     （GENERIC_TEMPLATES自体に、断定的な言い回しが残っていないことの確認）。
+    def test_generic_time_saving_template_does_not_assume_appliance_or_automation(self):
+        template = dg.GENERIC_TEMPLATES["時短"]
+        forbidden = ("時短家電", "家電", "おまかせ")
+        texts = [template.hook_text, template.solution_text, template.checklist_fallback]
+        texts += template.checklist_core
+        for text in texts:
+            for phrase in forbidden:
+                self.assertNotIn(phrase, text, text)
+
+    def test_generic_kitchen_supply_template_does_not_assume_kitchen_task(self):
+        template = dg.GENERIC_TEMPLATES["キッチン消耗品"]
+        self.assertNotIn("毎日のキッチン作業に使いやすい", template.checklist_core)
+        for variant in template.solution_variants:
+            self.assertNotIn("キッチン作業に使いやすそう", variant)
+
+
 if __name__ == "__main__":
     unittest.main()
