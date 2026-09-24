@@ -1,6 +1,8 @@
 {
   "posted_item_codes": [
+    "a2care-official:10000003",
     "angelique:10047977",
+    "angie:10014605",
     "anker:10002285",
     "anker:10002408",
     "anker:10002525",
@@ -31,6 +33,8 @@
     "hush08:10000002",
     "hush08:10000003",
     "ichifujiec:10000032",
+    "idea-happy-life:10003997",
+    "irisplaza-r:10156833",
     "jimo:10000191",
     "jimo:10000201",
     "k-home:10060922",
@@ -40,6 +44,7 @@
     "katayamaen:10000442",
     "kimurasoap:10000017",
     "kindai-ns:10001130",
+    "kurashikaiteki-shop:10010350",
     "laitnature:10000872",
     "larutan:10000154",
     "let-ochanomise:10000187",
@@ -54,13 +59,17 @@
     "nactasukaru:10000285",
     "next-online:10000140",
     "niceitems:10000227",
+    "noone:10002900",
     "onestep:10045575",
     "ownlife:10000777",
+    "pasodentsushin:10723971",
     "pia-konodai:10000180",
     "pia-konodai:10000499",
     "rack-town:10001473",
+    "rakuten24:10252628",
     "rakuten24:11148575",
     "risu-onlineshop:10002060",
+    "royal3000:10006630",
     "sanki-shop:10000001",
     "shimoyama-onlineshop:10001811",
     "shimoyama-onlineshop:10002758",
@@ -71,6 +80,7 @@
     "suzumura-shoten:10000005",
     "taigu188:10000816",
     "takara-jiang:10034170",
+    "tcol:10000012",
     "value-create:10000010",
     "winwinproduct:10000988",
     "yamatoya-d:10000208",
@@ -1113,6 +1123,86 @@
       "product_name": "【木村石鹸 公式】C SERIES トイレタンクの洗浄剤　つけおき 除菌",
       "posted_at": "2026-09-23T04:12:26.842Z",
       "category": "日用品",
+      "match_keywords": []
+    },
+    {
+      "item_code": "angie:10014605",
+      "item_url": "https://item.rakuten.co.jp/angie/su_mwh_3/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "マイクロウェーブヒートプレートライト | 焼き魚がレンジで数分 マイクロウェーブヒートシリーズ マイクロウェーブヒート レンジで焼き魚 レンジ調理 電子レンジ で焼き魚 電子レンジ調理 調理器具 時短 便利 電子レンジ魚調理",
+      "posted_at": "2026-09-24T00:07:45.574Z",
+      "category": "時短",
+      "match_keywords": []
+    },
+    {
+      "item_code": "idea-happy-life:10003997",
+      "item_url": "https://item.rakuten.co.jp/idea-happy-life/10003997/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "下村工業 プログレード 軽くおろせるやさしいおろし器 大根おろし おろし器 おろし金 卸金 時短グッズ 燕三条 日本製 PG-668【送料無料】",
+      "posted_at": "2026-09-24T00:08:15.320Z",
+      "category": "時短",
+      "match_keywords": []
+    },
+    {
+      "item_code": "pasodentsushin:10723971",
+      "item_url": "https://item.rakuten.co.jp/pasodentsushin/lg_drying_stand/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "ドライヤースタンド ペット用 犬 猫 フリーハンド ハンズフリー ヘアドライヤー 両手が空く ペットの毛の乾燥も簡単便利。 ドライヤーホルダー 固定 犬 クリップ 時短グッズ シンプル 置型 黒 固定機 アーム 伸縮 簡単 使いやすい ヘアケア 便利グッズ 犬 猫",
+      "posted_at": "2026-09-24T00:08:45.264Z",
+      "category": "時短",
+      "match_keywords": []
+    },
+    {
+      "item_code": "noone:10002900",
+      "item_url": "https://item.rakuten.co.jp/noone/combo-s/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "楽天1位受賞 選べる素材20カラー 収納ベンチ 収納スツール 室内 収納ボックス ふた付き ベンチ 長方形 正方形 木製 フタ付き 頑丈 布 おしゃれ 折りたたみ 椅子 収納ケース 立方体 レザー調 座れる オットマン PVCレザー ファブリック 椅子 スツール ヌック ブークレ調",
+      "posted_at": "2026-09-24T00:09:04.848Z",
+      "category": "収納",
+      "match_keywords": []
+    },
+    {
+      "item_code": "royal3000:10006630",
+      "item_url": "https://item.rakuten.co.jp/royal3000/a778/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "【ポイント10倍 9/19(土)20:00〜9/25(金)23:59まで】 押入れフリーラック 伸縮タイプ 2台入 | コンパクト 収納 ラック 押し入れ収納 押入れ クローゼット 棚 整理棚 押入れ収納 すきま収納 収納棚 伸縮棚 衣類 収納グッズ 布団 収納ラック 伸縮 ふとん 重ねる すのこ",
+      "posted_at": "2026-09-24T00:09:23.131Z",
+      "category": "収納",
+      "match_keywords": []
+    },
+    {
+      "item_code": "a2care-official:10000003",
+      "item_url": "https://item.rakuten.co.jp/a2care-official/10000003/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "A2Care 除菌 消臭スプレー 300ml ANA 採用 感染対策 日本製 MA-T アルコールフリー 赤ちゃん ペット 無香料 部屋 車内 玄関 ゴミ箱 トイレ 衣類 猫 タバコ 生乾き臭 カビ対策 消臭 消臭剤 無臭空間 ノンアルコール ウイルス 花粉",
+      "posted_at": "2026-09-24T00:09:43.816Z",
+      "category": "キッチン消耗品",
+      "match_keywords": []
+    },
+    {
+      "item_code": "tcol:10000012",
+      "item_url": "https://item.rakuten.co.jp/tcol/toyo-s-1520/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "【楽天3冠獲得!!】真空パック 袋 (15×20cm) エンボス 真空パック機 [料理講師監修 マジック鮮度] 真空パック袋 ロール 家庭用 業務用 50~200枚 セット 東洋プラン 包装袋 エンボス 加工 バキュームシーラー 食品保存 電子レンジ 湯煎 低温調理",
+      "posted_at": "2026-09-24T00:10:03.901Z",
+      "category": "キッチン消耗品",
+      "match_keywords": []
+    },
+    {
+      "item_code": "irisplaza-r:10156833",
+      "item_url": "https://item.rakuten.co.jp/irisplaza-r/1920418/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "【2880枚/1152枚】 ウェットティッシュ 除菌シート 除菌ウェットティッシュ 除菌ができるウェットティッシュ 2880枚 1152枚 アイリスオーヤマ WTS-60N WTS-60A 【iris_dl03】【iris_dl01】",
+      "posted_at": "2026-09-24T00:10:25.135Z",
+      "category": "日用品",
+      "match_keywords": []
+    },
+    {
+      "item_code": "rakuten24:10252628",
+      "item_url": "https://item.rakuten.co.jp/rakuten24/e341234h/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "スクラビングバブル 超強力トイレクリーナー(400g)【スクラビングバブル】[トイレ洗剤 トイレ掃除 まとめ買い 洗浄 除菌]",
+      "posted_at": "2026-09-24T00:10:45.855Z",
+      "category": "日用品",
+      "match_keywords": []
+    },
+    {
+      "item_code": "kurashikaiteki-shop:10010350",
+      "item_url": "https://item.rakuten.co.jp/kurashikaiteki-shop/10000168/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "★【 洗濯槽快×10個セット 業務用箱なし 専用新ネット1枚付 】 カビ防止 除菌 消臭 部屋干し 梅雨 洗濯槽クリーナー 洗濯槽 洗濯槽洗剤 洗濯機 洗たく槽 洗濯爽快 掃除 洗濯槽クリーニング ホタテ 帆立 貝殻",
+      "posted_at": "2026-09-24T00:11:16.630Z",
+      "category": "洗剤",
       "match_keywords": []
     }
   ]
