@@ -314,17 +314,15 @@ def main() -> None:
         similarity_threshold=settings.get("similarity_threshold", 0.55),
     )
 
-    # フェーズ3: 「暮らしの便利グッズ」5件＋「消耗品・飲料」5件のバランスで上位候補を選ぶ
-    # （どちらかの枠が5件に満たない場合だけ、もう片方の枠から補充する）。
-    convenience_items = [item for item in unique_items if item["_group"] == ranking.CONVENIENCE_GROUP]
-    consumable_items = [item for item in unique_items if item["_group"] == ranking.CONSUMABLE_GROUP]
-    candidates = ranking.select_balanced_top(
-        convenience_items,
-        consumable_items,
-        convenience_target=settings.get("convenience_target", 5),
-        consumable_target=settings.get("consumable_target", 5),
-        convenience_max_per_category=settings.get("summary_max_per_category", 3),
-        consumable_max_per_category=settings.get("consumable_max_per_category", 2),
+    # フェーズ3: 全ジャンルを1つのプールとして扱い、品質・需要（レビュー件数・
+    # 評価）・ジャンルの偏り防止・ランダム性を踏まえて上位daily_target件を選ぶ
+    # （全ジャンル化。description-genre-001）。「暮らしの便利グッズ」枠／
+    # 「消耗品・飲料」枠という固定の5+5構成は使わない。
+    daily_target = settings.get("daily_target", 10)
+    candidates = ranking.select_top_candidates(
+        unique_items,
+        target=daily_target,
+        max_per_category=settings.get("max_per_category", 2),
         recent_type_counts=recent_product_type_counts,
         recent_category_counts=recent_category_counts,
         rng=selection_rng,
@@ -373,15 +371,19 @@ def main() -> None:
             history_total=posted_history_total,
         )
     )
-    convenience_actual = sum(1 for item in candidates if item["_group"] == ranking.CONVENIENCE_GROUP)
-    consumable_actual = sum(1 for item in candidates if item["_group"] == ranking.CONSUMABLE_GROUP)
+    quality_filtered_out = sum(
+        stat["raw"] - stat["after_quality_filters"]
+        for diag in category_diagnostics
+        for stat in diag["keyword_stats"]
+    )
     write_github_step_summary(
-        storage.build_supply_diagnostics_markdown(
+        storage.build_genre_selection_summary_markdown(
             category_diagnostics,
-            convenience_count=convenience_actual,
-            consumable_count=consumable_actual,
-            convenience_target=settings.get("convenience_target", 5),
-            consumable_target=settings.get("consumable_target", 5),
+            candidates=candidates,
+            total_after_filters=len(unique_items),
+            target=daily_target,
+            quality_filtered_out=quality_filtered_out,
+            posted_excluded_total=posted_excluded_total,
         )
     )
     selected_types = sorted(

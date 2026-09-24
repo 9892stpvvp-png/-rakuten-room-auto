@@ -14,20 +14,43 @@ api_endpoint: "https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/2026
 allowed_origin: "https://9892stpvvp-png.github.io/-rakuten-room-auto/"
 
 # 楽天ウェブサービスAPIで検索するキーワード。
-# 毎日の投稿候補10件は、「暮らしの便利グッズ」枠5件＋「消耗品・飲料」枠5件で
-# 選ばれる（片方が5件に満たない場合だけ、もう片方の枠から補充する）。
-# - group: どちらの枠の商品として検索するか（convenience=暮らしの便利グッズ／
-#   consumable=消耗品・飲料）。省略した場合はconvenience扱いになる。
-# - category: 紹介文の言い回し・ハッシュタグを選ぶために使う。
-#   便利グッズ枠は「掃除／収納／キッチン／時短／暮らし全般」、
-#   消耗品・飲料枠は「洗剤／キッチン消耗品／日用品／水／お茶／ジュース」のいずれか。
+#
+# 全ジャンル化（description-genre-001）以降、毎日の投稿候補10件（daily_target）は
+# 「暮らしの便利グッズ5件＋消耗品・飲料5件」という固定構成では選ばない。
+# ここに登録した全ジャンルのkeywordsエントリの検索結果を1つのプールにまとめ、
+# 品質・需要（レビュー件数・評価）・ジャンルの偏り防止・ランダム性を踏まえて
+# 上位daily_target件を選ぶ（src.ranking.select_top_candidates）。
+# 「各ジャンル◯件」という固定ローテーションにはしない（売れ筋状況に応じて
+# 構成が変わる）。
+#
+# - group: convenience（暮らしの便利グッズ寄り＝一度買えば長く使う耐久品）／
+#   consumable（消耗品・飲料寄り＝繰り返し購入される消耗品）のいずれか。
+#   選定件数の目標（5+5）としては使わなくなったが、次の用途に引き続き使う。
+#     - consumableのカテゴリーが「水」「お茶」「ジュース」（飲料）の場合、
+#       alcohol_keywordsによるアルコール除外を適用する
+#     - group=consumableの場合、consumable_durable_accessory_keywordsによる
+#       「消耗品を収納する耐久雑貨」除外を適用する
+#     - スマホ投稿ページ（room/）の枠バッジ表示、TikTok向け選定の優先度に使う
+#   （後方互換のため残しているフィールド。省略した場合はconvenience扱い）。
+# - category: 紹介文の言い回し・ハッシュタグ・ジャンルの偏り防止で使う
+#   「ジャンル」。既存の「掃除／収納／キッチン／時短／暮らし全般／洗剤／
+#   キッチン消耗品／日用品／水／お茶／ジュース」に加え、全ジャンル化で
+#   「食品／美容／家電／生活雑貨／ファッション／ペット用品／ベビー用品／
+#   健康」を追加した。PRODUCT_TYPE_TEMPLATESに一致しない場合、新しく
+#   追加したジャンルはDEFAULT_CATEGORYの安全な汎用テンプレートにフォール
+#   バックする（description_generator.pyのGENERIC_TEMPLATESにまだ個別の
+#   テンプレートを追加していないため。確認できない用途は断定しない）。
 # - extra_keywords（省略可）: keywordの検索結果が条件フィルタ・重複除外の後に
 #   0件だった場合だけ、追加で試す同じテーマ内の別の検索ワード（前から順に、
 #   1件以上見つかるか、全て試し終わるまで試す）。品質条件（レビュー評価・
 #   件数等）は緩めず、検索ワードの幅だけを広げてカテゴリの偏り・候補不足を
 #   減らすためのもの（reliability-005 / description-match-002での監査対応）。
+#
+# 医薬品・医療機器・サプリメント等、健康効果の断定リスクが高く紹介文の
+# 安全性を担保しにくい商品は、そもそも検索対象に含めていない（ng_keywords
+# でも念のため除外している）。
 keywords:
-  # --- 暮らしの便利グッズ（5件） ---
+  # --- 暮らし・掃除・収納・キッチン・時短（既存） ---
   - keyword: "掃除 便利グッズ"
     category: "掃除"
     group: "convenience"
@@ -48,7 +71,7 @@ keywords:
     category: "暮らし全般"
     group: "convenience"
     extra_keywords: ["玄関 便利グッズ", "旅行グッズ 便利", "洗濯 便利グッズ"]
-  # --- 消耗品・飲料（5件）。繰り返し購入されやすい日用品・飲料を対象にする ---
+  # --- 洗剤・キッチン消耗品・日用品・水・お茶・ジュース（既存） ---
   - keyword: "洗濯洗剤"
     category: "洗剤"
     group: "consumable"
@@ -97,6 +120,77 @@ keywords:
     category: "ジュース"
     group: "consumable"
     extra_keywords: ["果汁100% ジュース"]
+  # --- 食品（全ジャンル化で追加） ---
+  - keyword: "レトルト食品"
+    category: "食品"
+    group: "consumable"
+    extra_keywords: ["レトルトカレー"]
+  - keyword: "乾麺"
+    category: "食品"
+    group: "consumable"
+    extra_keywords: ["パスタ 乾麺"]
+  # --- 美容（全ジャンル化で追加） ---
+  - keyword: "フェイスマスク"
+    category: "美容"
+    group: "consumable"
+    extra_keywords: ["シートマスク"]
+  - keyword: "美顔ローラー"
+    category: "美容"
+    group: "convenience"
+    extra_keywords: ["フェイスローラー"]
+  # --- 家電（全ジャンル化で追加） ---
+  - keyword: "サーキュレーター"
+    category: "家電"
+    group: "convenience"
+    extra_keywords: ["扇風機"]
+  - keyword: "加湿器"
+    category: "家電"
+    group: "convenience"
+    extra_keywords: ["卓上加湿器"]
+  # --- 生活雑貨（全ジャンル化で追加） ---
+  - keyword: "アロマディフューザー"
+    category: "生活雑貨"
+    group: "convenience"
+    extra_keywords: ["アロマグッズ"]
+  # --- ファッション（全ジャンル化で追加。財布・アクセサリー等は
+  #     off_theme_keywordsで従来どおり除外されるため、暮らしに実用的な
+  #     アイテムを中心にしている） ---
+  - keyword: "折りたたみ傘"
+    category: "ファッション"
+    group: "convenience"
+    extra_keywords: ["レイングッズ"]
+  - keyword: "エコバッグ"
+    category: "ファッション"
+    group: "convenience"
+    extra_keywords: ["折りたたみバッグ"]
+  # --- ペット用品（全ジャンル化で追加） ---
+  - keyword: "犬 おもちゃ"
+    category: "ペット用品"
+    group: "convenience"
+    extra_keywords: ["猫 おもちゃ"]
+  - keyword: "ペットフード"
+    category: "ペット用品"
+    group: "consumable"
+    extra_keywords: ["キャットフード"]
+  # --- ベビー用品（全ジャンル化で追加） ---
+  - keyword: "ベビー用品"
+    category: "ベビー用品"
+    group: "convenience"
+    extra_keywords: ["育児グッズ"]
+  - keyword: "おむつ"
+    category: "ベビー用品"
+    group: "consumable"
+    extra_keywords: ["ベビー用おむつ"]
+  # --- 健康関連（全ジャンル化で追加。医薬品・医療機器・サプリメント等は
+  #     対象にせず、体温計・血圧計等の非接触・非侵襲の測定機器のみにしている） ---
+  - keyword: "体温計"
+    category: "健康"
+    group: "convenience"
+    extra_keywords: ["非接触体温計"]
+  - keyword: "血圧計"
+    category: "健康"
+    group: "convenience"
+    extra_keywords: ["家庭用血圧計"]
 
 # 商品選定条件（必須）
 selection_criteria:
@@ -105,6 +199,12 @@ selection_criteria:
 
 # 商品名・商品説明にこれらの言葉が含まれる場合は候補から除外する
 # （福袋・ランダム・訳あり詰め合わせなど、ROOMで紹介しにくい商品を弾くための簡易チェック）。
+#
+# 医薬品・医療機器・サプリメント等は、誤った効果効能の断定リスクが高く
+# 紹介文の安全性を担保しにくいため、全ジャンル化（description-genre-001）に
+# あわせてここで除外している（「治る」「改善する」「予防できる」等の
+# 効果を紹介文に書かないという既存の安全策と合わせて、そもそも候補に
+# 挙げない側の対策）。
 ng_keywords:
   - "福袋"
   - "ランダム"
@@ -113,6 +213,19 @@ ng_keywords:
   - "アソート"
   - "在庫処分"
   - "選べない"
+  - "医薬品"
+  - "第1類医薬品"
+  - "第一類医薬品"
+  - "第2類医薬品"
+  - "第二類医薬品"
+  - "指定第2類医薬品"
+  - "指定第二類医薬品"
+  - "第3類医薬品"
+  - "第三類医薬品"
+  - "要指導医薬品"
+  - "処方薬"
+  - "サプリメント"
+  - "医療機器"
 
 # 商品名・商品説明にこれらの言葉が含まれる場合は、テーマ（暮らしの便利グッズ）から
 # 明らかに外れる（耳かき・財布・アクセサリーなどのファッション小物・パーソナルケア用品）
@@ -195,19 +308,17 @@ consumable_durable_accessory_keywords:
 # レビュー評価・レビュー件数が良い方の1件だけを残す（0.0〜1.0、値が大きいほど厳しく判定）。
 similarity_threshold: 0.55
 
-# 毎日の投稿候補10件の内訳（「暮らしの便利グッズ」枠と「消耗品・飲料」枠を
-# それぞれ何件選ぶか）。片方の枠が不足する場合だけ、もう片方の枠から補充する。
-convenience_target: 5
-consumable_target: 5
+# 毎日の投稿候補の件数（全ジャンルの中から売れ筋・偏り防止・ランダム性を
+# 踏まえて選ぶ件数）。「暮らしの便利グッズ5件＋消耗品・飲料5件」という
+# 固定構成は使わなくなった（description-genre-001。全ジャンル化）。
+daily_target: 10
 
-# 「暮らしの便利グッズ」枠の上位表示で、同じカテゴリの商品を最大何件まで
-# 連続して入れてよいか（偏りすぎを防ぎつつ、無理に均等にはしない）。
-summary_max_per_category: 3
-
-# 「消耗品・飲料」枠の5件が、同じカテゴリ（水・洗剤など）に偏りすぎないように
-# 最大何件まで連続して入れてよいか。便利グッズ枠より小さい値にして、
-# 5件の中でカテゴリが分散しやすくしている。
-consumable_max_per_category: 2
+# 全ジャンルの候補の中で、同じジャンル（category）の商品を最大何件まで
+# 連続して入れてよいか（偏りすぎを防ぎつつ、無理に均等にはしない。
+# 「各ジャンル◯件」の固定ローテーションにはしない）。候補が不足する
+# ジャンルしかない場合は、この上限を超えてでもdaily_targetに近づける
+# （品質条件は緩めない）。
+max_per_category: 2
 
 # キーワード1件あたりの取得件数（多すぎるとAPIの負荷が上がるので控えめに）
 items_per_keyword: 15

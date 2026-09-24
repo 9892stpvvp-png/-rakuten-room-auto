@@ -420,5 +420,93 @@ class SelectBalancedTopWithProductTypeDiversityTest(unittest.TestCase):
         self.assertEqual([i["item_code"] for i in result], ["sponge1"])
 
 
+class SelectTopCandidatesTest(unittest.TestCase):
+    """全ジャンル化（description-genre-001）の選定方式select_top_candidates。
+
+    「暮らしの便利グッズ」枠／「消耗品・飲料」枠という固定の5+5構成を前提に
+    せず、全ジャンルを1つのプールとして扱って上位N件を選ぶことを確認する。
+    """
+
+    def _make_group(self, category: str, count: int, prefix: str) -> list[dict]:
+        return [
+            make_item(f"{prefix}{i}", category, review_count=500 - i, product_type=category)
+            for i in range(count)
+        ]
+
+    def test_does_not_force_a_fixed_five_five_split(self):
+        # 「便利グッズ」寄り・「消耗品」寄りという区別を一切持たず、ジャンルが
+        # 2つだけでも合計target件数だけを見て選ぶ（5+5固定にならない）。
+        items = self._make_group("食品", 6, "food") + self._make_group("美容", 6, "beauty")
+
+        result = ranking.select_top_candidates(items, target=10, max_per_category=5)
+
+        self.assertEqual(len(result), 10)
+        food_count = sum(1 for i in result if i["item_code"].startswith("food"))
+        beauty_count = sum(1 for i in result if i["item_code"].startswith("beauty"))
+        self.assertEqual(food_count + beauty_count, 10)
+
+    def test_does_not_concentrate_on_a_single_genre_when_many_are_available(self):
+        # 「10件すべて同一ジャンルになりにくい」ことの確認。多くのジャンルが
+        # 十分な候補を持つ場合、max_per_categoryの上限により1ジャンルに
+        # 集中しない。
+        genres = ["食品", "美容", "家電", "ペット用品", "ベビー用品", "健康", "ファッション", "生活雑貨"]
+        items: list[dict] = []
+        for i, genre in enumerate(genres):
+            items.extend(self._make_group(genre, 3, f"g{i}_"))
+
+        result = ranking.select_top_candidates(items, target=10, max_per_category=2)
+
+        self.assertEqual(len(result), 10)
+        selected_genres = {i["_category"] for i in result}
+        self.assertGreater(len(selected_genres), 2, selected_genres)
+        counts_per_genre: dict[str, int] = {}
+        for item in result:
+            counts_per_genre[item["_category"]] = counts_per_genre.get(item["_category"], 0) + 1
+        self.assertTrue(all(count <= 2 for count in counts_per_genre.values()), counts_per_genre)
+
+    def test_no_duplicate_item_codes(self):
+        items = self._make_group("食品", 15, "food")
+        result = ranking.select_top_candidates(items, target=10, max_per_category=10)
+        codes = [i["item_code"] for i in result]
+        self.assertEqual(len(codes), len(set(codes)))
+
+    def test_shortage_returns_fewer_than_target_without_fabricating(self):
+        # 候補不足時に品質条件を緩めて水増ししない（渡された候補以上には増えない）。
+        items = self._make_group("食品", 3, "food")
+        result = ranking.select_top_candidates(items, target=10, max_per_category=2)
+        self.assertEqual(len(result), 3)
+        self.assertEqual({i["item_code"] for i in result}, {"food0", "food1", "food2"})
+
+    def test_recently_common_genre_is_deprioritized_but_not_excluded(self):
+        # 「大ジャンル」（category）レベルでの偏り防止：直近よく投稿している
+        # ジャンルの商品は優先度が下がるが、完全除外はしない。
+        common_genre_items = self._make_group("ペット用品", 3, "pet")
+        rare_genre_item = self._make_group("健康", 1, "health")
+
+        result = ranking.select_top_candidates(
+            common_genre_items + rare_genre_item,
+            target=4,
+            max_per_category=4,
+            recent_category_counts={"ペット用品": 3},
+        )
+        codes = [i["item_code"] for i in result]
+        self.assertEqual(codes[0], "health0")
+        self.assertIn("pet0", codes)  # 除外はされていない
+
+    def test_same_seed_produces_the_same_selection(self):
+        # 「同日の再実行で再現性がある」ことの確認（同じseedのrngを渡せば同じ結果）。
+        items = self._make_group("食品", 20, "food")
+        result1 = ranking.select_top_candidates(
+            list(items), target=10, max_per_category=10, rng=random.Random(42)
+        )
+        result2 = ranking.select_top_candidates(
+            list(items), target=10, max_per_category=10, rng=random.Random(42)
+        )
+        self.assertEqual(
+            [i["item_code"] for i in result1],
+            [i["item_code"] for i in result2],
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

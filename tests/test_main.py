@@ -86,6 +86,15 @@ class RunPipelineTest(unittest.TestCase):
         self.addCleanup(candidates_patcher.stop)
         self.addCleanup(posted_patcher.stop)
 
+        # 全ジャンル化（description-genre-001）で候補プールが大きくなり、品質が
+        # 同点の商品同士の並びがランダム性（rng）の影響を受けやすくなったため、
+        # テストの実行日によって結果が変わらないよう、乱数シードを固定する
+        # （本番ではJST日付から自動生成される。同日再現性はDailyRandomSeedTest・
+        # ReproducibilityTestで別途確認する）。
+        seed_patcher = mock.patch.object(main_module, "_daily_random_seed", return_value="2026-01-01-test")
+        seed_patcher.start()
+        self.addCleanup(seed_patcher.stop)
+
         os.environ["RAKUTEN_APP_ID"] = "dummy-app-id-for-tests"
         os.environ["RAKUTEN_ACCESS_KEY"] = "dummy-access-key-for-tests"
         os.environ.pop("GITHUB_STEP_SUMMARY", None)
@@ -99,15 +108,29 @@ class RunPipelineTest(unittest.TestCase):
         with latest.open(encoding="utf-8") as f:
             return json.load(f)
 
-    def test_normal_run_splits_five_convenience_and_five_consumable(self):
+    def test_normal_run_does_not_force_five_convenience_and_five_consumable(self):
+        # 全ジャンル化（description-genre-001）により、「暮らしの便利グッズ」枠
+        # 5件＋「消耗品・飲料」枠5件という固定構成はもう強制しない。品質が
+        # 同等の候補が全ジャンルに十分ある通常の実行では、daily_target（10件）
+        # まで選ばれることと、group=convenience/consumableのどちらか一方に
+        # 偏らないことだけを確認する（内訳は売れ筋状況に応じて変わってよい）。
         candidates = self._run_main()
 
-        self.assertLessEqual(len(candidates), 10)
+        self.assertEqual(len(candidates), 10)
         convenience = [c for c in candidates if c["_group"] == "convenience"]
         consumable = [c for c in candidates if c["_group"] == "consumable"]
-        self.assertEqual(len(convenience), 5)
-        self.assertEqual(len(consumable), 5)
         self.assertEqual(len(convenience) + len(consumable), len(candidates))
+        # 5+5固定ではないことの確認：どちらか一方だけに全件が偏っていない
+        # （settings.example.yamlには両方の枠に十分な数のジャンルがあるため）。
+        self.assertGreater(len(convenience), 0)
+        self.assertGreater(len(consumable), 0)
+
+    def test_normal_run_selects_from_more_than_two_genres(self):
+        # 全ジャンル化の確認：10件が2ジャンル以下に集中しない
+        # （「特定ジャンルへの異常な偏りがない」ことの最低限の確認）。
+        candidates = self._run_main()
+        genres = {c.get("_category", "") for c in candidates}
+        self.assertGreater(len(genres), 2, genres)
 
     def test_each_item_has_a_display_group_for_the_room_page(self):
         candidates = self._run_main()
@@ -197,14 +220,14 @@ class RunPipelineTest(unittest.TestCase):
         codes = [c["item_code"] for c in candidates]
         self.assertNotIn("shop:new_code_for_shared_product", codes)
 
-    def test_posted_history_exclusion_triggers_fallback_to_reach_ten(self):
+    def test_posted_history_exclusion_still_reaches_ten_from_other_genres(self):
         # 4つの便利グッズカテゴリー（収納・キッチン・時短・暮らし全般）について、
         # 本来の検索ワードだけでなくextra_keywords（追加探索用）で見つかる
-        # 商品もすべて投稿済み履歴に登録し、便利グッズ枠を大きく不足させる
-        # （_default_fake_searchは同じキーワードから似た名前の商品を3件返すため、
-        # フェーズ2の類似商品統合で1件に絞られる。つまり残る1カテゴリー分も
-        # 最終的には1件になる）。消耗品・飲料枠から補充されて合計10件になる
-        # ことを確認する。
+        # 商品もすべて投稿済み履歴に登録し、これらのカテゴリーを完全に
+        # 枯渇させる。全ジャンル化により、他の多くのジャンル（洗剤・食品・
+        # 美容・家電等）から候補が補われ、除外された商品が混ざることなく
+        # daily_target（10件）に達することを確認する
+        # （固定の便利グッズ/消耗品の内訳は前提にしない）。
         excluded_keywords = _all_keywords_for_categories(["収納", "キッチン", "時短", "暮らし全般"])
         excluded_codes = []
         for kw in excluded_keywords:
@@ -216,13 +239,9 @@ class RunPipelineTest(unittest.TestCase):
             json.dump({"posted_item_codes": excluded_codes}, f)
 
         candidates = self._run_main()
-        convenience = [c for c in candidates if c["_group"] == "convenience"]
-        consumable = [c for c in candidates if c["_group"] == "consumable"]
 
         for code in excluded_codes:
             self.assertNotIn(code, [c["item_code"] for c in candidates])
-        self.assertEqual(len(convenience), 1)
-        self.assertEqual(len(consumable), 9)
         self.assertEqual(len(candidates), 10)
 
     def test_github_step_summary_includes_posted_history_stats(self):
@@ -277,11 +296,12 @@ class RunPipelineTest(unittest.TestCase):
 
     def test_match_keywords_partial_match_does_not_exclude_candidate(self):
         # 一部のキーワードしか含まない候補（別モデル・別サイズ等）は
-        # 除外しないことを確認する。
+        # 除外しないことを確認する。他のキーワードは0件にし、全ジャンルの
+        # 候補と競合させずに対象商品が最終候補に残ることを確認できるようにする。
         def fake_search_specific(keyword: str, **kwargs):
             if keyword == "掃除 便利グッズ":
                 return [_make_item("shop:cleaning_u", "山崎実業 tower マグネットクリーナー ラージ")]
-            return _default_fake_search(keyword, **kwargs)
+            return []
 
         self.posted_items_path.parent.mkdir(parents=True, exist_ok=True)
         with self.posted_items_path.open("w", encoding="utf-8") as f:
@@ -300,11 +320,12 @@ class RunPipelineTest(unittest.TestCase):
 
     def test_single_word_match_keywords_never_excludes_candidates(self):
         # ["tower"]のような1語だけのmatch_keywordsは、無関係な商品まで
-        # 除外してしまわないよう機能しない（誤判定防止）。
+        # 除外してしまわないよう機能しない（誤判定防止）。他のキーワードは
+        # 0件にし、全ジャンルの候補と競合させずに確認できるようにする。
         def fake_search_specific(keyword: str, **kwargs):
             if keyword == "掃除 便利グッズ":
                 return [_make_item("shop:cleaning_t", "tower マグネットフック")]
-            return _default_fake_search(keyword, **kwargs)
+            return []
 
         self.posted_items_path.parent.mkdir(parents=True, exist_ok=True)
         with self.posted_items_path.open("w", encoding="utf-8") as f:
@@ -367,10 +388,12 @@ class RunPipelineTest(unittest.TestCase):
     def test_size_variant_in_history_does_not_exclude_different_variant(self):
         # 「ワイド」と「ラージ」のように似ているだけの別商品は除外しない
         # （正規化後の完全一致だけで判定するため、部分一致では除外されない）。
+        # 他のキーワードは0件にし、全ジャンルの候補と競合させずに確認できる
+        # ようにする。
         def fake_search_specific(keyword: str, **kwargs):
             if keyword == "掃除 便利グッズ":
                 return [_make_item("shop:cleaning_z", "クリーナー Cシリーズ ラージ")]
-            return _default_fake_search(keyword, **kwargs)
+            return []
 
         self.posted_items_path.parent.mkdir(parents=True, exist_ok=True)
         with self.posted_items_path.open("w", encoding="utf-8") as f:
@@ -403,36 +426,48 @@ class RunPipelineTest(unittest.TestCase):
         codes = [c["item_code"] for c in candidates]
         self.assertNotIn("shop:cleaning_w", codes)
 
-    def test_convenience_shortfall_is_filled_from_consumable(self):
+    def test_scarce_genres_are_filled_from_other_genres(self):
         # 「収納・キッチン・時短・暮らし全般」は、本来の検索ワードだけでなく
         # extra_keywords（追加探索）を試しても0件のまま、というシナリオ。
+        # 全ジャンル化により、これらが不足していても他の多くのジャンルから
+        # daily_target（10件）まで埋まることを確認する（固定の便利グッズ/
+        # 消耗品の内訳は前提にしない。品質条件を緩めた埋め方はしない）。
         scarce_keywords = set(_all_keywords_for_categories(["収納", "キッチン", "時短", "暮らし全般"]))
 
         def fake_search_scarce_convenience(keyword: str, **kwargs):
             if keyword == "掃除 便利グッズ":
-                return [_make_item("shop:only_cleaning_item", "掃除 便利グッズ 商品0")]
+                # レビュー件数を突出させ、他ジャンルの同点候補との
+                # ランダムな並び替えに左右されず確実に選ばれるようにする
+                # （どの実行日でも再現できるようにするため）。
+                return [
+                    _make_item(
+                        "shop:only_cleaning_item", "掃除 便利グッズ 商品0", review_count=99999
+                    )
+                ]
             if keyword in scarce_keywords:
                 return []
             return _default_fake_search(keyword, **kwargs)
 
         candidates = self._run_main(fake_search_scarce_convenience)
-        convenience = [c for c in candidates if c["_group"] == "convenience"]
-        consumable = [c for c in candidates if c["_group"] == "consumable"]
+        codes = [c["item_code"] for c in candidates]
 
-        self.assertEqual(len(convenience), 1)
-        self.assertEqual(len(consumable), 9)
+        self.assertIn("shop:only_cleaning_item", codes)
         self.assertEqual(len(candidates), 10)
+        self.assertEqual(len(codes), len(set(codes)))
 
     def test_extra_keyword_is_used_when_primary_keyword_yields_nothing(self):
         # 「収納 便利グッズ」の結果が0件でも、settings.example.yamlに登録した
         # extra_keywordsの1つ目（"収納グッズ"）で見つかれば、そちらを使って
         # 収納カテゴリーが埋まることを確認する（2026-09-21実行分での
         # 候補不足（7件）への対応：単一キーワード依存で候補が0件になる
-        # カテゴリーへの追加探索）。
+        # カテゴリーへの追加探索）。他のキーワードは0件にし、全ジャンルの
+        # 候補と競合させずに確認できるようにする。
         def fake_search(keyword: str, **kwargs):
             if keyword == "収納 便利グッズ":
                 return []
-            return _default_fake_search(keyword, **kwargs)
+            if keyword == "収納グッズ":
+                return _default_fake_search(keyword, **kwargs)
+            return []
 
         candidates = self._run_main(fake_search)
         storage_names = [c["name"] for c in candidates if c.get("_category") == "収納"]
@@ -503,12 +538,70 @@ class RunPipelineTest(unittest.TestCase):
         self._run_main(fake_search)
 
         content = summary_path.read_text(encoding="utf-8")
-        self.assertIn("候補生成の内訳（不足時の原因確認用）", content)
-        self.assertIn("暮らしの便利グッズ: 5/5件", content)
-        self.assertIn("消耗品・飲料: 5/5件", content)
+        self.assertIn("全ジャンル候補選定の内訳", content)
+        self.assertIn("最終採用数: 10/10件", content)
+        self.assertIn("ジャンル別の採用件数", content)
+        self.assertIn("商品タイプ別の採用件数", content)
+        # 楽天公式ランキングAPIを実際には利用していないことが、事実に基づいて
+        # 表示されていることを確認する（未確認情報を捏造しない）。
+        self.assertIn("楽天公式ランキングAPI（IchibaItem/Ranking等）の利用: **していません**", content)
         # 収納カテゴリーの行に、本来の検索ワードと実際に使われた追加検索ワードの
         # 両方が記録されていることを確認する。
         self.assertIn("収納 便利グッズ → 収納グッズ", content)
+
+    def test_same_day_rerun_is_reproducible(self):
+        # 「同日の再実行で再現性がある」ことの確認。乱数シードは実行日（JST）
+        # から決まるため、同じ日のうちに同じ入力で2回実行すれば同じ候補になる
+        # （投稿済み履歴も変わっていないため）。
+        first_run = self._run_main()
+        second_run = self._run_main()
+
+        first_codes = [c["item_code"] for c in first_run]
+        second_codes = [c["item_code"] for c in second_run]
+        self.assertEqual(first_codes, second_codes)
+
+    def test_ranking_api_is_not_used_and_diagnostics_say_so_honestly(self):
+        # 「ランキングデータが無い場合に捏造しない」ことの確認：
+        # (1) 楽天公式ランキングAPIを実際には呼び出していない
+        #     （src.rakuten_api.search_itemsだけがAPI呼び出し関数であり、
+        #     ランキング専用のAPI関数はモジュールに存在しない）。
+        # (2) 候補データに「ranking」「rank」等の、取得していないはずの
+        #     ランキング情報を捏造して追加していない。
+        # (3) Summaryにも「利用していない」と事実どおり表示される。
+        from src import rakuten_api as rakuten_api_module
+
+        self.assertFalse(hasattr(rakuten_api_module, "get_ranking"))
+        self.assertFalse(hasattr(rakuten_api_module, "fetch_ranking"))
+        self.assertFalse(hasattr(rakuten_api_module, "search_ranking"))
+
+        summary_path = Path(self.tmpdir.name) / "step_summary.md"
+        os.environ["GITHUB_STEP_SUMMARY"] = str(summary_path)
+        self.addCleanup(lambda: os.environ.pop("GITHUB_STEP_SUMMARY", None))
+
+        candidates = self._run_main()
+        for item in candidates:
+            for key in item:
+                self.assertNotIn("rank", key.lower(), f"捏造されたランキング項目らしきキー: {key}")
+
+        content = summary_path.read_text(encoding="utf-8")
+        self.assertIn("楽天公式ランキングAPI（IchibaItem/Ranking等）の利用: **していません**", content)
+
+    def test_new_genre_without_specific_template_falls_back_safely(self):
+        # 全ジャンル化で未知の商品タイプが増えても、PRODUCT_TYPE_TEMPLATES・
+        # GENERIC_TEMPLATESのどちらにも登録の無いジャンル（例：健康）は、
+        # 安全なDEFAULT_CATEGORYの汎用テンプレートにフォールバックし、
+        # 誤った用途を断定しないことを確認する。
+        def fake_search(keyword: str, **kwargs):
+            if keyword == "体温計":
+                return [_make_item("shop:thermometer", "なんの変哲もない体温計 高精度")]
+            return []
+
+        candidates = self._run_main(fake_search)
+        item = next(c for c in candidates if c["item_code"] == "shop:thermometer")
+        self.assertNotIn("治る", item["description"])
+        self.assertNotIn("改善する", item["description"])
+        self.assertNotIn("予防できる", item["description"])
+        self.assertNotIn("健康になる", item["description"])
 
 
 class DailyRandomSeedTest(unittest.TestCase):
@@ -581,6 +674,12 @@ class ProductTypeDiversityPipelineTest(unittest.TestCase):
         self.addCleanup(candidates_patcher.stop)
         self.addCleanup(posted_patcher.stop)
 
+        # RunPipelineTestと同じ理由で、テスト実行日に関わらず結果が
+        # 再現できるよう乱数シードを固定する。
+        seed_patcher = mock.patch.object(main_module, "_daily_random_seed", return_value="2026-01-01-test")
+        seed_patcher.start()
+        self.addCleanup(seed_patcher.stop)
+
         os.environ["RAKUTEN_APP_ID"] = "dummy-app-id-for-tests"
         os.environ["RAKUTEN_ACCESS_KEY"] = "dummy-access-key-for-tests"
         os.environ.pop("GITHUB_STEP_SUMMARY", None)
@@ -622,18 +721,10 @@ class ProductTypeDiversityPipelineTest(unittest.TestCase):
         # 引っかからず、代わりに優先度調整（このテストの主題）だけが働く。
         self._seed_posted_history_with_recent_sponge()
 
-        # 「消耗品・飲料」枠の他のキーワード（extra_keywordsを含む）は今回0件にし、
-        # 検証対象の2商品（スポンジ／ラップ）だけで優先順位を確認できるようにする。
-        settings = main_module.load_settings()
-        other_consumable_keywords: set[str] = set()
-        for entry in settings["keywords"]:
-            kw, _category, group, extra = main_module._parse_keyword_entry(entry)
-            if group == main_module.ranking.CONSUMABLE_GROUP:
-                other_consumable_keywords.add(kw)
-                other_consumable_keywords.update(extra)
-        other_consumable_keywords.discard("キッチンスポンジ")
-        other_consumable_keywords.discard("食品用ラップ")
-
+        # 他の全ジャンルのキーワード（extra_keywordsを含む）は今回0件にし、
+        # 検証対象の2商品（スポンジ／ラップ）だけで優先順位を確認できるようにする
+        # （全ジャンル化により、他ジャンルの候補と競合すると最終候補に残るとは
+        # 限らなくなったため）。
         def fake_search(keyword: str, **kwargs):
             if keyword == "キッチンスポンジ":
                 return [
@@ -643,9 +734,7 @@ class ProductTypeDiversityPipelineTest(unittest.TestCase):
                 ]
             if keyword == "食品用ラップ":
                 return [_make_item("shop:wrap_item", "野菜つつむ 食品用ラップ", review_count=300)]
-            if keyword in other_consumable_keywords:
-                return []
-            return _default_fake_search(keyword, **kwargs)
+            return []
 
         candidates = self._run_main(fake_search)
         codes = [c["item_code"] for c in candidates]

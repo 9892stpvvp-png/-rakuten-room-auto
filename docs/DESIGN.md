@@ -2426,3 +2426,222 @@ Actionsの既存ワークフロー・TikTok関連・前回までの紹介文修�
   複数の使用場所が並ぶ商品等）でも、キーワードが登録されていなければ
   引き続き検索カテゴリーの（安全化された）汎用テンプレートにフォール
   バックする。
+
+## 34. 商品選定方針を「便利グッズ5+消耗品5」の固定構成から全ジャンル選定へ変更（description-genre-001）
+
+### 現状調査（変更前に確認した既存実装の関係）
+
+- `config/settings.yaml`（実体は`settings.example.yaml`）の`keywords`一覧の
+  各エントリが検索キーワード・カテゴリー・`group`（convenience／consumable）・
+  extra_keywordsを持ち、`src.main._parse_keyword_entry()`で読み取る。
+- `src.main.main()`のフェーズ1で各keywordsエントリを検索し（`rakuten_api.search_items`。
+  `sort=-reviewCount`で取得）、品質条件フィルタ（`filters.py`）・投稿済み
+  除外（`dedupe.py`）を通した商品に`_group`・`_category`・`_display_group`・
+  `_product_type`を付与する。フェーズ2で類似商品を統合
+  （`ranking.deduplicate_similar_items`）。フェーズ3で
+  `ranking.select_balanced_top()`により、`_group`で二分した
+  convenience_items／consumable_itemsから、それぞれ`convenience_target`
+  （5）／`consumable_target`（5）件を選び、片方が不足した場合だけ
+  もう片方から補充していた。フェーズ4で紹介文生成
+  （`description_generator.generate_descriptions_for_batch`）。
+- `ranking.py`の`sort_by_quality`/`sort_consumable_items`は既に
+  `priority_tier`（直近7日の商品タイプ・カテゴリー別投稿回数から算出する
+  優先度の段階）と`rng`（日次シードの乱数、同点の並びだけをランダム化）
+  を受け取れる設計になっており（31章）、`diversify_top`の2巡構造
+  （1巡目はカテゴリー上限を守って選ぶ→2巡目は上限を無視して残りから
+  埋める）が「完全除外ではない優先度調整＋候補不足時の自動繰り上げ」を
+  既に実現していた。
+- `src.rakuten_api.search_items()`が呼び出しているのは楽天ウェブサービスの
+  商品検索API（`IchibaItem/Search`）のみで、`sort=-reviewCount`（レビュー
+  件数降順）以外に「ランキング」を示す情報は取得していない。楽天公式の
+  ランキング専用API（`IchibaItem/Ranking`等）を呼び出す関数はコードベースに
+  存在しない。
+- `data/posted_items.json`（投稿済み履歴）・投稿済み登録ワークフロー
+  （`.github/workflows/import_posted_items.yml`・`src/import_posted_items.py`）・
+  `room/index.html`（スマホ投稿ページ）・`src/tiktok_selector.py`は、
+  いずれも候補データの`group_label`（"便利グッズ"/"消耗品"/"飲料"）・
+  `category`・`item_code`等の既存フィールドに依存しているが、5+5という
+  「件数の内訳」そのものには依存していない（`group_label`の文字列が
+  何であるかにだけ依存）。
+
+以上から、「5+5の固定構成」は実質的に`ranking.select_balanced_top()`の
+呼び出し方（`main.py`フェーズ3）だけが担っており、他の仕組み
+（品質フィルタ・重複除外・商品タイプ偏り防止・紹介文生成・投稿フロー）は
+グループの二分に依存していないことを確認した。これにより、フェーズ3の
+選定方法だけを差し替える最小限の変更で全ジャンル化できると判断した。
+
+### 変更後の選定方式
+
+- `ranking.select_top_candidates(items, target, max_per_category,
+  recent_type_counts, recent_category_counts, rng)`を新設。
+  `convenience_items`/`consumable_items`の二分をやめ、全ジャンルの
+  `unique_items`を1つのプールとして`sort_by_quality()`→`diversify_top()`
+  にそのまま通すだけの実装（新しいアルゴリズムを作らず、既存の2つの
+  関数をそのまま再利用している）。
+  - `sort_by_quality()`が優先順位2〜5（品質スコア→直近の商品タイプ・
+    カテゴリーとの重複が少ない→適度なランダム性）を担う。
+  - `diversify_top()`の2巡構造が「ジャンルの上限を守りながら選ぶ→
+    不足時は上限を超えてでも残りから埋める」という、売れ筋を重視し
+    つつ偏りを抑える動きと、品質条件を緩めない候補不足時の穴埋めを
+    無償で提供する。
+- `select_balanced_top()`・`CONVENIENCE_GROUP`・`CONSUMABLE_GROUP`は
+  コードから削除せず残している（後方互換。既存テスト・外部からの
+  利用に配慮）。`main.py`からは呼ばれなくなったが、関数として引き続き
+  動作する。
+- `main.py`のフェーズ3を`select_top_candidates()`の呼び出しに置き換えた。
+  `_group`（convenience/consumable）は選定の目標件数としては使わなく
+  なったが、次の用途にそのまま使い続けている（変更なし）。
+  - アルコール除外フィルタの適用条件（飲料カテゴリーかどうか）
+  - 消耗品向け耐久雑貨除外フィルタの適用条件（group=consumableかどうか）
+  - `room/index.html`の枠バッジ表示・`tiktok_selector.py`の選定スコア
+
+### 楽天公式ランキングデータについて（事実確認）
+
+現状調査のとおり、`src.rakuten_api.search_items()`は商品検索API
+（`IchibaItem/Search`）だけを呼び出しており、楽天公式のランキング専用API
+は呼び出していない。今回、新たにランキングAPIを追加実装することは
+見送った（未検証のエンドポイント・認証要件を本番相当のテストなしに
+組み込むリスクを避けるため）。そのため「需要・人気」の指標には、
+実際に取得できている次のデータだけを使う。
+
+- レビュー件数・レビュー評価（`quality_score`。既存の品質スコア）
+- 検索結果内での人気度の目安（`sort=-reviewCount`によるレビュー件数降順。
+  「検索結果内での人気度」に相当する、実際に取得可能な情報）
+
+楽天APIの「直近の購入動向トレンド」（増加率等）は単発の検索結果からは
+取得できないため、レビュー件数という累積指標をそのまま代替指標として
+使っている（新しい指標を捏造していない）。`storage.build_genre_selection_summary_markdown()`
+に「楽天公式ランキングAPI（IchibaItem/Ranking等）の利用: していません」
+という事実に基づく表示を追加し、GitHub Actions Summaryで確認できるように
+した。
+
+### 将来の成果データ活用に向けた設計
+
+`select_top_candidates()`の並び替えキーは`priority_tier`と
+`quality_score`の組み合わせであり、いずれも「item_code／`_category`／
+`_product_type`をキーにした辞書（`recent_type_counts`等）」または
+「item自身の属性（`review_count`等）」から機械的に計算している。将来、
+クリック・売上・成果件数等の実績データが手に入った場合は、
+1. `quality_score()`（またはそれに準ずる新しいスコア関数）に実績を
+   加味する項目を追加する
+2. あるいは`recent_type_counts`と同じ形（`{商品タイプ or ジャンル: 値}`
+   の辞書）で「過去に成果が出た商品タイプ／ジャンル」を渡し、
+   `priority_tier`に加点方向の項目として合成する
+
+のいずれかで、既存の並び替えの仕組みに追加しやすい構造になっている
+（新しい選定アルゴリズムを一から作らずに拡張できる）。今回は成果データが
+存在しないため、実装・架空データの追加は行っていない。
+
+### 全ジャンル化に伴うキーワード・除外設定の変更
+
+- `config/settings.example.yaml`の`keywords`に、食品・美容・家電・
+  生活雑貨・ファッション・ペット用品・ベビー用品・健康の8ジャンル・
+  14エントリを追加した（既存の掃除・収納・キッチン・時短・暮らし全般・
+  洗剤・キッチン消耗品・日用品・水・お茶・ジュースは無変更）。
+- 「ファッション」は、既存の`off_theme_keywords`（財布・アクセサリー・
+  時計・コスメ等を除外する既存の安全フィルタ）と衝突しない、実用的な
+  アイテム（折りたたみ傘・エコバッグ）を選んだ。`off_theme_keywords`
+  自体は変更していない（安全フィルタとして維持）。
+- 「健康」は、医薬品的な効果効能の誤断定リスクを避けるため、体温計・
+  血圧計等の非接触・非侵襲の測定機器のみを対象にした（サプリメント・
+  医薬品は対象にしていない）。
+- `ng_keywords`に医薬品関連（医薬品各分類・処方薬・サプリメント・
+  医療機器）を追加し、そもそも検索候補に挙げないようにした
+  （紹介文側の安全策とあわせて、候補選定の入口でも対策する）。
+- `daily_target`（10）・`max_per_category`（2）を新設し、
+  `convenience_target`/`consumable_target`/`summary_max_per_category`/
+  `consumable_max_per_category`を置き換えた（settings.example.yamlは
+  実行時の設定テンプレートであり、保存データではないため、後方互換の
+  ために旧キーを残す必要はないと判断した。`main.py`は`settings.get()`に
+  デフォルト値を指定しているため、キーが無い設定ファイルでも動作する）。
+
+### 紹介文生成側の対応
+
+- 新しく追加したジャンル（食品・美容・家電・生活雑貨・ファッション・
+  ペット用品・ベビー用品・健康）は、`PRODUCT_TYPE_TEMPLATES`・
+  `GENERIC_TEMPLATES`のどちらにも個別テンプレートを追加していない
+  （スコープを広げすぎないため）。`generate_description()`の既存ロジック
+  （`category = category if category in GENERIC_TEMPLATES else
+  DEFAULT_CATEGORY`）により、これらは安全な`DEFAULT_CATEGORY`の汎用
+  テンプレートに自動的にフォールバックする（確認できない用途を断定
+  しない、既存の安全設計がそのまま働く）。
+- `HASHTAG_BY_CATEGORY`に8ジャンル分のハッシュタグを追加した
+  （紹介文の内容には影響しない、末尾のハッシュタグのみ）。
+- 実データに近いシミュレーションを行ったところ、新ジャンルの多くが
+  `DEFAULT_CATEGORY`にフォールバックし、同じ日の候補にDEFAULT_CATEGORY
+  利用商品が複数混ざると文章が似すぎる問題が見つかったため、
+  `GENERIC_TEMPLATES[DEFAULT_CATEGORY]`にhook_variants／worry_variants／
+  solution_variants（商品コードに応じて複数パターンから選ぶ、既存の
+  洗剤・キッチン消耗品等と同じ仕組み）を追加した。内容・安全性は
+  変えておらず、あくまで言い回しのバリエーションを増やしただけ。
+
+### テスト
+
+既存329件のテストのうち、「暮らしの便利グッズ5件＋消耗品5件」という
+今回廃止した固定構成そのものを検証していたテスト（`test_main.py`の
+一部）は、新方式の同等の観点（除外は正しく機能する・品質条件は緩めない・
+候補不足時も水増ししない等）を確認する内容に書き換えた。それ以外の
+テスト（品質フィルタ・アルコール除外・耐久雑貨除外・投稿済み重複除外・
+extra_keywordsのフォールバック・紹介文の安全策等）は無変更のまま
+成功することを確認した。
+
+追加したテストは主に次の観点（詳細は最後の報告を参照）。
+
+- `tests/test_ranking.py`: `select_top_candidates()`の単体テスト
+  （5+5固定にならない・単一ジャンルに集中しない・重複除外・候補不足時に
+  水増ししない・直近ジャンルの優先度調整・rngのseed再現性）。
+- `tests/test_main.py`: 全ジャンルパイプラインの統合テスト
+  （同日再実行の再現性・ランキングAPI未使用の事実確認・未知ジャンルの
+  安全フォールバック）、既存の5+5前提テストの書き換え。
+
+品質が同点の候補同士の並びをrng（日次シード）でシャッフルする既存の
+仕組み（31章）により、全ジャンル化で候補プールが大きくなった分、
+テストの実行日によって結果が変わりうる状態になっていたため、
+`RunPipelineTest`・`ProductTypeDiversityPipelineTest`のsetUpで
+`_daily_random_seed`を固定シードにパッチし、どの実行日でもテスト結果が
+再現できるようにした（本番の日次シード自体は変更していない）。
+
+全テスト（`pytest -q`・`python -m unittest discover -s tests`）が
+**339件成功**することを確認した（本章の変更前は329件。5+5固定を前提に
+していた数件のテストを新方式向けに書き換えたうえで、新規テストを
+追加した）。
+
+### 実データでの確認（シミュレーション）
+
+このセッションには実際の楽天ウェブサービスのアプリID・アクセスキーが
+無いため、本番同様のライブAPI呼び出しはできなかった。かわりに、
+実在する商品名の言い回しに近い合成データ（30種のキーワードそれぞれに
+実際のRakuten商品名の書き方に近いダミー商品名・現実的なレビュー件数・
+評価を持たせたもの）を使い、`src.main.main()`をモック経由のAPIで
+実行するシミュレーションを行った。結果は最後の報告に記載する
+（`room/data/candidates.json`は本物の実行結果ではないため上書きして
+いない。次回のGitHub Actions定時実行で本物のデータに更新される）。
+
+### 既存機能への影響
+
+商品検索ロジック自体（`rakuten_api.search_items`）・extra_keywordsの
+仕組み・商品タイプ偏り防止（`priority_tier`）・直近7日の優先度調整・
+`ranking.py`の既存関数（`deduplicate_similar_items`・`diversify_top`・
+`sort_by_quality`・`sort_consumable_items`・`select_balanced_top`）・
+レビュー条件（4.0以上・100件以上）・投稿済み重複判定
+（`dedupe.py`）・`data/posted_items.json`・GitHub Actionsの実行時刻・
+投稿済み登録ワークフロー・楽天API認証情報には変更していない。
+
+### 残っている制約
+
+- 楽天公式ランキングAPIは利用していない（未実装）。需要・人気の指標は
+  レビュー件数・レビュー評価・検索結果内でのレビュー件数順にとどまる。
+- 新しく追加した8ジャンルは、`PRODUCT_TYPE_TEMPLATES`・
+  `GENERIC_TEMPLATES`に専用テンプレートを持たず、`DEFAULT_CATEGORY`の
+  汎用テンプレートにフォールバックする。安全だが、ジャンル特有の
+  具体的な言い回しではない（既存のPRODUCT_TYPE_TEMPLATESの仕組みで、
+  必要に応じて個別に追加できる）。
+- `DEFAULT_CATEGORY`のhook_variants等は4パターン程度のため、同じ日に
+  DEFAULT_CATEGORYへフォールバックする商品が多いと、まれに同じ組み合わせ
+  になることがある（`generate_descriptions_for_batch`の重複回避リトライ
+  で軽減されるが、完全には防げない）。
+- 「大ジャンル/細ジャンル」の偏り防止は、既存の`_category`（ジャンル）と
+  `_product_type`（商品タイプ）の2階層をそのまま再利用しており、
+  新しい3階層目は追加していない（現状の粒度で要件を満たせると判断）。
+- 医薬品・サプリメント等はng_keywordsで機械的に除外しているが、完全な
+  法令チェックではない（キーワード一致による簡易的な安全策）。

@@ -3,7 +3,13 @@
 - レビュー実績（購入・利用動向の目安）による品質スコアの算出
 - 同じカテゴリ内で「用途がほぼ同じ」類似商品を1件に絞り込む
 - 上位N件が特定のカテゴリに偏りすぎないようにする
-- 「暮らしの便利グッズ」5件＋「消耗品・飲料」5件のバランスで上位候補を選ぶ
+- 全ジャンルを1つのプールとして扱い、品質・需要・偏り防止・ランダム性を
+  踏まえて上位N件を選ぶ（select_top_candidates。「暮らしの便利グッズ」枠／
+  「消耗品・飲料」枠という固定の5+5構成は前提にしない。全ジャンル化
+  （description-genre-001）以降の標準の選定方法）
+- select_balanced_top()は、上記の固定5+5構成を使っていた頃の選定方法。
+  現在のmain.pyのパイプラインからは呼ばれていないが、後方互換のため
+  関数自体は残している（既存のテスト・外部からの利用に配慮）。
 """
 
 from __future__ import annotations
@@ -323,3 +329,53 @@ def select_balanced_top(
         deduped.append(item)
 
     return deduped[:total_target]
+
+
+def select_top_candidates(
+    items: list[dict[str, Any]],
+    target: int = 10,
+    max_per_category: int = 2,
+    recent_type_counts: dict[str, int] | None = None,
+    recent_category_counts: dict[str, int] | None = None,
+    rng: random.Random | None = None,
+) -> list[dict[str, Any]]:
+    """全ジャンルを1つのプールとして扱い、上位target件を選ぶ
+    （「暮らしの便利グッズ」枠／「消耗品・飲料」枠という固定の枠分けはしない）。
+
+    優先順位は次のとおり（呼び出し側で品質条件フィルタ・投稿済み除外・
+    同一実行内重複除外は既に済んでいる前提）。
+
+        1. 品質条件クリア（呼び出し側で済み）
+        2. 品質スコア（レビュー件数・レビュー評価＝取得可能な需要の目安。
+           quality_score）
+        3. 投稿済みでない（呼び出し側で済み）
+        4. 直近の商品タイプ・カテゴリー（ジャンル）との重複が少ない
+           （priority_tier。完全除外ではなく優先度の調整）
+        5. 適度なランダム性（rng。優先度・品質が同点の商品同士の並びだけ
+           に使う）
+
+    sort_by_quality()が2〜5を並び替えキーとして扱い、diversify_top()が
+    「1巡目はカテゴリー上限（max_per_category）を守って選ぶ→2巡目は
+    上限を無視して残りから埋める」という2巡構造で、単純な売れ筋上位
+    target件（ジャンルの偏りが起きうる）ではなく「売れ筋を重視しながら
+    適度にジャンルを分散する」選び方にする。ジャンルは「各ジャンルN件」の
+    ように固定はせず、上限（max_per_category）の範囲で売れ筋状況に応じて
+    構成が変わる。候補が少ないジャンルしかない日は、上限を超えてでも
+    target件に近づける（2巡目）ため、品質条件を緩めずに候補不足時の
+    穴埋めができる。
+    """
+    ranked = sort_by_quality(items, recent_type_counts, recent_category_counts, rng)
+    diversified = diversify_top(ranked, top_n=target, max_per_category=max_per_category)
+    result = diversified[:target]
+
+    seen_codes: set[str] = set()
+    deduped: list[dict[str, Any]] = []
+    for item in result:
+        code = item.get("item_code", "")
+        if code and code in seen_codes:
+            continue
+        if code:
+            seen_codes.add(code)
+        deduped.append(item)
+
+    return deduped

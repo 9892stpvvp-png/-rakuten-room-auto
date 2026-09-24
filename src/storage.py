@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -107,6 +108,93 @@ def build_supply_diagnostics_markdown(
         "| カテゴリー | 枠 | 条件通過（投稿済み除外後） | 試した検索ワード |",
         "|---|---|---|---|",
     ]
+    for diag in category_diagnostics:
+        group_label = "便利グッズ" if diag["group"] == "convenience" else "消耗品・飲料"
+        keywords_display = " → ".join(diag["keywords_tried"])
+        lines.append(f"| {diag['category']} | {group_label} | {diag['found']}件 | {keywords_display} |")
+    lines.append("")
+    return "\n".join(lines) + "\n"
+
+
+def build_genre_selection_summary_markdown(
+    category_diagnostics: list[dict[str, Any]],
+    candidates: list[dict[str, Any]],
+    total_after_filters: int,
+    target: int,
+    quality_filtered_out: int,
+    posted_excluded_total: int,
+) -> str:
+    """GitHub ActionsのSummaryに表示する、全ジャンル化後の候補選定の内訳。
+
+    「暮らしの便利グッズ5件＋消耗品・飲料5件」という固定構成は前提にせず、
+    全ジャンルを1つのプールとして扱った選定結果を報告する。
+
+    ・候補数（品質条件・重複除外を通過した件数）／最終採用数
+    ・品質条件で除外した件数／投稿済み履歴による重複除外件数
+    ・候補不足の有無
+    ・ジャンル（カテゴリー）別・商品タイプ別の採用件数
+    ・需要・人気の判断に使ったデータ（楽天公式ランキングAPIを実際に
+      利用できたかどうかを、事実に基づいて表示する。未確認情報を
+      ランキングデータとして扱わないため）
+    ・カテゴリーごとに試した検索ワード（keywordsの各エントリ単位。
+      新規候補の採否に関わらず、探索した内容が分かるよう全件表示する）
+    """
+    shortage = len(candidates) < target
+    genre_counts: dict[str, int] = defaultdict(int)
+    type_counts: dict[str, int] = defaultdict(int)
+    for item in candidates:
+        genre = item.get("_category", "") or "(不明)"
+        genre_counts[genre] += 1
+        product_type = item.get("_product_type", "") or "(不明)"
+        type_counts[product_type] += 1
+
+    lines = [
+        "## 全ジャンル候補選定の内訳",
+        "",
+        f"- 品質条件・重複除外を通過した候補数: {total_after_filters}件",
+        f"- 最終採用数: {len(candidates)}/{target}件"
+        + ("（候補不足のため目標に届きませんでした）" if shortage else "（目標を達成）"),
+        f"- 品質条件（レビュー評価・件数等）で除外した件数: {quality_filtered_out}件",
+        f"- 投稿済み履歴による重複除外: {posted_excluded_total}件",
+        "",
+        "### ジャンル別の採用件数",
+        "",
+        "| ジャンル | 件数 |",
+        "|---|---|",
+    ]
+    for genre, count in sorted(genre_counts.items(), key=lambda kv: -kv[1]):
+        lines.append(f"| {genre} | {count}件 |")
+
+    lines.extend(
+        [
+            "",
+            "### 商品タイプ別の採用件数",
+            "",
+            "| 商品タイプ | 件数 |",
+            "|---|---|",
+        ]
+    )
+    for product_type, count in sorted(type_counts.items(), key=lambda kv: -kv[1]):
+        lines.append(f"| {product_type} | {count}件 |")
+
+    lines.extend(
+        [
+            "",
+            "### 需要・人気の判断に使ったデータ",
+            "",
+            "- 使用データ: 楽天ウェブサービス商品検索API（IchibaItem/Search）の"
+            "レビュー件数・レビュー評価、および検索結果内でのレビュー件数順"
+            "（sort=-reviewCount。検索結果内での人気度の目安）",
+            "- 楽天公式ランキングAPI（IchibaItem/Ranking等）の利用: "
+            "**していません**（実装上、商品検索APIのみを呼び出しています。"
+            "取得できないデータを売れ筋・ランキングとして扱っていません）",
+            "",
+            "### カテゴリーごとに試した検索ワード",
+            "",
+            "| カテゴリー | 枠 | 条件通過（投稿済み除外後） | 試した検索ワード |",
+            "|---|---|---|---|",
+        ]
+    )
     for diag in category_diagnostics:
         group_label = "便利グッズ" if diag["group"] == "convenience" else "消耗品・飲料"
         keywords_display = " → ".join(diag["keywords_tried"])
