@@ -11,6 +11,7 @@
     "aspa:10000003",
     "at-life:10050736",
     "auc-risecreation:10003265",
+    "azest1:10000296",
     "bathroom:10002371",
     "bathroom:10002808",
     "biyoudou:10000164",
@@ -21,6 +22,7 @@
     "coming:10000440",
     "creaswing:10000209",
     "decori:10000569",
+    "enbliss:10000259",
     "eunicedress:10001735",
     "exception5251:10000572",
     "f222038-numazu:10000205",
@@ -30,11 +32,13 @@
     "honjien-3:10000310",
     "honjien-3:10003174",
     "honjien-3:10003220",
+    "hseason:10000260",
     "hush08:10000002",
     "hush08:10000003",
     "ichifujiec:10000032",
     "idea-happy-life:10003997",
     "irisplaza-r:10156833",
+    "irisplaza-r:10158173",
     "jimo:10000191",
     "jimo:10000201",
     "k-home:10060922",
@@ -44,6 +48,8 @@
     "katayamaen:10000442",
     "kimurasoap:10000017",
     "kindai-ns:10001130",
+    "konpouya:10003368",
+    "kurashikaiteki-shop:10010285",
     "kurashikaiteki-shop:10010350",
     "laitnature:10000872",
     "larutan:10000154",
@@ -61,6 +67,7 @@
     "niceitems:10000227",
     "noone:10002900",
     "onestep:10045575",
+    "oujiseiyaku:10000038",
     "ownlife:10000777",
     "pasodentsushin:10723971",
     "pia-konodai:10000180",
@@ -75,7 +82,9 @@
     "shimoyama-onlineshop:10002758",
     "shinbido:10002621",
     "shinbido:10002622",
+    "sinkatec:10000425",
     "soukaidrink:10007430",
+    "soutowelshop:10000180",
     "starfilter:10000019",
     "suzumura-shoten:10000005",
     "taigu188:10000816",
@@ -85,7 +94,8 @@
     "winwinproduct:10000988",
     "yamatoya-d:10000208",
     "yamayuu:10016527",
-    "yamayuu:10016536"
+    "yamayuu:10016536",
+    "yamayuu:10019767"
   ],
   "posted_items": [
     {
@@ -1203,6 +1213,86 @@
       "product_name": "★【 洗濯槽快×10個セット 業務用箱なし 専用新ネット1枚付 】 カビ防止 除菌 消臭 部屋干し 梅雨 洗濯槽クリーナー 洗濯槽 洗濯槽洗剤 洗濯機 洗たく槽 洗濯爽快 掃除 洗濯槽クリーニング ホタテ 帆立 貝殻",
       "posted_at": "2026-09-24T00:11:16.630Z",
       "category": "洗剤",
+      "match_keywords": []
+    },
+    {
+      "item_code": "enbliss:10000259",
+      "item_url": "https://item.rakuten.co.jp/enbliss/wr2/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "≪今だけ300円OFF★9/30まで≫ 【着後レビューで特典】水切りラック 水切りかご シンク上 伸縮 ステンレス 食器ラック 食器かご キッチンラック キッチン VE HOME 大容量 送料無料",
+      "posted_at": "2026-09-24T13:01:41.326Z",
+      "category": "キッチン",
+      "match_keywords": []
+    },
+    {
+      "item_code": "hseason:10000260",
+      "item_url": "https://item.rakuten.co.jp/hseason/865804/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "【7年産最終売り尽くし】令和7年産 無洗米 山形県産 あきたこまち10kg 5kg×2袋 送料無料 【SOA受賞】[年間ランキング グルメ大賞]Shop Of The Year 米大賞 ハーベストシーズン[沖縄離島等一部地域は別途送料760円]",
+      "posted_at": "2026-09-24T13:03:00.197Z",
+      "category": "時短",
+      "match_keywords": []
+    },
+    {
+      "item_code": "soutowelshop:10000180",
+      "item_url": "https://item.rakuten.co.jp/soutowelshop/0359/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "タオル ヘアドライタオル 0359 マイクロファイバー バスタオル 小さめ コスパ 吸水タオル 速乾タオル 髪 髪の毛 吸水 速乾 水泳 家事 時短 ドライタオル スリム ミニバスタオル ヘアタオル",
+      "posted_at": "2026-09-24T13:03:21.889Z",
+      "category": "時短",
+      "match_keywords": []
+    },
+    {
+      "item_code": "sinkatec:10000425",
+      "item_url": "https://item.rakuten.co.jp/sinkatec/hu_shair_catcher/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "【待望のスモールサイズ新登場！】《楽天1位》【 HUBATH 洗面台 ヘアーキャッチャー 】 排水口 ゴミ受け 排水溝 掃除 排水口ネット 排水溝ネット はいすいこう ネット ごみ受け 洗面所 makuake 送料無料 磁石 極排水 SM64 ヒューバス ステンレス 36mm 32mm",
+      "posted_at": "2026-09-24T13:03:40.477Z",
+      "category": "時短",
+      "match_keywords": []
+    },
+    {
+      "item_code": "yamayuu:10019767",
+      "item_url": "https://item.rakuten.co.jp/yamayuu/yj-5734/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "tower【 山崎実業 排気口カバー タワー フラットタイプ W60 W75 】サイズ ～60cm対応/～75cm対応 フラット コンロ奥 キッチン グリル カバー ガスコンロ コンロカバー IH 対応 汚れ防止 油はねガード 清潔 掃除 5734 5735 5736 5737 公式 白 黒 YAMAZAKI",
+      "posted_at": "2026-09-24T13:04:01.750Z",
+      "category": "キッチン",
+      "match_keywords": []
+    },
+    {
+      "item_code": "konpouya:10003368",
+      "item_url": "https://item.rakuten.co.jp/konpouya/6721412/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "【ネコポス/2束まで送料270円】HEIKO PP食パン1斤用 L Eタイプ 100枚",
+      "posted_at": "2026-09-24T13:04:19.380Z",
+      "category": "キッチン消耗品",
+      "match_keywords": []
+    },
+    {
+      "item_code": "irisplaza-r:10158173",
+      "item_url": "https://item.rakuten.co.jp/irisplaza-r/312012/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "【公式】炭酸水 500ml 48本 送料無料 (24本入×2箱) 強炭酸水 アイリスオーヤマ クリスタルスパーク 炭酸 レモン マスカット ラムネ グレープ 和梨　ジンジャーエール　フレーバー プレーン 無糖 天然水 アイリスフーズ ペットボトル",
+      "posted_at": "2026-09-24T13:04:37.310Z",
+      "category": "水",
+      "match_keywords": []
+    },
+    {
+      "item_code": "oujiseiyaku:10000038",
+      "item_url": "https://item.rakuten.co.jp/oujiseiyaku/arfum-amore-120/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "【王子製薬公式】【日用品ランキング1位】 柔軟剤入り洗剤 アフューム アモーレ 詰替セット(60粒×2袋) 大容量 ベルガモット＆ジャスミンの香り 5in1 ジェルマジックボール 洗濯洗剤 部屋干し 消臭 抗菌 色落ち防止 王子製薬",
+      "posted_at": "2026-09-24T13:04:55.365Z",
+      "category": "洗剤",
+      "match_keywords": []
+    },
+    {
+      "item_code": "kurashikaiteki-shop:10010285",
+      "item_url": "https://item.rakuten.co.jp/kurashikaiteki-shop/10000770/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "◎【 洗濯槽快2個入（新ネット付） 】送料無料 部屋干しの嫌なにおいも解消 カビ防止 除菌 消臭 部屋干 梅雨 洗濯槽クリーナー 洗濯槽 洗濯槽洗剤 洗濯機 洗たく槽 洗濯槽クリーニング 掃除",
+      "posted_at": "2026-09-24T13:05:12.419Z",
+      "category": "洗剤",
+      "match_keywords": []
+    },
+    {
+      "item_code": "azest1:10000296",
+      "item_url": "https://item.rakuten.co.jp/azest1/4595640296020-0/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "白いひつじ トイレタンク洗浄剤 粉末8包入り(35g×8包) トイレタンクの洗浄剤 トイレタンク洗浄 トイレタンク掃除 トイレタンク トイレ タンク内 洗浄剤 トイレ掃除 トイレ洗剤 トイレの洗剤 トイレの掃除 簡単 消臭 除菌 酸素系 日本製",
+      "posted_at": "2026-09-24T13:05:31.308Z",
+      "category": "日用品",
       "match_keywords": []
     }
   ]
