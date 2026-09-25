@@ -1618,5 +1618,106 @@ class Sept25BatchRegressionTest(unittest.TestCase):
             self.assertLessEqual(len(description), 500)
 
 
+class DescriptionGenre003RegressionTest(unittest.TestCase):
+    """2026-09-25 15:48生成分の最終調整（description-genre-003）の回帰テスト。
+
+    ①数字＋「で使いやすい」という画一的な言い回しの改善（単位や周辺語から
+    個数・重量・サイズの意味を保持する）、②具体的な商品タイプが判定できた
+    商品には#暮らしの便利グッズ・#便利グッズを機械的に付けない、③ラーメンの
+    未確認表現（「お店の味」）の削除、の3点を確認する。商品名は
+    Sept25BatchRegressionTestと同じ、本番で実際に取得された表記を再利用する。
+    """
+
+    AROMA_OIL_NAME = Sept25BatchRegressionTest.AROMA_OIL_NAME
+    FOLDING_PARASOL_NAME = Sept25BatchRegressionTest.FOLDING_PARASOL_NAME
+    MENS_PARASOL_NAME = Sept25BatchRegressionTest.MENS_PARASOL_NAME
+    RETORT_CURRY_NAME = Sept25BatchRegressionTest.RETORT_CURRY_NAME
+    RAMEN_NAME = Sept25BatchRegressionTest.RAMEN_NAME
+    FACE_ROLLER_NAME = Sept25BatchRegressionTest.FACE_ROLLER_NAME
+    DIAPER_CAKE_NAME = Sept25BatchRegressionTest.DIAPER_CAKE_NAME
+    HYBRID_HUMIDIFIER_NAME = Sept25BatchRegressionTest.HYBRID_HUMIDIFIER_NAME
+
+    # 1.「6本で使いやすい」を生成しない。
+    def test_aroma_oil_does_not_generate_generic_6_hon_phrase(self):
+        item = make_item(name=self.AROMA_OIL_NAME)
+        description = dg.generate_description(item, category="家電", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("6本で使いやすい", description)
+
+    # 2.「210gで使いやすい」を生成しない。
+    def test_folding_parasol_does_not_generate_generic_210g_phrase(self):
+        item = make_item(name=self.FOLDING_PARASOL_NAME)
+        description = dg.generate_description(item, category="ファッション", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("210gで使いやすい", description)
+
+    # 3.「60cmで使いやすい」を生成しない。
+    def test_mens_parasol_does_not_generate_generic_60cm_phrase(self):
+        item = make_item(name=self.MENS_PARASOL_NAME)
+        description = dg.generate_description(item, category="ファッション", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("60cmで使いやすい", description)
+
+    # 4. 6本/210g/60cmそれぞれの意味（個数の種類・重さ・サイズ）を保持する。
+    def test_quantity_phrases_keep_their_unit_specific_meaning(self):
+        aroma_description = dg.generate_description(
+            make_item(name=self.AROMA_OIL_NAME), category="家電", base_hashtags=BASE_HASHTAGS
+        )
+        self.assertIn("6本セットでいろいろな種類を試しやすい", aroma_description)
+
+        parasol_description = dg.generate_description(
+            make_item(name=self.FOLDING_PARASOL_NAME), category="ファッション", base_hashtags=BASE_HASHTAGS
+        )
+        self.assertIn("重さは約210g", parasol_description)
+
+        mens_parasol_description = dg.generate_description(
+            make_item(name=self.MENS_PARASOL_NAME), category="ファッション", base_hashtags=BASE_HASHTAGS
+        )
+        self.assertIn("サイズは約60cm", mens_parasol_description)
+
+    # 5. 食品に#暮らしの便利グッズを機械的につけない。
+    def test_food_items_do_not_get_mechanical_kurashi_hashtag(self):
+        for name, category in (
+            (self.RETORT_CURRY_NAME, "食品"),
+            (self.RAMEN_NAME, "食品"),
+        ):
+            with self.subTest(name=name):
+                item = make_item(name=name)
+                description = dg.generate_description(item, category=category, base_hashtags=BASE_HASHTAGS)
+                hashtag_line = description.split("\n\n")[-1]
+                self.assertNotIn("#暮らしの便利グッズ", hashtag_line)
+
+    # 6. 美容用品に#暮らしの便利グッズを機械的につけない。
+    def test_beauty_item_does_not_get_mechanical_kurashi_hashtag(self):
+        item = make_item(name=self.FACE_ROLLER_NAME)
+        description = dg.generate_description(item, category="美容", base_hashtags=BASE_HASHTAGS)
+        hashtag_line = description.split("\n\n")[-1]
+        self.assertNotIn("#暮らしの便利グッズ", hashtag_line)
+        self.assertIn("#美容", hashtag_line.split(" "))
+
+    # 7. ベビーギフト（おむつケーキ）に#便利グッズを機械的につけない。
+    def test_baby_gift_does_not_get_mechanical_benri_hashtag(self):
+        item = make_item(name=self.DIAPER_CAKE_NAME)
+        description = dg.generate_description(item, category="ベビー用品", base_hashtags=BASE_HASHTAGS)
+        hashtag_line = description.split("\n\n")[-1]
+        self.assertNotIn("#便利グッズ", hashtag_line)
+        self.assertIn("#出産祝い", hashtag_line)
+        self.assertIn("#ベビー用品", hashtag_line)
+
+    # 8. ラーメンに未確認の「お店の味」を生成しない。
+    def test_ramen_does_not_claim_restaurant_quality_taste(self):
+        item = make_item(name=self.RAMEN_NAME)
+        description = dg.generate_description(item, category="食品", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("お店の味", description)
+        self.assertIn("ラーメン", description)
+
+    # 9. 前回修正したハイブリッド加湿器の誤認防止が維持される。
+    def test_hybrid_humidifier_misclassification_fix_still_holds(self):
+        item = make_item(name=self.HYBRID_HUMIDIFIER_NAME)
+        description = dg.generate_description(item, category="生活雑貨", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("加湿器", description)
+        self.assertNotIn("リモコンの置き場所", description)
+        self.assertNotIn("収納ラック", description)
+        hashtag_line = description.split("\n\n")[-1]
+        self.assertIn("#加湿器", hashtag_line)
+
+
 if __name__ == "__main__":
     unittest.main()

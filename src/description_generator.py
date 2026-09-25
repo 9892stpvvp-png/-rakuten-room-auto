@@ -1013,7 +1013,10 @@ PRODUCT_TYPE_TEMPLATES: list[tuple[str, _PostTemplate]] = [
     (
         "ラーメン",
         _PostTemplate(
-            hook_text="お家でお店の味、楽しめたら嬉しくない？",
+            # 「お店の味」等、商品タイトルから確認できない味・品質の評価は
+            # 使わない。確認できるのは「自宅でラーメンを楽しめる」という
+            # 商品の用途だけ（description-genre-003対応）。
+            hook_text="お家でラーメンを楽しみたい日に",
             topic_emoji="🍜",
             worry_lines=[
                 "外食したいけど、",
@@ -1934,6 +1937,42 @@ def _extract_quantity_phrase(name: str) -> str:
     return ""
 
 
+# 商品名の中で、数量が「同じ物がまとまって入っている」のではなく
+# 「複数の種類・香り等から選べる」ことを示す言葉。この言葉が商品名に
+# ある場合だけ、個数を「セットで色々選べる」という言い回しにする
+# （description-genre-003対応。特定商品のハードコードではなく、商品名の
+# 周辺語から判定する汎用的な仕組み）。
+_VARIETY_COUNT_INDICATOR_WORDS: tuple[str, ...] = ("選べる", "種類", "種から", "アソート")
+
+# 数量の単位ごとに末尾で判定するための正規表現（サイズ／重さ／容量）。
+_SIZE_UNIT_SUFFIX_PATTERN = re.compile(r"(?:cm|mm)$")
+_WEIGHT_UNIT_SUFFIX_PATTERN = re.compile(r"(?:g|kg)$")
+_VOLUME_UNIT_SUFFIX_PATTERN = re.compile(r"(?:ml|mL|L|ℓ)$")
+_COUNT_UNIT_SUFFIX_PATTERN = re.compile(r"(?:本|個|枚|袋|セット|包|パック)$")
+
+
+def _phrase_for_quantity(quantity_phrase: str, name: str) -> str:
+    """_extract_quantity_phrase()が抜き出した数量表現を、単位の意味
+    （個数・重量・サイズ・容量・食数等）に応じた自然な言い回しの
+    チェックリスト項目にする。
+
+    「数字＋で使いやすい」という単位を問わない画一的な生成を避けるための
+    汎用的な仕組み（description-genre-003対応。商品タイトルから確認
+    できる数量表現の組み合わせのみを使い、新しい効果・品質は追加しない）。
+    """
+    if _SIZE_UNIT_SUFFIX_PATTERN.search(quantity_phrase):
+        return f"サイズは約{quantity_phrase}"
+    if _WEIGHT_UNIT_SUFFIX_PATTERN.search(quantity_phrase):
+        return f"重さは約{quantity_phrase}"
+    if _VOLUME_UNIT_SUFFIX_PATTERN.search(quantity_phrase):
+        return f"容量は約{quantity_phrase}"
+    if _COUNT_UNIT_SUFFIX_PATTERN.search(quantity_phrase) and any(
+        word in name for word in _VARIETY_COUNT_INDICATOR_WORDS
+    ):
+        return f"{quantity_phrase}セットでいろいろな種類を試しやすい"
+    return f"{quantity_phrase}で使いやすい"
+
+
 # 商品名に含まれていれば「購入制限がある商品」とみなすキーワード・パターン。
 # 「お一人様1点まで」のような購入制限がある商品に対して、「まとめ買い」
 # 「まとめてストック」等の矛盾する文章を生成しないようにするためのもの。
@@ -2077,7 +2116,7 @@ def _build_checklist(template: _PostTemplate, name: str, category: str, location
 
     quantity_phrase = _extract_quantity_phrase(name)
     if quantity_phrase and not any(quantity_phrase in existing for existing in checklist):
-        checklist.append(f"{quantity_phrase}で使いやすい")
+        checklist.append(_phrase_for_quantity(quantity_phrase, name))
 
     return checklist
 
@@ -2274,33 +2313,45 @@ def _top_feature_clause(name: str, category: str) -> tuple[str, str]:
 # 一部の商品タイプ（PRODUCT_TYPE_TEMPLATESの見出し語）は、検索元の
 # カテゴリーが実際の商品ジャンルと異なることがある（例：アロマオイルが
 # 「家電」カテゴリーの検索結果に混ざることがある）。本体判定で具体的な
-# 商品タイプが確認できた場合は、カテゴリー由来のハッシュタグより商品
-# タイプに合ったハッシュタグを優先する（description-genre-002対応）。
+# 商品タイプが確認できた場合は、カテゴリー由来のハッシュタグや汎用の
+# base_hashtags（#暮らしの便利グッズ等）・#便利グッズ より、商品ジャンル・
+# 商品本体に合ったハッシュタグを優先する（description-genre-002/003対応。
+# 全商品へ機械的に同じ汎用タグを付けないための仕組み）。
 # 巨大な辞書にしないよう、実際にカテゴリーと乖離しうることが確認できた
 # 商品タイプだけに絞っている。
-_PRODUCT_TYPE_HASHTAG_OVERRIDES: dict[str, str] = {
-    "アロマオイル": "#アロマ",
-    "エッセンシャルオイル": "#アロマ",
-    "精油": "#アロマ",
-    "お名前スタンプ": "#入園準備",
-    "おむつケーキ": "#出産祝い",
-    "日傘": "#紫外線対策",
-    "加湿器": "#加湿器",
-    "レトルトカレー": "#グルメ",
-    "ラーメン": "#グルメ",
-    "美顔ローラー": "#美容グッズ",
+_PRODUCT_TYPE_HASHTAG_OVERRIDES: dict[str, list[str]] = {
+    "アロマオイル": ["#アロマ", "#アロマオイル"],
+    "エッセンシャルオイル": ["#アロマ", "#アロマオイル"],
+    "精油": ["#アロマ", "#アロマオイル"],
+    "お名前スタンプ": ["#入園準備", "#入学準備", "#お名前スタンプ"],
+    "おむつケーキ": ["#出産祝い", "#ベビー用品"],
+    "日傘": ["#日傘", "#紫外線対策"],
+    "加湿器": ["#加湿器", "#家電"],
+    "レトルトカレー": ["#グルメ", "#レトルトカレー"],
+    "ラーメン": ["#グルメ", "#ラーメン"],
+    "美顔ローラー": ["#美容", "#美容グッズ"],
 }
 
 
 def _build_hashtags(category: str, name: str, base_hashtags: list[str]) -> list[str]:
-    """カテゴリ・商品名に応じて3〜5個程度のハッシュタグを組み立てる。"""
-    tags = list(base_hashtags)
+    """カテゴリ・商品名に応じて3〜5個程度のハッシュタグを組み立てる。
 
+    商品タイプが具体的に判定できた場合（_PRODUCT_TYPE_HASHTAG_OVERRIDESに
+    ある場合）は、その商品ジャンル・商品本体に合うタグだけを使い、汎用の
+    base_hashtags・#便利グッズは付けない。商品タイプが判定できない商品
+    （安全な汎用テンプレートにフォールバックする商品）では、従来どおり
+    base_hashtags・カテゴリー別タグ・#便利グッズを使う。
+    """
     product_type = match_product_type_keyword(name)
-    override_tag = _PRODUCT_TYPE_HASHTAG_OVERRIDES.get(product_type or "", "")
-    category_tag = override_tag or HASHTAG_BY_CATEGORY.get(category, "")
-    if category_tag and category_tag not in tags:
-        tags.append(category_tag)
+    override_tags = _PRODUCT_TYPE_HASHTAG_OVERRIDES.get(product_type or "")
+
+    if override_tags:
+        tags = list(override_tags)
+    else:
+        tags = list(base_hashtags)
+        category_tag = HASHTAG_BY_CATEGORY.get(category, "")
+        if category_tag and category_tag not in tags:
+            tags.append(category_tag)
 
     for keyword, tag_spec in SUBTOPIC_HASHTAGS:
         if keyword in name:
@@ -2309,7 +2360,7 @@ def _build_hashtags(category: str, name: str, base_hashtags: list[str]) -> list[
                 tags.append(tag)
             break
 
-    if "#便利グッズ" not in tags:
+    if not override_tags and "#便利グッズ" not in tags:
         tags.append("#便利グッズ")
 
     return list(dict.fromkeys(tags))[:5]
