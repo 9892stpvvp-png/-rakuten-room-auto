@@ -12,6 +12,7 @@
     "at-life:10050736",
     "auc-risecreation:10003265",
     "azest1:10000296",
+    "baby-arte:10000083",
     "bathroom:10002371",
     "bathroom:10002808",
     "biyoudou:10000164",
@@ -22,13 +23,18 @@
     "coming:10000440",
     "creaswing:10000209",
     "decori:10000569",
+    "dondon:10003669",
+    "dondon:10004199",
+    "ease-aroma:10000347",
     "enbliss:10000259",
     "eunicedress:10001735",
     "exception5251:10000572",
     "f222038-numazu:10000205",
     "good-item:10000868",
+    "gotoken1879:10000205",
     "green365:10000000",
     "hibec:10000019",
+    "higasa:10000507",
     "honjien-3:10000310",
     "honjien-3:10003174",
     "honjien-3:10003220",
@@ -39,6 +45,7 @@
     "idea-happy-life:10003997",
     "irisplaza-r:10156833",
     "irisplaza-r:10158173",
+    "ishimatsudo:10000077",
     "jimo:10000191",
     "jimo:10000201",
     "k-home:10060922",
@@ -54,6 +61,7 @@
     "laitnature:10000872",
     "larutan:10000154",
     "let-ochanomise:10000187",
+    "liberesta:10000014",
     "livingut:310675",
     "luckyhill:10000105",
     "magokoro-eshop:10001366",
@@ -75,6 +83,7 @@
     "rack-town:10001473",
     "rakuten24:10252628",
     "rakuten24:11148575",
+    "rinsendou:10000327",
     "risu-onlineshop:10002060",
     "royal3000:10006630",
     "sanki-shop:10000001",
@@ -95,7 +104,8 @@
     "yamatoya-d:10000208",
     "yamayuu:10016527",
     "yamayuu:10016536",
-    "yamayuu:10019767"
+    "yamayuu:10019767",
+    "znewmark:10000597"
   ],
   "posted_items": [
     {
@@ -1293,6 +1303,86 @@
       "product_name": "白いひつじ トイレタンク洗浄剤 粉末8包入り(35g×8包) トイレタンクの洗浄剤 トイレタンク洗浄 トイレタンク掃除 トイレタンク トイレ タンク内 洗浄剤 トイレ掃除 トイレ洗剤 トイレの洗剤 トイレの掃除 簡単 消臭 除菌 酸素系 日本製",
       "posted_at": "2026-09-24T13:05:31.308Z",
       "category": "日用品",
+      "match_keywords": []
+    },
+    {
+      "item_code": "ishimatsudo:10000077",
+      "item_url": "https://item.rakuten.co.jp/ishimatsudo/792595/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "【 期間限定 送料無料 】 おなまえBOX ★ お名前スタンプ 安心のレビュー4.5万超 ひらがな 漢字 ローマ字 スーパーセット アイロン不要油性スタンプ台 選べる付属品 フォント 入園準備 入学 布 タグ おむつスタンプ 出産祝い おなまえスタンプ 子ども 保育園 名前スタンプ",
+      "posted_at": "2026-09-25T15:30:25.509Z",
+      "category": "ベビー用品",
+      "match_keywords": []
+    },
+    {
+      "item_code": "ease-aroma:10000347",
+      "item_url": "https://item.rakuten.co.jp/ease-aroma/10000347/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "アロマオイル AEAJ認定 40種から選べる6本 各5ml 精油 返品保証付 送料無料 100%ピュア エッセンシャルオイル セット アロマ 加湿器 オーガニック お試し ラベンダー オレンジ 天然",
+      "posted_at": "2026-09-25T15:39:55.664Z",
+      "category": "家電",
+      "match_keywords": []
+    },
+    {
+      "item_code": "baby-arte:10000083",
+      "item_url": "https://item.rakuten.co.jp/baby-arte/ok-44/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "おむつケーキ 男の子 女の子 ギフト 名入れ 出産祝い サッシー Sassy 知育玩具 3段 マンスリーカード タオル おもちゃ ケーキオムツ 赤ちゃん ベビー 可愛い 誕生日 ループタオル フェイスタオル 歯がため 月齢カード 成長記録 ベビーアルテ",
+      "posted_at": "2026-09-25T15:40:21.220Z",
+      "category": "ベビー用品",
+      "match_keywords": []
+    },
+    {
+      "item_code": "liberesta:10000014",
+      "item_url": "https://item.rakuten.co.jp/liberesta/vsh012/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "【クーポン利用で最安2178円・酸化チタンシリーズ】「年間ランキング受賞」「楽天1位」＼Radi-Cool素材使用／日傘 折りたたみ 形状記憶 完全遮光 自動開閉 傘 超軽量 わずか210g 折りたたみ傘 ワンタッチ 自動開閉 遮熱 晴雨兼用 遮光率100% UVカット 撥水加工 親骨 6本骨",
+      "posted_at": "2026-09-25T15:40:41.808Z",
+      "category": "ファッション",
+      "match_keywords": []
+    },
+    {
+      "item_code": "dondon:10003669",
+      "item_url": "https://item.rakuten.co.jp/dondon/htjs-002/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "[6%クーポン] 加湿器 超音波加湿器 次亜塩素酸水対応 タワー型 おしゃれ 卓上加湿器 超音波式加湿器 アロマ加湿器 卓上 オフィス 大容量 小型 コンパクト 自動停止機能 LEDライト付き 静音 省エネ 節電 エコ",
+      "posted_at": "2026-09-25T15:41:04.214Z",
+      "category": "家電",
+      "match_keywords": []
+    },
+    {
+      "item_code": "gotoken1879:10000205",
+      "item_url": "https://item.rakuten.co.jp/gotoken1879/hogushiniku1/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "カレー レトルトカレー 五島軒 公式 函館・五島軒の極上ほぐし肉カレー4食セット 1日100セット限定 送料無料 ネコポス便 お試し",
+      "posted_at": "2026-09-25T15:42:19.149Z",
+      "category": "食品",
+      "match_keywords": []
+    },
+    {
+      "item_code": "higasa:10000507",
+      "item_url": "https://item.rakuten.co.jp/higasa/0587/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "日傘 折りたたみ メンズ 遮熱 晴雨兼用 大きい 60cm 遮光率100％ UVカット率100% 紫外線対策 熱中症対策 通勤 通学 スポーツ観戦 アウトドア 男の日傘 大きめ おすすめ 人気 丈夫 軽量 3つ折 手動開閉 シンプル 無地 涼しい ひんやり傘 リーベン 0804",
+      "posted_at": "2026-09-25T15:42:42.711Z",
+      "category": "ファッション",
+      "match_keywords": []
+    },
+    {
+      "item_code": "rinsendou:10000327",
+      "item_url": "https://item.rakuten.co.jp/rinsendou/10000066-sale/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "＼5年連続受賞！比内地鶏ラーメン！／1日3万食完売 楽天1位 グルメ大賞 金賞 秋田比内地鶏ラーメン 乾麺 6食 麺・スープ付 トッピング無 あっさり 塩ラーメン 塩味 具無し ダイエット カロリー控えめ 夜食 送料無料 秋田 林泉堂",
+      "posted_at": "2026-09-25T15:43:03.882Z",
+      "category": "食品",
+      "match_keywords": []
+    },
+    {
+      "item_code": "znewmark:10000597",
+      "item_url": "https://item.rakuten.co.jp/znewmark/by-silver-01/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "【楽天1位★無料ラッピング】美顔ローラー 美顔器 リフトアップ 【微弱電流】【防水仕様】【充電不要】 小顔ローラー 美顔ローラー メンズ マイクロカレント 美顔器 ローラー 全身用 ローラー 美容グッズ 美容 グッズ 氷ローラー 女性 男性 誕生日 敬老の日 母の日 誕生日",
+      "posted_at": "2026-09-25T15:43:24.721Z",
+      "category": "美容",
+      "match_keywords": []
+    },
+    {
+      "item_code": "dondon:10004199",
+      "item_url": "https://item.rakuten.co.jp/dondon/htjs-004/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "[早期割り10%クーポン] [1年保証] 加湿器 ハイブリッド加湿器 2WAY タワー型 スリム おしゃれ ハイブリッド式加湿器 アロマ加湿器 卓上 オフィス 大容量 リモコン付き 業務用 自動停止機能 ダウンライト付き 静音 省エネ 節電 エコ",
+      "posted_at": "2026-09-25T15:58:36.603Z",
+      "category": "生活雑貨",
       "match_keywords": []
     }
   ]
