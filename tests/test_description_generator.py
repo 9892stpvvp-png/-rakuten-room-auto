@@ -1415,5 +1415,208 @@ class Sept23BatchRegressionTest(unittest.TestCase):
             self.assertNotIn("キッチン作業に使いやすそう", variant)
 
 
+class Sept25BatchRegressionTest(unittest.TestCase):
+    """2026-09-25生成分のroom/data/candidates.jsonで実際に見つかった、
+    全ジャンル型移行後の紹介文誤分類の回帰テスト（description-genre-002）。
+    商品名は本番で実際に取得された表記をそのまま使っている。"""
+
+    NAME_STAMP_NAME = (
+        "【 期間限定 送料無料 】 おなまえBOX ★ お名前スタンプ 安心のレビュー4.5万超 ひらがな 漢字 "
+        "ローマ字 スーパーセット アイロン不要油性スタンプ台 選べる付属品 フォント 入園準備 入学 布 "
+        "タグ おむつスタンプ 出産祝い おなまえスタンプ 子ども 保育園 名前スタンプ"
+    )
+    AROMA_OIL_NAME = (
+        "アロマオイル AEAJ認定 40種から選べる6本 各5ml 精油 返品保証付 送料無料 100%ピュア "
+        "エッセンシャルオイル セット アロマ 加湿器 オーガニック お試し ラベンダー オレンジ 天然"
+    )
+    DIAPER_CAKE_NAME = (
+        "おむつケーキ 男の子 女の子 ギフト 名入れ 出産祝い サッシー Sassy 知育玩具 3段 マンスリー"
+        "カード タオル おもちゃ ケーキオムツ 赤ちゃん ベビー 可愛い 誕生日 ループタオル フェイス"
+        "タオル 歯がため 月齢カード 成長記録 ベビーアルテ"
+    )
+    FOLDING_PARASOL_NAME = (
+        "【クーポン利用で最安2178円・酸化チタンシリーズ】「年間ランキング受賞」「楽天1位」"
+        "＼Radi-Cool素材使用／日傘 折りたたみ 形状記憶 完全遮光 自動開閉 傘 超軽量 わずか210g "
+        "折りたたみ傘 ワンタッチ 自動開閉 遮熱 晴雨兼用 遮光率100% UVカット 撥水加工 親骨 6本骨"
+    )
+    MENS_PARASOL_NAME = (
+        "日傘 折りたたみ メンズ 遮熱 晴雨兼用 大きい 60cm 遮光率100％ UVカット率100% 紫外線対策 "
+        "熱中症対策 通勤 通学 スポーツ観戦 アウトドア 男の日傘 大きめ おすすめ 人気 丈夫 軽量 "
+        "3つ折 手動開閉 シンプル 無地 涼しい ひんやり傘 リーベン 0804"
+    )
+    ULTRASONIC_HUMIDIFIER_NAME = (
+        "[6%クーポン] 加湿器 超音波加湿器 次亜塩素酸水対応 タワー型 おしゃれ 卓上加湿器 超音波式加湿器 "
+        "アロマ加湿器 卓上 オフィス 大容量 小型 コンパクト 自動停止機能 LEDライト付き 静音 省エネ "
+        "節電 エコ"
+    )
+    RETORT_CURRY_NAME = (
+        "カレー レトルトカレー 五島軒 公式 函館・五島軒の極上ほぐし肉カレー4食セット 1日100セット"
+        "限定 送料無料 ネコポス便 お試し"
+    )
+    RAMEN_NAME = (
+        "＼5年連続受賞！比内地鶏ラーメン！／1日3万食完売 楽天1位 グルメ大賞 金賞 秋田比内地鶏ラーメン "
+        "乾麺 6食 麺・スープ付 トッピング無 あっさり 塩ラーメン 塩味 具無し ダイエット カロリー"
+        "控えめ 夜食 送料無料 秋田 林泉堂"
+    )
+    FACE_ROLLER_NAME = (
+        "【楽天1位★無料ラッピング】美顔ローラー 美顔器 リフトアップ 【微弱電流】【防水仕様】"
+        "【充電不要】 小顔ローラー 美顔ローラー メンズ マイクロカレント 美顔器 ローラー 全身用 "
+        "ローラー 美容グッズ 美容 グッズ 氷ローラー 女性 男性 誕生日 敬老の日 母の日 誕生日"
+    )
+    HYBRID_HUMIDIFIER_NAME = (
+        "[早期割り10%クーポン] [1年保証] 加湿器 ハイブリッド加湿器 2WAY タワー型 スリム おしゃれ "
+        "ハイブリッド式加湿器 アロマ加湿器 卓上 オフィス 大容量 リモコン付き 業務用 自動停止機能 "
+        "ダウンライト付き 静音 省エネ 節電 エコ"
+    )
+
+    # 1. お名前スタンプを汎用生活用品だけで紹介しない。
+    def test_name_stamp_is_not_only_generic_life_goods(self):
+        item = make_item(name=self.NAME_STAMP_NAME)
+        description = dg.generate_description(item, category="ベビー用品", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("そんな暮らしの小さな不便を解消してくれそうな便利グッズ", description)
+        self.assertIn("お名前スタンプ", description)
+        self.assertTrue(any(k in description for k in ("ひらがな", "漢字", "ローマ字", "布", "タグ", "おむつ")))
+
+    # 2. アロマオイルを家電として紹介しない。
+    def test_aroma_oil_is_not_introduced_as_a_home_appliance(self):
+        item = make_item(name=self.AROMA_OIL_NAME)
+        description = dg.generate_description(item, category="家電", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("そんな暮らしの小さな不便を解消してくれそうな便利グッズ", description)
+        self.assertIn("アロマオイル", description)
+        self.assertNotIn("#家電", description)
+
+    def test_aroma_oil_does_not_claim_health_or_therapeutic_effects(self):
+        item = make_item(name=self.AROMA_OIL_NAME)
+        description = dg.generate_description(item, category="家電", base_hashtags=BASE_HASHTAGS)
+        for phrase in ("リラックス効果", "治療", "改善", "健康になる"):
+            self.assertNotIn(phrase, description)
+
+    # 3. おむつケーキを一般生活用品として紹介しない。
+    def test_diaper_cake_is_not_introduced_as_generic_life_goods(self):
+        item = make_item(name=self.DIAPER_CAKE_NAME)
+        description = dg.generate_description(item, category="ベビー用品", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("そんな暮らしの小さな不便を解消してくれそうな便利グッズ", description)
+        self.assertIn("出産祝い", description)
+        self.assertIn("おむつケーキ", description)
+
+    # 4. 日傘を日傘として認識する。
+    def test_folding_parasol_is_recognized_as_a_parasol(self):
+        item = make_item(name=self.FOLDING_PARASOL_NAME)
+        description = dg.generate_description(item, category="ファッション", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("日傘", description)
+        self.assertNotIn("暮らしの中の小さな「困った」", description)
+
+    def test_mens_parasol_is_recognized_as_a_parasol(self):
+        item = make_item(name=self.MENS_PARASOL_NAME)
+        description = dg.generate_description(item, category="ファッション", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("日傘", description)
+
+    # 5. 「6本骨」を6個の商品数量として扱わない。
+    def test_umbrella_rib_count_is_not_mistaken_for_product_quantity(self):
+        phrase = dg._extract_quantity_phrase(self.FOLDING_PARASOL_NAME)
+        self.assertNotEqual(phrase, "6本")
+        item = make_item(name=self.FOLDING_PARASOL_NAME)
+        description = dg.generate_description(item, category="ファッション", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("6本で使いやすい", description)
+
+    # 6. 超音波加湿器を加湿器として認識する。
+    def test_ultrasonic_humidifier_is_recognized_as_a_humidifier(self):
+        item = make_item(name=self.ULTRASONIC_HUMIDIFIER_NAME)
+        description = dg.generate_description(item, category="家電", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("加湿器", description)
+        self.assertIn("加湿", description)
+
+    # 7. レトルトカレーを食品として紹介する。
+    def test_retort_curry_is_introduced_as_food(self):
+        item = make_item(name=self.RETORT_CURRY_NAME)
+        description = dg.generate_description(item, category="食品", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("そんな暮らしの小さな不便を解消してくれそうな便利グッズ", description)
+        self.assertIn("レトルトカレー", description)
+
+    # 8. ラーメンを食品として紹介する。
+    def test_ramen_is_introduced_as_food(self):
+        item = make_item(name=self.RAMEN_NAME)
+        description = dg.generate_description(item, category="食品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("ラーメン", description)
+        # タイトルの「ダイエット」「カロリー控えめ」を健康効果として拡大解釈しない。
+        self.assertNotIn("ダイエット", description)
+        self.assertNotIn("痩せ", description)
+
+    def test_ramen_quantity_and_curry_quantity_are_not_confused(self):
+        self.assertEqual(dg._extract_quantity_phrase(self.RETORT_CURRY_NAME), "4食")
+        self.assertEqual(dg._extract_quantity_phrase(self.RAMEN_NAME), "6食")
+
+    # 9. 美顔ローラーを美容用品として紹介する。
+    def test_face_roller_is_introduced_as_a_beauty_item(self):
+        item = make_item(name=self.FACE_ROLLER_NAME)
+        description = dg.generate_description(item, category="美容", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("美顔ローラー", description)
+
+    # 10. 美容効果を勝手に断定しない。
+    def test_face_roller_does_not_claim_beauty_effects(self):
+        item = make_item(name=self.FACE_ROLLER_NAME)
+        description = dg.generate_description(item, category="美容", base_hashtags=BASE_HASHTAGS)
+        for phrase in ("小顔になる", "リフトアップする", "若返る", "むくみが取れる", "小顔効果"):
+            self.assertNotIn(phrase, description)
+
+    # 11. ハイブリッド加湿器をリモコン収納用品として誤認しない。
+    def test_hybrid_humidifier_is_not_mistaken_for_a_remote_control_organizer(self):
+        item = make_item(name=self.HYBRID_HUMIDIFIER_NAME)
+        description = dg.generate_description(item, category="生活雑貨", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("リモコンの置き場所", description)
+        self.assertNotIn("収納ラック", description)
+        self.assertIn("加湿器", description)
+
+    # 12. 「リモコン付き」は本体判定より低い優先度になる。
+    def test_remote_control_mention_does_not_override_the_actual_product(self):
+        # 「リモコン付き」は加湿器という商品本体の付属品としての言及であり、
+        # 「リモコン」というキーワードにマッチしても、それを商品本体とは
+        # 判定しない（加湿器の商品タイプが優先される）。
+        self.assertEqual(dg.match_product_type_keyword("リモコン付き ハイブリッド加湿器"), "加湿器")
+        self.assertEqual(dg.match_product_type_keyword("リモコン付き 加湿器 卓上"), "加湿器")
+        # 商品本体がリモコンそのもの（付属品としての言及ではない）の場合は、
+        # 従来どおりリモコン向けテンプレートのまま。
+        self.assertEqual(dg.match_product_type_keyword("リモコン 収納ラック おしゃれ"), "リモコン")
+
+    # 13. 4食/6食/6本骨/60cm/210gの意味を混同しない。
+    def test_quantity_units_are_not_confused_across_items(self):
+        self.assertEqual(dg._extract_quantity_phrase(self.RETORT_CURRY_NAME), "4食")
+        self.assertEqual(dg._extract_quantity_phrase(self.RAMEN_NAME), "6食")
+        self.assertEqual(dg._extract_quantity_phrase(self.FOLDING_PARASOL_NAME), "210g")
+        self.assertEqual(dg._extract_quantity_phrase(self.MENS_PARASOL_NAME), "60cm")
+        self.assertEqual(dg._extract_quantity_phrase(self.AROMA_OIL_NAME), "6本")
+
+    def test_hashtags_reflect_actual_product_type_not_mismatched_category(self):
+        # 検索元カテゴリーが実際の商品ジャンルと矛盾する場合、ハッシュタグも
+        # 本体の商品タイプを優先する（アロマオイルが「家電」カテゴリーでも
+        # #家電にはならない）。
+        item = make_item(name=self.AROMA_OIL_NAME)
+        description = dg.generate_description(item, category="家電", base_hashtags=BASE_HASHTAGS)
+        hashtag_line = description.split("\n\n")[-1]
+        self.assertNotIn("#家電", hashtag_line)
+        self.assertIn("#アロマ", hashtag_line)
+
+    def test_all_ten_items_are_understandable_from_the_description_alone(self):
+        # 「何の商品か読めば分かる」ことの最低限の確認：各商品を特徴づける
+        # 語が紹介文本文に含まれていることを確認する。
+        expectations = {
+            self.NAME_STAMP_NAME: "お名前スタンプ",
+            self.AROMA_OIL_NAME: "アロマオイル",
+            self.DIAPER_CAKE_NAME: "おむつケーキ",
+            self.FOLDING_PARASOL_NAME: "日傘",
+            self.MENS_PARASOL_NAME: "日傘",
+            self.ULTRASONIC_HUMIDIFIER_NAME: "加湿器",
+            self.RETORT_CURRY_NAME: "レトルトカレー",
+            self.RAMEN_NAME: "ラーメン",
+            self.FACE_ROLLER_NAME: "美顔ローラー",
+            self.HYBRID_HUMIDIFIER_NAME: "加湿器",
+        }
+        for name, expected_keyword in expectations.items():
+            item = make_item(name=name)
+            description = dg.generate_description(item, category="暮らし全般", base_hashtags=BASE_HASHTAGS)
+            self.assertIn(expected_keyword, description, description)
+            self.assertLessEqual(len(description), 500)
+
+
 if __name__ == "__main__":
     unittest.main()

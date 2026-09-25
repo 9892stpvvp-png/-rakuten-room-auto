@@ -855,6 +855,200 @@ PRODUCT_TYPE_TEMPLATES: list[tuple[str, _PostTemplate]] = [
             ],
         ),
     ),
+    # ここから下は、2026-09-25生成分の監査（description-genre-002）で見つかった
+    # 「全ジャンル化で増えた商品タイプがPRODUCT_TYPE_TEMPLATESに未登録のため、
+    # 大分類の汎用テンプレートに頼りすぎる／別の商品タイプに誤認される」
+    # 問題への対応として追加。いずれも商品名から確認できる事実だけを使い、
+    # 健康効果・美容効果等の確認できない効果は書いていない。
+    (
+        "お名前スタンプ",
+        _PostTemplate(
+            hook_text="名前つけ、まとめて済ませられたら助かるよね",
+            topic_emoji="✏️",
+            worry_lines=[
+                "持ち物の名前つけって、",
+                "布・タグ・おむつなどいろいろな場所に必要で地味に大変ですよね…😅",
+            ],
+            solution_text="ひらがな・漢字・ローマ字を選べるお名前スタンプ",
+            checklist_core=["布・タグ・おむつ等の名前つけに使いやすい", "入園・入学準備に取り入れやすい"],
+            checklist_fallback="持ち物の名前つけをまとめて済ませやすい",
+            closing_variants=[
+                "入園・入学準備をラクにしたい人におすすめ",
+                "名前つけの手間を減らしたい人に便利そう",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "アロマオイル",
+        _PostTemplate(
+            # 香りを楽しめること以上の効果（リラックス効果・治療効果等）は
+            # 商品名から確認できないため断定しない。
+            hook_text="お気に入りの香り、見つかったら嬉しいよね",
+            topic_emoji="🌿",
+            worry_lines=[
+                "アロマオイルって、",
+                "香りの種類が多くてどれを選ぶか迷いますよね…😅",
+            ],
+            solution_text="いろいろな香りを試せるアロマオイル",
+            checklist_core=["ディフューザー等に入れて香りを楽しみやすい", "いろいろな香りを試しやすい"],
+            checklist_fallback="気になる香りを見つけやすい",
+            closing_variants=[
+                "好きな香りを見つけたい人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "エッセンシャルオイル",
+        _PostTemplate(
+            hook_text="お気に入りの香り、見つかったら嬉しいよね",
+            topic_emoji="🌿",
+            worry_lines=[
+                "アロマオイルって、",
+                "香りの種類が多くてどれを選ぶか迷いますよね…😅",
+            ],
+            solution_text="いろいろな香りを試せるアロマオイル",
+            checklist_core=["ディフューザー等に入れて香りを楽しみやすい", "いろいろな香りを試しやすい"],
+            checklist_fallback="気になる香りを見つけやすい",
+            closing_variants=[
+                "好きな香りを見つけたい人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "精油",
+        _PostTemplate(
+            hook_text="お気に入りの香り、見つかったら嬉しいよね",
+            topic_emoji="🌿",
+            worry_lines=[
+                "アロマオイルって、",
+                "香りの種類が多くてどれを選ぶか迷いますよね…😅",
+            ],
+            solution_text="いろいろな香りを試せるアロマオイル",
+            checklist_core=["ディフューザー等に入れて香りを楽しみやすい", "いろいろな香りを試しやすい"],
+            checklist_fallback="気になる香りを見つけやすい",
+            closing_variants=[
+                "好きな香りを見つけたい人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "おむつケーキ",
+        _PostTemplate(
+            hook_text="出産祝い、何を贈るか迷っていない？",
+            topic_emoji="🎁",
+            worry_lines=[
+                "出産祝いって、",
+                "何を贈れば喜んでもらえるか迷いますよね…😅",
+            ],
+            solution_text="おむつやタオルなどをケーキ型にまとめたおむつケーキ",
+            checklist_core=["出産祝いのギフトに使いやすい", "見た目も華やかで贈り物に向いている"],
+            checklist_fallback="出産祝いの贈り物に取り入れやすい",
+            closing_variants=[
+                "出産祝いを探している人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "日傘",
+        _PostTemplate(
+            hook_text="紫外線対策、そろそろ本気で考えない？",
+            topic_emoji="☀️",
+            worry_lines=[
+                "強い日差しの中を歩くのって、",
+                "紫外線や暑さが地味に気になりますよね…😅",
+            ],
+            solution_text="紫外線対策に使いやすい日傘",
+            checklist_core=["紫外線対策に使いやすい", "外出時の日差し対策に取り入れやすい"],
+            checklist_fallback="普段のお出かけに取り入れやすい",
+            closing_variants=[
+                "紫外線対策をしたい人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "加湿器",
+        _PostTemplate(
+            # 「リモコン付き」等の付属品・対応機能の言及があっても、商品本体
+            # （加湿器）の判定を上書きしない（_FEATURE_MENTION_SUFFIX_PATTERN
+            # 参照。description-genre-002対応）。
+            hook_text="乾燥する季節、対策できてる？",
+            topic_emoji="💧",
+            worry_lines=[
+                "空気が乾燥する季節って、",
+                "のどや肌の乾燥が気になりますよね…😅",
+            ],
+            solution_text="お部屋の加湿に使いやすい加湿器",
+            checklist_core=["お部屋の加湿に使いやすい", "卓上やオフィスにも置きやすい"],
+            checklist_fallback="乾燥が気になる季節に取り入れやすい",
+            closing_variants=[
+                "乾燥対策をしたい人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "レトルトカレー",
+        _PostTemplate(
+            hook_text="今日のごはん、手軽に済ませたい日もあるよね",
+            topic_emoji="🍛",
+            worry_lines=[
+                "毎日の食事作りって、",
+                "手間をかけられない日もありますよね…😅",
+            ],
+            solution_text="温めるだけで食べられるレトルトカレー",
+            checklist_core=["温めるだけで手軽に食べられる", "ストックしておくと便利"],
+            checklist_fallback="忙しい日の食事に取り入れやすい",
+            closing_variants=[
+                "手軽に食事を済ませたい人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "ラーメン",
+        _PostTemplate(
+            hook_text="お家でお店の味、楽しめたら嬉しくない？",
+            topic_emoji="🍜",
+            worry_lines=[
+                "外食したいけど、",
+                "毎回はなかなか難しいですよね…😅",
+            ],
+            solution_text="自宅で手軽に楽しめるラーメン",
+            checklist_core=["自宅で手軽に楽しめる", "ストックしておくと便利"],
+            checklist_fallback="普段の食事に取り入れやすい",
+            closing_variants=[
+                "自宅でラーメンを楽しみたい人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "美顔ローラー",
+        _PostTemplate(
+            # 「小顔になる」「リフトアップする」等の効果は商品名の広告表現
+            # であっても事実として断定しない。確認できるのは「顔まわりに
+            # 使うローラー」という商品の構造だけ。
+            hook_text="毎日のお手入れ、ちょっと楽しくしてみない？",
+            topic_emoji="✨",
+            worry_lines=[
+                "スキンケアの時間って、",
+                "同じ流れになりがちですよね…😅",
+            ],
+            solution_text="顔まわりに使いやすい美顔ローラー",
+            checklist_core=["顔まわりに使いやすい", "普段のお手入れに取り入れやすい"],
+            checklist_fallback="毎日のスキンケアに取り入れやすい",
+            closing_variants=[
+                "お手入れタイムを楽しみたい人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
 ]
 
 # 同じ商品タイプキーワード（例：「ドライヤースタンド」）でも、周辺語（文脈）
@@ -886,6 +1080,34 @@ _PRODUCT_TYPE_CONTEXT_OVERRIDES: list[tuple[str, tuple[str, ...], _PostTemplate]
 ]
 
 
+# 商品名にこれらの接尾語が続く場合、直前の言葉（PRODUCT_TYPE_TEMPLATESの
+# キーワード）は商品本体ではなく、付属品・対応機能・仕様として書かれている
+# とみなす（例：「リモコン付き加湿器」の「リモコン」は商品本体ではなく、
+# 加湿器の付属品としての言及）。商品タイトル内の「本体名＋特徴＋付属品＋
+# 用途＋広告ワード」が混在していても、商品本体の判定を特徴語・付属品が
+# 上書きしないようにするための汎用的な仕組み（description-genre-002対応。
+# 個別の商品名をハードコードするのではなく、キーワードの前後関係で判定する）。
+_FEATURE_MENTION_SUFFIX_PATTERN = re.compile(r"^(付き|対応|式|機能|内蔵)")
+
+
+def _iter_product_type_keyword_matches(name: str):
+    """商品名の中からPRODUCT_TYPE_TEMPLATESのキーワードに一致する
+    (キーワード, テンプレート)を、先頭から順に返すジェネレーター。
+
+    同じキーワードが複数回登場する場合、「◯◯付き」等の付属品・対応機能
+    としての言及（_FEATURE_MENTION_SUFFIX_PATTERN）はスキップし、商品
+    本体としての言及だけを対象にする。どの登場箇所も付属品としての言及
+    だった場合、そのキーワードは一致なしとして次のキーワードに進む。
+    """
+    for keyword, template in PRODUCT_TYPE_TEMPLATES:
+        for match in re.finditer(re.escape(keyword), name):
+            remainder = name[match.end():]
+            if _FEATURE_MENTION_SUFFIX_PATTERN.match(remainder):
+                continue
+            yield keyword, template
+            break
+
+
 def _match_product_type(name: str) -> _PostTemplate | None:
     """商品名から、具体的な商品の種類が分かるテンプレートを返す。無ければNone。
 
@@ -895,9 +1117,8 @@ def _match_product_type(name: str) -> _PostTemplate | None:
     for keyword, context_words, template in _PRODUCT_TYPE_CONTEXT_OVERRIDES:
         if keyword in name and any(word in name for word in context_words):
             return template
-    for keyword, template in PRODUCT_TYPE_TEMPLATES:
-        if keyword in name:
-            return template
+    for _keyword, template in _iter_product_type_keyword_matches(name):
+        return template
     return None
 
 
@@ -1193,6 +1414,112 @@ GENERIC_TEMPLATES: dict[str, _PostTemplate] = {
             "気分転換にストックしておきたい飲み物",
             "気分転換のひとときに取り入れやすい飲み物",
         ),
+    ),
+    # ここから下は、全ジャンル化（description-genre-001）に伴い商品選定
+    # ジャンルが増えたことへの対応として、description-genre-002で追加した
+    # 「ジャンル別の安全テンプレート」層。PRODUCT_TYPE_TEMPLATESに一致しない
+    # 商品がDEFAULT_CATEGORYの完全な汎用文言にフォールバックしてしまう
+    # 問題（食品・美容等がすべて「暮らしの便利グッズ」的な文章になる）へ
+    # の対応。確認できない効果・性能は書かず、ジャンルとして自然な範囲の
+    # 言い回しにとどめている。
+    "食品": _PostTemplate(
+        hook_text="今日の食事、手軽に済ませたい日もあるよね",
+        topic_emoji="🍽️",
+        worry_lines=["毎日の食事の用意って、", "全部手作りするのは大変な日もありますよね…😅"],
+        solution_text="手軽に楽しめそうな食品",
+        checklist_core=["手軽に取り入れやすい", "ストックしておくと便利"],
+        checklist_fallback="普段の食事に取り入れやすい",
+        closing_variants=[
+            "手軽な食事を探している人におすすめ",
+            "気になる人はチェックしてみてほしい",
+        ],
+        hook_variants=(
+            "今日の食事、手軽に済ませたい日もあるよね",
+            "おうちで手軽に楽しめる食品、気になる？",
+            "ストックしておくと便利な食品、見つけたかも",
+        ),
+        worry_variants=(
+            ("毎日の食事の用意って、", "全部手作りするのは大変な日もありますよね…😅"),
+            ("忙しい日の食事って、", "手軽に済ませたいこと多いですよね…😅"),
+        ),
+        solution_variants=(
+            "手軽に楽しめそうな食品",
+            "ストックしておきたい食品",
+        ),
+    ),
+    "美容": _PostTemplate(
+        # 「小顔になる」「若返る」等の効果は商品名の広告表現であっても
+        # 事実として断定しない（description-genre-002対応）。
+        hook_text="毎日のお手入れ、気になるアイテムある？",
+        topic_emoji="✨",
+        worry_lines=["スキンケアやお手入れって、", "同じことの繰り返しになりがちですよね…😅"],
+        solution_text="普段のお手入れに取り入れやすい美容グッズ",
+        checklist_core=["普段のお手入れに取り入れやすい", "毎日使いやすい"],
+        checklist_fallback="気になる場面で使いやすい",
+        closing_variants=[
+            "お手入れタイムを楽しみたい人におすすめ",
+            "気になる人はチェックしてみてほしい",
+        ],
+        hook_variants=(
+            "毎日のお手入れ、気になるアイテムある？",
+            "そのお手入れ、もっと楽しくできるかも",
+        ),
+        worry_variants=(
+            ("スキンケアやお手入れって、", "同じことの繰り返しになりがちですよね…😅"),
+            ("毎日のお手入れタイムを、", "もう少し楽しみたいですよね…😅"),
+        ),
+        solution_variants=(
+            "普段のお手入れに取り入れやすい美容グッズ",
+            "気になる場面で使いやすい美容グッズ",
+        ),
+    ),
+    "ファッション": _PostTemplate(
+        hook_text="毎日のおでかけ、快適にできたら嬉しいよね",
+        topic_emoji="👜",
+        worry_lines=["おでかけのときって、", "天気や気温で困ることがありますよね…😅"],
+        solution_text="普段のおでかけに取り入れやすいアイテム",
+        checklist_core=["普段のおでかけに取り入れやすい", "持ち運びやすい"],
+        checklist_fallback="必要な場面で使いやすい",
+        closing_variants=[
+            "おでかけを快適にしたい人におすすめ",
+            "気になる人はチェックしてみてほしい",
+        ],
+    ),
+    "ベビー用品": _PostTemplate(
+        hook_text="赤ちゃんとの暮らし、頼れるアイテムがあると安心だよね",
+        topic_emoji="🍼",
+        worry_lines=["赤ちゃんとの毎日って、", "準備するものが多くて大変ですよね…😅"],
+        solution_text="赤ちゃんとの暮らしに取り入れやすいベビー用品",
+        checklist_core=["赤ちゃんとの暮らしに取り入れやすい", "普段のお世話に使いやすい"],
+        checklist_fallback="必要な場面で使いやすい",
+        closing_variants=[
+            "赤ちゃんとの暮らしをラクにしたい人におすすめ",
+            "気になる人はチェックしてみてほしい",
+        ],
+    ),
+    "家電": _PostTemplate(
+        hook_text="その家電、暮らしをちょっとラクにしてくれるかも",
+        topic_emoji="🔌",
+        worry_lines=["毎日の暮らしの中で、", "地味に困る場面ってありますよね…😅"],
+        solution_text="普段の暮らしに取り入れやすい家電",
+        checklist_core=["普段の暮らしに取り入れやすい", "必要な場面で使いやすい"],
+        checklist_fallback="毎日の生活に取り入れやすい",
+        closing_variants=[
+            "暮らしをちょっとラクにしたい人におすすめ",
+            "気になる人はチェックしてみてほしい",
+        ],
+    ),
+    "生活雑貨": _PostTemplate(
+        hook_text="こういう雑貨、地味に暮らしを支えてくれるよね",
+        topic_emoji="🏠",
+        worry_lines=["普段の暮らしの中で、", "小さく気になることってありますよね…😅"],
+        solution_text="普段の暮らしに取り入れやすい生活雑貨",
+        checklist_core=["普段の暮らしに取り入れやすい", "必要な場面で使いやすい"],
+        checklist_fallback="毎日の生活に取り入れやすい",
+        closing_variants=[
+            "暮らしに取り入れたい人におすすめ",
+            "気になる人はチェックしてみてほしい",
+        ],
     ),
 }
 
@@ -1513,6 +1840,16 @@ FEATURE_CLAUSES: list[tuple[str, str | dict[str, str], str | dict[str, str]]] = 
     # 含まれているというだけで商品本体の特徴として採用すべきではないため、
     # FEATURE_CLAUSESから削除した（description-fix-003対応）。
     ("ほったらかし", "ほったらかし調理で手間を減らしやすい", "⏱️"),
+    # ここから下は、全ジャンル化（description-genre-001）で増えた食品・
+    # 美容・ファッション・家電ジャンルの商品名から確認できる、確認できる
+    # 特徴だけを使った安全な言い回し（description-genre-002対応）。
+    ("自動開閉", "自動開閉で開閉しやすい", "☂️"),
+    ("自動停止", "自動停止機能付きで使いやすい", "🔌"),
+    ("静音", "静音設計で使いやすい", "🔇"),
+    ("晴雨兼用", "晴雨兼用で使いやすい", "☂️"),
+    ("UVカット", "UVカット機能付きで使いやすい", "☀️"),
+    ("撥水加工", "撥水加工で使いやすい", "☂️"),
+    ("充電不要", "充電不要で使いやすい", "🔋"),
 ]
 
 # 商品名にこれらの言葉が含まれる場合、より具体的なハッシュタグを1つ追加する。
@@ -1538,18 +1875,20 @@ _QUANTITY_PATTERNS: tuple[re.Pattern[str], ...] = (
     # 数かが分からなくなり情報が不完全になるため、この組み合わせを最優先で
     # 1つのまとまりとして抜き出す（description-fix-003対応）。
     re.compile(
-        r"[^\d\s+＋、。/]{0,8}\d+\s*(?:枚|個|本|袋|セット|包|パック)"
+        r"[^\d\s+＋、。/]{0,8}\d+\s*(?:枚|個|本|袋|セット|包|パック|食)"
         r"\s*[+＋]\s*"
-        r"[^\d\s+＋、。/]{0,8}\d+\s*(?:枚|個|本|袋|セット|包|パック)"
+        r"[^\d\s+＋、。/]{0,8}\d+\s*(?:枚|個|本|袋|セット|包|パック|食)"
     ),
     # 例：「6g×50包」「20ml×2個セット」のような「重さ/容量×個数」の組み合わせ
     # 表記。単純に最初に見つかった数字（例：「6g×50包」の「6g」だけ）を
     # 拾ってしまうと、セット内容を表せず情報が不完全になるため、この
     # パターンを最優先で判定する（description-match-002での監査対応。
     # 「50包」等、単位に「包」も含める）。
-    re.compile(r"\d+(?:\.\d+)?\s*(?:g|kg|ml|mL|L|ℓ)\s*[×xX]\s*\d+\s*(?:本|個|セット|袋|枚|包|パック)"),
+    re.compile(r"\d+(?:\.\d+)?\s*(?:g|kg|ml|mL|L|ℓ)\s*[×xX]\s*\d+\s*(?:本|個|セット|袋|枚|包|パック|食)"),
     re.compile(r"\d+(?:\.\d+)?\s*g\s*カット"),
-    re.compile(r"\d+\s*(?:本|個|枚|袋|セット|包|パック)(?:入り)?"),
+    # 「6食」「4食セット」のような食品のセット内容表記も、内容量として
+    # 抜き出せるようにする（description-genre-002対応。「食」を追加）。
+    re.compile(r"\d+\s*(?:本|個|枚|袋|セット|包|パック|食)(?:入り)?"),
     # 例：「個包装0.8g×50」のように、末尾に個数の単位が付いていない
     # 「重さ/容量×個数」表記。1つ上の（末尾に単位がある）パターンで
     # 拾えなかった場合だけ使う。「50本分」のような、実際の個数とは意味が
@@ -1558,7 +1897,9 @@ _QUANTITY_PATTERNS: tuple[re.Pattern[str], ...] = (
     # 「分」除外で弾かれるため、ここまで来た時点では安全に使える
     # （description-fix-003対応）。
     re.compile(r"\d+(?:\.\d+)?\s*(?:g|kg|ml|mL|L|ℓ)\s*[×xX]\s*\d+\b"),
-    re.compile(r"\d+(?:\.\d+)?\s*(?:g|kg|ml|mL|L|ℓ)\b"),
+    # サイズ・重量の単独表記（例：「60cm」「210g」）。既存のg/kg/ml/Lに、
+    # cm/mmを追加した（description-genre-002対応。日傘のサイズ等）。
+    re.compile(r"\d+(?:\.\d+)?\s*(?:g|kg|ml|mL|L|ℓ|cm|mm)\b"),
 )
 
 
@@ -1569,7 +1910,9 @@ _QUANTITY_PATTERNS: tuple[re.Pattern[str], ...] = (
 # 「50本分」）も、商品そのものの個数（例：50本入りパック）とは意味が
 # 異なるため同様に除外する（description-fix-003対応。実際の個数と
 # 「○分（○杯分作れる等の目安）」を混同しないようにするため）。
-_QUANTITY_MATCH_EXCLUDE_SUFFIX = re.compile(r"^\s*(?:限り|まで|限定|分)")
+# 「○本骨」（例：日傘の「6本骨」＝骨の本数）も、商品そのものの個数
+# （6本入りパック等）ではないため同様に除外する（description-genre-002対応）。
+_QUANTITY_MATCH_EXCLUDE_SUFFIX = re.compile(r"^\s*(?:限り|まで|限定|分|骨)")
 
 
 def _extract_quantity_phrase(name: str) -> str:
@@ -1856,11 +2199,13 @@ class TemplateComponents(NamedTuple):
 def match_product_type_keyword(name: str) -> str | None:
     """商品名から、具体的な商品の種類が分かる場合、その判定に使った
     キーワード（PRODUCT_TYPE_TEMPLATESの見出し語）を返す。無ければNone。
-    generate_description()と同じ判定順位（先に一致したものを採用）を使う。
+    generate_description()と同じ判定順位・同じ付属品除外ロジック
+    （_iter_product_type_keyword_matches。「リモコン付き」等を商品本体と
+    誤認しない）を使う。紹介文生成と候補選定（商品タイプ偏り防止）で
+    商品タイプ判定がバラバラにならないようにするため。
     """
-    for keyword, _template in PRODUCT_TYPE_TEMPLATES:
-        if keyword in name:
-            return keyword
+    for keyword, _template in _iter_product_type_keyword_matches(name):
+        return keyword
     return None
 
 
@@ -1926,11 +2271,34 @@ def _top_feature_clause(name: str, category: str) -> tuple[str, str]:
     return "", ""
 
 
+# 一部の商品タイプ（PRODUCT_TYPE_TEMPLATESの見出し語）は、検索元の
+# カテゴリーが実際の商品ジャンルと異なることがある（例：アロマオイルが
+# 「家電」カテゴリーの検索結果に混ざることがある）。本体判定で具体的な
+# 商品タイプが確認できた場合は、カテゴリー由来のハッシュタグより商品
+# タイプに合ったハッシュタグを優先する（description-genre-002対応）。
+# 巨大な辞書にしないよう、実際にカテゴリーと乖離しうることが確認できた
+# 商品タイプだけに絞っている。
+_PRODUCT_TYPE_HASHTAG_OVERRIDES: dict[str, str] = {
+    "アロマオイル": "#アロマ",
+    "エッセンシャルオイル": "#アロマ",
+    "精油": "#アロマ",
+    "お名前スタンプ": "#入園準備",
+    "おむつケーキ": "#出産祝い",
+    "日傘": "#紫外線対策",
+    "加湿器": "#加湿器",
+    "レトルトカレー": "#グルメ",
+    "ラーメン": "#グルメ",
+    "美顔ローラー": "#美容グッズ",
+}
+
+
 def _build_hashtags(category: str, name: str, base_hashtags: list[str]) -> list[str]:
     """カテゴリ・商品名に応じて3〜5個程度のハッシュタグを組み立てる。"""
     tags = list(base_hashtags)
 
-    category_tag = HASHTAG_BY_CATEGORY.get(category, "")
+    product_type = match_product_type_keyword(name)
+    override_tag = _PRODUCT_TYPE_HASHTAG_OVERRIDES.get(product_type or "", "")
+    category_tag = override_tag or HASHTAG_BY_CATEGORY.get(category, "")
     if category_tag and category_tag not in tags:
         tags.append(category_tag)
 
