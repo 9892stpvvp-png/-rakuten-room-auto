@@ -732,7 +732,10 @@ class ConsumableVarietyTest(unittest.TestCase):
         item = make_item(name="食器用洗剤 詰め替え用")
         description = dg.generate_description(item, category="洗剤", base_hashtags=BASE_HASHTAGS)
         checklist = _blocks(description)[3]
-        self.assertIn("詰め替え用でごみを減らしやすい", checklist)
+        self.assertIn("詰め替えタイプで使いやすい", checklist)
+        # 「ごみを減らせる」等の確認できない環境効果は断定しない
+        # （description-genre-004対応）。
+        self.assertNotIn("ごみを減らし", checklist)
 
     def test_generic_templates_still_produce_valid_six_block_description(self):
         # 今回追加したhook_variants/worry_variants/solution_variantsを使っても、
@@ -1717,6 +1720,241 @@ class DescriptionGenre003RegressionTest(unittest.TestCase):
         self.assertNotIn("収納ラック", description)
         hashtag_line = description.split("\n\n")[-1]
         self.assertIn("#加湿器", hashtag_line)
+
+
+class Sept26BatchRegressionTest(unittest.TestCase):
+    """2026-09-26生成分のroom/data/candidates.jsonで実際に見つかった、
+    新しい商品タイプの誤分類・数量表現の不自然さの回帰テスト
+    （description-genre-004）。商品名は本番で実際に取得された表記を
+    そのまま使っている。全ジャンル選定方式・商品選定ロジック・
+    ランキングは変更していない（紹介文生成側の商品タイプ判定・数量判定・
+    ハッシュタグだけが対象）。"""
+
+    DEER_ANTLER_NAME = (
+        "北海道産 鹿の角 ＼極太サイズ／鹿角 エゾシカ 犬 おもちゃ ペット おもちゃ TV取材多数 "
+        "愛玩動物飼養管理士店長 推薦 デンタルケア 大型犬 中型犬 しつけ / いたずら / 甘噛み防止 "
+        "犬の玩具 口臭対策 エゾシカ鹿角 犬 しつけ｜翌日発送"
+    )
+    PET_BOWL_NAME = (
+        "【レビュー1,500件】ペット健康アドバイザー推奨 早食い防止 ペット 犬 フードボウル "
+        "ペットボウル スローフード 丸飲み 防止 食器 ペット用品 丸洗い可能 餌入れ 小型 中型 大型 "
+        "猫 ねこ いぬ ペットフード ドッグフード 早食い 防止皿 ペットフードボウル MILASIC公式"
+    )
+    CR1220_BATTERY_NAME = "リチウムコイン電池（CR1220）10個セット【体温計用電池　メール便送料無料】"
+    LR41_BATTERY_NAME = (
+        "アルカリボタン電池（LR41）20P【送料無料　ag3 lr41 LEDペンライト ペンライト コンサート "
+        "医療 看護 ナース 看護師 ledペンライト 電池式】"
+    )
+    CIRCULATOR_NAME = (
+        "[即日出荷] [レビュー11000件超え／高評価4.43点] サーキュレーター 360°首振り 洗える 扇風機 "
+        "DCモーター コードレス ACモーター リモコン付き 省エネ 軽量 丸洗い DCファン 360度首振り "
+        "3D首振り 卓上扇風機"
+    )
+    DIAPER_PANTS_NAME = (
+        "【1種類を選べる】マミーポコパンツ 大きめで長〜く使える オムツ M L BIG(3個)【マミーポコパンツ】"
+    )
+    BABY_WIPES_NAME = (
+        "【80枚×40個】おしりナップ やわらか厚手仕上げ 限定デザイン(森のかくれんぼ) | 0ヵ月〜 "
+        "おしり拭き お尻拭き お尻ふき おしりふき ナップ おてふき 体拭き からだふき 詰め替え "
+        "赤ちゃん 赤ちゃん用品 ベビー用品 衛生用品"
+    )
+    ECO_BAG_NAME = (
+        "＼楽天ランキング 1位獲得／ エコバッグ コンビニサイズ コンビニ バッグ コンビニエコバッグ "
+        "マチ広 折りたたみ コンパクト ミニ 2個セット マチ コンビニバッグ おしゃれ レジバッグ "
+        "洗える 弁当 おにぎり 海苔 花柄 ストライプ ボーダー ブランド ecobag02"
+    )
+    LIVING_FAN_NAME = (
+        "扇風機 左右首振り リビング扇風機 風量3段階 押しボタン 切りタイマー 静音 省エネ YLT-AG30E "
+        "30cm羽根 首ふり リビングファン サーキュレーター おしゃれ シンプル 換気 熱中症対策 山善 "
+        "YAMAZEN 【送料無料】"
+    )
+    HIMOKAWA_UDON_NAME = (
+        "ひもかわうどん 帯麺 乾麺 めん170g × 4袋 8人前 濃縮つゆ8人前 送料無料 ひも川 通販 人気"
+        "【ポスト投函配送】"
+    )
+
+    # 1. 鹿角を犬用おもちゃ（ペット用品）として認識する。
+    def test_deer_antler_is_recognized_as_a_pet_toy(self):
+        item = make_item(name=self.DEER_ANTLER_NAME)
+        description = dg.generate_description(item, category="ペット用品", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("そんな暮らしの小さな不便を解消してくれそうな便利グッズ", description)
+        self.assertIn("鹿の角", description)
+        for phrase in ("口臭が改善する", "歯が健康になる", "口臭が良くなる"):
+            self.assertNotIn(phrase, description)
+
+    # 2. 早食い防止ペットボウルをペット用品として認識する。
+    def test_pet_bowl_is_recognized_as_pet_goods(self):
+        item = make_item(name=self.PET_BOWL_NAME)
+        description = dg.generate_description(item, category="ペット用品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("フードボウル", description)
+        self.assertIn("早食い防止", description)
+        self.assertNotIn("健康になる", description)
+
+    # 3. CR1220（リチウムコイン電池）を電池として認識する（カテゴリーは
+    # 「健康」だが、商品本体を優先する）。
+    def test_cr1220_is_recognized_as_a_battery_not_health_goods(self):
+        item = make_item(name=self.CR1220_BATTERY_NAME)
+        description = dg.generate_description(item, category="健康", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("電池", description)
+        hashtag_line = description.split("\n\n")[-1]
+        self.assertNotIn("#健康グッズ", hashtag_line)
+        self.assertIn("#ボタン電池", hashtag_line)
+
+    # 4. LR41（アルカリボタン電池）を電池として認識する（医療機器として
+    # 扱わない）。
+    def test_lr41_is_recognized_as_a_battery_not_medical_device(self):
+        item = make_item(name=self.LR41_BATTERY_NAME)
+        description = dg.generate_description(item, category="健康", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("電池", description)
+        for phrase in ("医療機器", "看護師が選ぶ"):
+            self.assertNotIn(phrase, description)
+
+    # 5. 「10個で使いやすい」ではなく「10個セット」等、数量の意味をそのまま
+    # 表現する。
+    def test_cr1220_quantity_is_expressed_as_a_set_not_generic_usability(self):
+        description = dg.generate_description(
+            make_item(name=self.CR1220_BATTERY_NAME), category="健康", base_hashtags=BASE_HASHTAGS
+        )
+        self.assertIn("10個セット", description)
+        self.assertNotIn("10個で使いやすい", description)
+
+    # 6. マミーポコパンツを紙おむつとして認識する。
+    def test_diaper_pants_is_recognized_as_a_diaper(self):
+        item = make_item(name=self.DIAPER_PANTS_NAME)
+        description = dg.generate_description(item, category="ベビー用品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("おむつ", description)
+
+    # 7. 「1種類を選べる」＋「3個」を、3種類の詰め合わせセットと誤認しない
+    # （M/L/BIGを同時に試せるとは書かない）。
+    def test_diaper_pants_single_choice_is_not_mistaken_for_a_variety_set(self):
+        item = make_item(name=self.DIAPER_PANTS_NAME)
+        description = dg.generate_description(item, category="ベビー用品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("3個セット", description)
+        self.assertNotIn("3個セットでいろいろな種類を試しやすい", description)
+        for phrase in ("M/L/BIGを同時に", "M・L・BIGを同時に", "3種類を同時に試せる"):
+            self.assertNotIn(phrase, description)
+
+    # 8. おしりふき（おしりナップ）をおしりふきとして認識する。
+    def test_baby_wipes_is_recognized_as_baby_wipes(self):
+        item = make_item(name=self.BABY_WIPES_NAME)
+        description = dg.generate_description(item, category="ベビー用品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("おしりふき", description)
+
+    # 9. 「80枚」に落とさず「80枚×40個」という複合数量を保持する。
+    def test_baby_wipes_quantity_keeps_the_full_compound_meaning(self):
+        phrase = dg._extract_quantity_phrase(self.BABY_WIPES_NAME)
+        self.assertEqual(phrase, "80枚×40個")
+        item = make_item(name=self.BABY_WIPES_NAME)
+        description = dg.generate_description(item, category="ベビー用品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("80枚×40個", description)
+        self.assertNotIn("✔️ 80枚で使いやすい", description)
+
+    # 10. 「詰め替え」から「ごみを減らせる」等の環境効果を推測しない
+    # （「詰め替えタイプ」までは可）。
+    def test_baby_wipes_refill_does_not_claim_less_garbage(self):
+        item = make_item(name=self.BABY_WIPES_NAME)
+        description = dg.generate_description(item, category="ベビー用品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("詰め替えタイプ", description)
+        self.assertNotIn("ごみを減らし", description)
+        self.assertNotIn("ゴミを減らし", description)
+
+    # 11. エコバッグをエコバッグとして認識する。
+    def test_eco_bag_is_recognized_as_an_eco_bag(self):
+        item = make_item(name=self.ECO_BAG_NAME)
+        description = dg.generate_description(item, category="ファッション", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("エコバッグ", description)
+        self.assertNotIn("そんな暮らしの小さな不便を解消してくれそうな便利グッズ", description)
+        # この商品には天気・気温の話は不要（description-genre-004対応）。
+        for phrase in ("気温", "暑い日", "寒い日"):
+            self.assertNotIn(phrase, description)
+
+    # 12. 「2個で使いやすい」ではなく「2個セット」等、数量の意味を保つ。
+    def test_eco_bag_quantity_is_expressed_as_a_set(self):
+        description = dg.generate_description(
+            make_item(name=self.ECO_BAG_NAME), category="ファッション", base_hashtags=BASE_HASHTAGS
+        )
+        self.assertIn("2個セット", description)
+        self.assertNotIn("2個で使いやすい", description)
+
+    # 13. サーキュレーターをサーキュレーターとして認識する（「家電」という
+    # 汎用文にしない）。
+    def test_circulator_is_recognized_as_a_circulator(self):
+        item = make_item(name=self.CIRCULATOR_NAME)
+        description = dg.generate_description(item, category="家電", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("サーキュレーター", description)
+        self.assertNotIn("そんな暮らしの小さな不便を解消してくれそうな便利グッズ", description)
+
+    # 14. 扇風機を扇風機として認識する（「家電」という汎用文にしない。
+    # 熱中症対策等の健康効果は断定しない）。
+    def test_living_fan_is_recognized_as_a_fan(self):
+        item = make_item(name=self.LIVING_FAN_NAME)
+        description = dg.generate_description(item, category="家電", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("扇風機", description)
+        for phrase in ("熱中症を防げる", "熱中症対策になる", "熱中症を予防できる"):
+            self.assertNotIn(phrase, description)
+
+    # 15. 「30cm羽根」を商品の数量として誤認しない。
+    def test_fan_blade_size_is_not_mistaken_for_product_quantity(self):
+        phrase = dg._extract_quantity_phrase(self.LIVING_FAN_NAME)
+        self.assertNotIn("30cm", phrase)
+        item = make_item(name=self.LIVING_FAN_NAME)
+        description = dg.generate_description(item, category="家電", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("30cmで使いやすい", description)
+        self.assertNotIn("サイズは約30cm", description)
+
+    # 16. サーキュレーター・扇風機のいずれも、両方の語が同じ商品名に
+    # 混在していても、商品タイトルの中で先に登場する語（＝実際の商品
+    # 本体）を優先する（description-genre-004対応の位置優先判定）。
+    def test_circulator_and_fan_prefer_the_earlier_mentioned_keyword(self):
+        self.assertEqual(dg.match_product_type_keyword(self.CIRCULATOR_NAME), "サーキュレーター")
+        self.assertEqual(dg.match_product_type_keyword(self.LIVING_FAN_NAME), "扇風機")
+
+    # 17. ひもかわうどんを食品（うどん）として紹介する。
+    def test_himokawa_udon_is_introduced_as_udon(self):
+        item = make_item(name=self.HIMOKAWA_UDON_NAME)
+        description = dg.generate_description(item, category="食品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("うどん", description)
+        self.assertNotIn("そんな暮らしの小さな不便を解消してくれそうな便利グッズ", description)
+
+    # 18. 「170g×4袋」を保持する（170gだけに落とさない）。
+    def test_udon_quantity_keeps_the_weight_times_bag_count(self):
+        item = make_item(name=self.HIMOKAWA_UDON_NAME)
+        description = dg.generate_description(item, category="食品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("170g", description)
+        self.assertIn("4袋", description)
+
+    # 19. 「8人前」を保持する。
+    def test_udon_quantity_keeps_the_serving_count(self):
+        item = make_item(name=self.HIMOKAWA_UDON_NAME)
+        description = dg.generate_description(item, category="食品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("8人前", description)
+
+    # 20. 商品タイプに合ったハッシュタグが付き、未確認の健康/美容効果を
+    # 生成しない（今回の10商品まとめての最終確認）。
+    def test_all_ten_items_have_matching_hashtags_and_no_unconfirmed_effects(self):
+        expectations = {
+            self.DEER_ANTLER_NAME: ("ペット用品", "#ペット用品"),
+            self.PET_BOWL_NAME: ("ペット用品", "#ペット用品"),
+            self.CR1220_BATTERY_NAME: ("健康", "#ボタン電池"),
+            self.LR41_BATTERY_NAME: ("健康", "#ボタン電池"),
+            self.CIRCULATOR_NAME: ("家電", "#サーキュレーター"),
+            self.DIAPER_PANTS_NAME: ("ベビー用品", "#おむつ"),
+            self.BABY_WIPES_NAME: ("ベビー用品", "#おしりふき"),
+            self.ECO_BAG_NAME: ("ファッション", "#エコバッグ"),
+            self.LIVING_FAN_NAME: ("家電", "#扇風機"),
+            self.HIMOKAWA_UDON_NAME: ("食品", "#うどん"),
+        }
+        forbidden_phrases = (
+            "健康になる", "改善する", "治る", "痩せる", "リフトアップ", "小顔になる",
+        )
+        for name, (category, expected_tag) in expectations.items():
+            item = make_item(name=name)
+            description = dg.generate_description(item, category=category, base_hashtags=BASE_HASHTAGS)
+            hashtag_line = description.split("\n\n")[-1]
+            self.assertIn(expected_tag, hashtag_line, description)
+            for phrase in forbidden_phrases:
+                self.assertNotIn(phrase, description, description)
+            self.assertLessEqual(len(description), 500)
 
 
 if __name__ == "__main__":

@@ -1052,6 +1052,380 @@ PRODUCT_TYPE_TEMPLATES: list[tuple[str, _PostTemplate]] = [
             ],
         ),
     ),
+    # ここから下は、2026-09-26生成分で新しく見つかった商品タイプ
+    # （description-genre-004対応）。「デンタルケア」「口臭対策」「早食い
+    # 防止」等の広告・用途表現があっても、医学的・健康的な効果を保証する
+    # 文章には拡大しない。checklist_coreは「このキーワードに一致する商品
+    # なら一般的に確認できる」範囲の事実だけにとどめ、この商品固有の
+    # 仕様（例：早食い防止の形状であること）は、キーワード＋周辺語での
+    # 上書き（_PRODUCT_TYPE_CONTEXT_OVERRIDES）かFEATURE_CLAUSESの動的な
+    # 3項目目に任せる（同じキーワードに一致する将来の別商品にまで
+    # 誤って断定しないため）。
+    (
+        "鹿の角",
+        _PostTemplate(
+            hook_text="愛犬のおもちゃ、たまには変えてあげたくならない？",
+            topic_emoji="🦌",
+            worry_lines=[
+                "愛犬のおもちゃ選びって、",
+                "何がいいのか迷いますよね…😅",
+            ],
+            solution_text="鹿の角を使った犬用のおもちゃ",
+            checklist_core=["鹿の角を使った天然素材のおもちゃとして使いやすい", "愛犬のかむおもちゃに取り入れやすい"],
+            checklist_fallback="愛犬のおもちゃに取り入れやすい",
+            closing_variants=[
+                "愛犬のおもちゃ探し中の人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "鹿角",
+        _PostTemplate(
+            hook_text="愛犬のおもちゃ、たまには変えてあげたくならない？",
+            topic_emoji="🦌",
+            worry_lines=[
+                "愛犬のおもちゃ選びって、",
+                "何がいいのか迷いますよね…😅",
+            ],
+            solution_text="鹿の角を使った犬用のおもちゃ",
+            checklist_core=["鹿の角を使った天然素材のおもちゃとして使いやすい", "愛犬のかむおもちゃに取り入れやすい"],
+            checklist_fallback="愛犬のおもちゃに取り入れやすい",
+            closing_variants=[
+                "愛犬のおもちゃ探し中の人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "フードボウル",
+        _PostTemplate(
+            hook_text="愛犬・愛猫のごはんの時間、もっと使いやすくしたくならない？",
+            topic_emoji="🐾",
+            worry_lines=[
+                "毎日のごはんの器選びって、",
+                "地味に悩みますよね…😅",
+            ],
+            solution_text="愛犬・愛猫用のフードボウル",
+            checklist_core=["毎日のごはんの時間に使いやすい", "丸洗いできてお手入れしやすい"],
+            checklist_fallback="普段のペットのお世話に取り入れやすい",
+            closing_variants=[
+                "ペット用の食器を探している人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "ペットボウル",
+        _PostTemplate(
+            hook_text="愛犬・愛猫のごはんの時間、もっと使いやすくしたくならない？",
+            topic_emoji="🐾",
+            worry_lines=[
+                "毎日のごはんの器選びって、",
+                "地味に悩みますよね…😅",
+            ],
+            solution_text="愛犬・愛猫用のフードボウル",
+            checklist_core=["毎日のごはんの時間に使いやすい", "丸洗いできてお手入れしやすい"],
+            checklist_fallback="普段のペットのお世話に取り入れやすい",
+            closing_variants=[
+                "ペット用の食器を探している人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "リチウムコイン電池",
+        _PostTemplate(
+            hook_text="小さいボタン電池、いざ探すと地味に手間じゃない？",
+            topic_emoji="🔋",
+            worry_lines=[
+                "体温計や小型機器の電池切れって、",
+                "急に困ることがありますよね…😅",
+            ],
+            solution_text="体温計や小型機器に使えるボタン電池",
+            checklist_core=["小型機器の電池交換に使いやすい", "ストックしておくと便利"],
+            checklist_fallback="普段使う小型機器に取り入れやすい",
+            closing_variants=[
+                "電池のストックを探している人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "コイン電池",
+        _PostTemplate(
+            hook_text="小さいボタン電池、いざ探すと地味に手間じゃない？",
+            topic_emoji="🔋",
+            worry_lines=[
+                "体温計や小型機器の電池切れって、",
+                "急に困ることがありますよね…😅",
+            ],
+            solution_text="体温計や小型機器に使えるボタン電池",
+            checklist_core=["小型機器の電池交換に使いやすい", "ストックしておくと便利"],
+            checklist_fallback="普段使う小型機器に取り入れやすい",
+            closing_variants=[
+                "電池のストックを探している人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "アルカリボタン電池",
+        _PostTemplate(
+            hook_text="小さいボタン電池、いざ探すと地味に手間じゃない？",
+            topic_emoji="🔋",
+            worry_lines=[
+                "体温計や小型機器の電池切れって、",
+                "急に困ることがありますよね…😅",
+            ],
+            solution_text="体温計や小型機器に使えるボタン電池",
+            checklist_core=["小型機器の電池交換に使いやすい", "ストックしておくと便利"],
+            checklist_fallback="普段使う小型機器に取り入れやすい",
+            closing_variants=[
+                "電池のストックを探している人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "ボタン電池",
+        _PostTemplate(
+            hook_text="小さいボタン電池、いざ探すと地味に手間じゃない？",
+            topic_emoji="🔋",
+            worry_lines=[
+                "体温計や小型機器の電池切れって、",
+                "急に困ることがありますよね…😅",
+            ],
+            solution_text="体温計や小型機器に使えるボタン電池",
+            checklist_core=["小型機器の電池交換に使いやすい", "ストックしておくと便利"],
+            checklist_fallback="普段使う小型機器に取り入れやすい",
+            closing_variants=[
+                "電池のストックを探している人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "サーキュレーター",
+        _PostTemplate(
+            # タイトルにDCモーター・ACモーター等が混在している商品もあるため、
+            # モーター種別・コードレス・首振り・丸洗いの可否はchecklist_core
+            # に固定で入れず、確認できた場合だけFEATURE_CLAUSES（軽量・
+            # コードレス等）で動的に反映する（description-genre-004対応）。
+            hook_text="お部屋の空気、うまく循環できてる？",
+            topic_emoji="🌀",
+            worry_lines=[
+                "エアコンだけだと、",
+                "空気がこもりがちですよね…😅",
+            ],
+            solution_text="お部屋の空気を循環させやすいサーキュレーター",
+            checklist_core=["お部屋の空気を循環させやすい", "エアコンと併用しやすい"],
+            checklist_fallback="お部屋の空気を循環させたい人に取り入れやすい",
+            closing_variants=[
+                "お部屋の空気を循環させたい人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "扇風機",
+        _PostTemplate(
+            # 「熱中症を防げる」等の健康効果は断定しない。首振り・風量調整・
+            # 静音等の構造は、確認できた場合だけFEATURE_CLAUSESで動的に
+            # 反映する（description-genre-004対応）。
+            hook_text="この時期、風の通り道が欲しくならない？",
+            topic_emoji="🌬️",
+            worry_lines=[
+                "エアコンの風だけだと、",
+                "部屋の空気が動きにくいですよね…😅",
+            ],
+            solution_text="涼を取りたいときに使いやすい扇風機",
+            checklist_core=["涼を取りたいときに使いやすい", "普段の生活に取り入れやすい"],
+            checklist_fallback="季節に合わせて取り入れやすい",
+            closing_variants=[
+                "涼を取りたい人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "マミーポコパンツ",
+        _PostTemplate(
+            # 「1種類を選べる」＝サイズ（M/L/BIG等）を1つ選ぶという意味で
+            # あり、複数サイズを同時に試せるセットではない。M/L/BIGを同時に
+            # 試せるとは書かない（description-genre-004対応）。
+            hook_text="おむつのサイズ選び、いつも迷っていない？",
+            topic_emoji="👶",
+            worry_lines=[
+                "赤ちゃんの成長に合わせたおむつ選びって、",
+                "地味に悩みますよね…😅",
+            ],
+            solution_text="サイズを選べる紙おむつ",
+            checklist_core=["サイズを選んで使いやすい", "毎日のおむつ替えに取り入れやすい"],
+            checklist_fallback="普段のおむつ替えに取り入れやすい",
+            closing_variants=[
+                "おむつのサイズ選びをしたい人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "オムツ",
+        _PostTemplate(
+            # 「マミーポコパンツ」のような具体的なサイズ選択が確認できない
+            # 商品にも一致するキーワードのため、checklist_coreはサイズ選択
+            # 前提にせず、より一般的な言い回しにとどめる。
+            hook_text="おむつ選び、地味に悩みませんか？",
+            topic_emoji="👶",
+            worry_lines=[
+                "赤ちゃんの成長に合わせたおむつ選びって、",
+                "地味に悩みますよね…😅",
+            ],
+            solution_text="毎日のおむつ替えに使いやすい紙おむつ",
+            checklist_core=["毎日のおむつ替えに使いやすい", "普段のお世話に取り入れやすい"],
+            checklist_fallback="普段のおむつ替えに取り入れやすい",
+            closing_variants=[
+                "おむつのストックをしたい人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "おしりナップ",
+        _PostTemplate(
+            # 「詰め替えでごみを減らせる」等の環境効果は断定しない
+            # （確認できるのは「詰め替えタイプ」という構造だけ、
+            # description-genre-004対応）。厚手仕上げ等の具体的な仕様は
+            # checklist_coreに固定で入れず、FEATURE_CLAUSESで動的に反映する。
+            hook_text="おしりふき、気づくとすぐ無くなっていない？",
+            topic_emoji="🧻",
+            worry_lines=[
+                "赤ちゃんのお世話で使う量が多くて、",
+                "気づくとストックが減っていますよね…😅",
+            ],
+            solution_text="毎日のお世話に使いやすいおしりふき",
+            checklist_core=["おしりふきとして日常的に使いやすい", "赤ちゃんのお世話に取り入れやすい"],
+            checklist_fallback="普段のお世話に取り入れやすい",
+            closing_variants=[
+                "おしりふきのストックをしたい人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "おしりふき",
+        _PostTemplate(
+            hook_text="おしりふき、気づくとすぐ無くなっていない？",
+            topic_emoji="🧻",
+            worry_lines=[
+                "赤ちゃんのお世話で使う量が多くて、",
+                "気づくとストックが減っていますよね…😅",
+            ],
+            solution_text="毎日のお世話に使いやすいおしりふき",
+            checklist_core=["おしりふきとして日常的に使いやすい", "赤ちゃんのお世話に取り入れやすい"],
+            checklist_fallback="普段のお世話に取り入れやすい",
+            closing_variants=[
+                "おしりふきのストックをしたい人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "お尻拭き",
+        _PostTemplate(
+            hook_text="おしりふき、気づくとすぐ無くなっていない？",
+            topic_emoji="🧻",
+            worry_lines=[
+                "赤ちゃんのお世話で使う量が多くて、",
+                "気づくとストックが減っていますよね…😅",
+            ],
+            solution_text="毎日のお世話に使いやすいおしりふき",
+            checklist_core=["おしりふきとして日常的に使いやすい", "赤ちゃんのお世話に取り入れやすい"],
+            checklist_fallback="普段のお世話に取り入れやすい",
+            closing_variants=[
+                "おしりふきのストックをしたい人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "お尻ふき",
+        _PostTemplate(
+            hook_text="おしりふき、気づくとすぐ無くなっていない？",
+            topic_emoji="🧻",
+            worry_lines=[
+                "赤ちゃんのお世話で使う量が多くて、",
+                "気づくとストックが減っていますよね…😅",
+            ],
+            solution_text="毎日のお世話に使いやすいおしりふき",
+            checklist_core=["おしりふきとして日常的に使いやすい", "赤ちゃんのお世話に取り入れやすい"],
+            checklist_fallback="普段のお世話に取り入れやすい",
+            closing_variants=[
+                "おしりふきのストックをしたい人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "エコバッグ",
+        _PostTemplate(
+            # 折りたたみ可否・洗えるかどうかはchecklist_coreに固定で入れず、
+            # 確認できた場合だけFEATURE_CLAUSES（折りたた・防水等）で動的に
+            # 反映する（description-genre-004対応）。天気・気温の話はしない。
+            hook_text="エコバッグ、いざという時に持ってなかったりしない？",
+            topic_emoji="🛍️",
+            worry_lines=[
+                "レジ袋が有料になってから、",
+                "エコバッグを忘れて困ることもありますよね…😅",
+            ],
+            solution_text="普段のお買い物に使いやすいエコバッグ",
+            checklist_core=["普段のお買い物に使いやすい", "カバンに入れて持ち歩きやすい"],
+            checklist_fallback="普段のお買い物に取り入れやすい",
+            closing_variants=[
+                "エコバッグを増やしたい人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "ひもかわうどん",
+        _PostTemplate(
+            # 乾麺・つゆ付きかどうかは、確認できた場合だけFEATURE_CLAUSES
+            # （乾麺・つゆ）で動的に反映する（description-genre-004対応）。
+            # 味・品質は商品名以上に推測しない。
+            hook_text="麺類のストック、うどんも増やしてみない？",
+            topic_emoji="🍜",
+            worry_lines=[
+                "毎回麺を茹でるところから始めると、",
+                "地味に手間がかかりますよね…😅",
+            ],
+            solution_text="自宅で手軽に楽しめるひもかわうどん",
+            checklist_core=["自宅で手軽に楽しめる", "普段の食事に取り入れやすい"],
+            checklist_fallback="自宅での食事に取り入れやすい",
+            closing_variants=[
+                "自宅でうどんを楽しみたい人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "うどん",
+        _PostTemplate(
+            hook_text="麺類のストック、うどんも増やしてみない？",
+            topic_emoji="🍜",
+            worry_lines=[
+                "毎回麺を茹でるところから始めると、",
+                "地味に手間がかかりますよね…😅",
+            ],
+            solution_text="自宅で手軽に楽しめるうどん",
+            checklist_core=["自宅で手軽に楽しめる", "普段の食事に取り入れやすい"],
+            checklist_fallback="自宅での食事に取り入れやすい",
+            closing_variants=[
+                "自宅でうどんを楽しみたい人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
 ]
 
 # 同じ商品タイプキーワード（例：「ドライヤースタンド」）でも、周辺語（文脈）
@@ -1095,20 +1469,33 @@ _FEATURE_MENTION_SUFFIX_PATTERN = re.compile(r"^(付き|対応|式|機能|内蔵
 
 def _iter_product_type_keyword_matches(name: str):
     """商品名の中からPRODUCT_TYPE_TEMPLATESのキーワードに一致する
-    (キーワード, テンプレート)を、先頭から順に返すジェネレーター。
+    (キーワード, テンプレート)を、商品名の中で登場する位置が早い順に返す
+    ジェネレーター。
 
     同じキーワードが複数回登場する場合、「◯◯付き」等の付属品・対応機能
     としての言及（_FEATURE_MENTION_SUFFIX_PATTERN）はスキップし、商品
     本体としての言及だけを対象にする。どの登場箇所も付属品としての言及
     だった場合、そのキーワードは一致なしとして次のキーワードに進む。
+
+    複数の異なる商品タイプキーワードが同じ商品名に登場する場合（例：
+    「サーキュレーター」と「扇風機」が両方とも商品名に含まれる商品）、
+    PRODUCT_TYPE_TEMPLATESの登録順ではなく、商品名の中で先に登場する
+    キーワードを優先する（商品タイトルは通常、最初に主要な商品名を
+    書くため。description-genre-004対応：SEO目的で複数の商品タイプ語が
+    混在する商品名でも、実際の商品本体を優先しやすくするための汎用的な
+    仕組み）。
     """
-    for keyword, template in PRODUCT_TYPE_TEMPLATES:
+    candidates: list[tuple[int, int, str, _PostTemplate]] = []
+    for order, (keyword, template) in enumerate(PRODUCT_TYPE_TEMPLATES):
         for match in re.finditer(re.escape(keyword), name):
             remainder = name[match.end():]
             if _FEATURE_MENTION_SUFFIX_PATTERN.match(remainder):
                 continue
-            yield keyword, template
+            candidates.append((match.start(), order, keyword, template))
             break
+    candidates.sort(key=lambda item: (item[0], item[1]))
+    for _start, _order, keyword, template in candidates:
+        yield keyword, template
 
 
 def _match_product_type(name: str) -> _PostTemplate | None:
@@ -1818,8 +2205,12 @@ FEATURE_CLAUSES: list[tuple[str, str | dict[str, str], str | dict[str, str]]] = 
     # 確認できる、確認できる特徴だけを使った安全な言い回し。商品ごとの
     # 具体的な特徴を✔️メリットの3項目目に反映し、カテゴリー内の商品が
     # 毎日同じ文章になりにくくするためのもの。
-    ("詰め替え", "詰め替え用でごみを減らしやすい", "🔄"),
-    ("つめかえ", "詰め替え用でごみを減らしやすい", "🔄"),
+    # 「詰め替え用でごみを減らしやすい」は、商品名から確認できる「詰め替え
+    # タイプである」という事実を超えて「ごみが減る」という確認できない
+    # 環境効果まで断定してしまっていたため、構造の事実だけの言い回しに
+    # 修正した（description-genre-004対応）。
+    ("詰め替え", "詰め替えタイプで使いやすい", "🔄"),
+    ("つめかえ", "詰め替えタイプで使いやすい", "🔄"),
     ("アルコールフリー", "アルコールフリーで使いやすい", "🌿"),
     ("無香料", "香りが気になりにくい", "🌿"),
     ("無香性", "香りが気になりにくい", "🌿"),
@@ -1853,6 +2244,16 @@ FEATURE_CLAUSES: list[tuple[str, str | dict[str, str], str | dict[str, str]]] = 
     ("UVカット", "UVカット機能付きで使いやすい", "☀️"),
     ("撥水加工", "撥水加工で使いやすい", "☂️"),
     ("充電不要", "充電不要で使いやすい", "🔋"),
+    # ここから下は、2026-09-26生成分で新しく見つかった商品タイプ
+    # （ペット用品・電池・家電・ベビー用品・食品）で確認できる特徴の追加
+    # （description-genre-004対応）。「早食い防止」「デンタルケア」等の
+    # 用途表現があっても、健康効果の断定は書かず、構造・仕様の事実だけに
+    # とどめる。
+    ("早食い防止", "早食い防止の形状で使いやすい", "🐾"),
+    ("首振り", "首振りで送風方向を変えやすい", "🌀"),
+    ("風量", "風量調整で使いやすい", "🌬️"),
+    ("乾麺", "乾麺でストックしやすい", "🍜"),
+    ("つゆ", "つゆ付きで準備の手間を減らしやすい", "🍜"),
 ]
 
 # 商品名にこれらの言葉が含まれる場合、より具体的なハッシュタグを1つ追加する。
@@ -1886,12 +2287,29 @@ _QUANTITY_PATTERNS: tuple[re.Pattern[str], ...] = (
     # 表記。単純に最初に見つかった数字（例：「6g×50包」の「6g」だけ）を
     # 拾ってしまうと、セット内容を表せず情報が不完全になるため、この
     # パターンを最優先で判定する（description-match-002での監査対応。
-    # 「50包」等、単位に「包」も含める）。
-    re.compile(r"\d+(?:\.\d+)?\s*(?:g|kg|ml|mL|L|ℓ)\s*[×xX]\s*\d+\s*(?:本|個|セット|袋|枚|包|パック|食)"),
+    # 「50包」等、単位に「包」も含める）。末尾に「◯人前」が直後に続く場合
+    # （例：「170g×4袋 8人前」）は、何人前分かも確認できる事実として
+    # 一緒に抜き出す（description-genre-004対応。うどん・ラーメン等の
+    # 食品で、内容量と人数分の両方が書かれている場合に、人数分の情報を
+    # 落とさないようにするための汎用的な仕組み）。
+    re.compile(
+        r"\d+(?:\.\d+)?\s*(?:g|kg|ml|mL|L|ℓ)\s*[×xX]\s*\d+\s*(?:本|個|セット|袋|枚|包|パック|食)"
+        r"(?:\s*\d+\s*人前)?"
+    ),
+    # 例：「80枚×40個」のような「個数×個数」の組み合わせ表記。上の
+    # 「重さ/容量×個数」パターンでは、先頭が重さ・容量の単位でないと
+    # 一致しないため、「80枚」のように先頭が個数の単位の場合を単独で
+    # 拾うと「×40個」の部分が失われてしまう。この組み合わせを1つの
+    # まとまりとして先に抜き出す（description-genre-004対応。
+    # おしりふき「80枚×40個」を「80枚」だけに落とさないようにするため）。
+    re.compile(r"\d+\s*(?:枚|個|本|袋|セット|包|パック)\s*[×xX]\s*\d+\s*(?:枚|個|本|袋|セット|包|パック|食)"),
     re.compile(r"\d+(?:\.\d+)?\s*g\s*カット"),
     # 「6食」「4食セット」のような食品のセット内容表記も、内容量として
     # 抜き出せるようにする（description-genre-002対応。「食」を追加）。
     re.compile(r"\d+\s*(?:本|個|枚|袋|セット|包|パック|食)(?:入り)?"),
+    # 例：「20P」のような、個数を「P（パック／ピース）」で表す表記
+    # （description-genre-004対応。ボタン電池等でよく使われる表記）。
+    re.compile(r"\d+\s*P\b"),
     # 例：「個包装0.8g×50」のように、末尾に個数の単位が付いていない
     # 「重さ/容量×個数」表記。1つ上の（末尾に単位がある）パターンで
     # 拾えなかった場合だけ使う。「50本分」のような、実際の個数とは意味が
@@ -1944,11 +2362,32 @@ def _extract_quantity_phrase(name: str) -> str:
 # 周辺語から判定する汎用的な仕組み）。
 _VARIETY_COUNT_INDICATOR_WORDS: tuple[str, ...] = ("選べる", "種類", "種から", "アソート")
 
+# 「1種類を選べる」「1種選べる」は、複数の種類（例：M/L/BIGのサイズ）から
+# 1つだけを選ぶという意味であり、「選んだ結果、複数の種類が手元に届く」
+# という意味ではない。このパターンに一致する場合は、_VARIETY_COUNT_
+# INDICATOR_WORDSに一致していても、いろいろな種類を試せるセットとは
+# 判定しない（description-genre-004対応。マミーポコパンツ「1種類を
+# 選べる」＋「3個」を、3種類の詰め合わせセットと誤認しないようにする
+# ための汎用的な仕組み。「40種から選べる6本」のような、選択肢の数が
+# 2以上の場合は従来どおりアソートとして扱う）。
+_SINGLE_CHOICE_PATTERN = re.compile(r"1\s*種類?\s*(?:を)?\s*選べる")
+
+# 数量表現がすでに「＋」「×」等で複数の内訳をつないだ複合表記になっている
+# 場合の判定用。複合表記は、単位の末尾だけを見て「サイズ」「重さ」等に
+# 言い換えたり、「セットでいろいろな種類」に言い換えたりすると、表記の
+# 一部しか反映されなかったり、意味が変わってしまう（例：「380g×4セット」
+# を単純に個数用の言い回しに変換すると「セット」が重複したり、「1種類を
+# 選べる」商品なのにアソートのような表現になってしまう）。そのため、
+# 複合表記はそのまま「〜で使いやすい」の言い回しにとどめる
+# （description-genre-004対応）。
+_COMBO_QUANTITY_PATTERN = re.compile(r"[×xX+＋]")
+
 # 数量の単位ごとに末尾で判定するための正規表現（サイズ／重さ／容量）。
 _SIZE_UNIT_SUFFIX_PATTERN = re.compile(r"(?:cm|mm)$")
 _WEIGHT_UNIT_SUFFIX_PATTERN = re.compile(r"(?:g|kg)$")
 _VOLUME_UNIT_SUFFIX_PATTERN = re.compile(r"(?:ml|mL|L|ℓ)$")
 _COUNT_UNIT_SUFFIX_PATTERN = re.compile(r"(?:本|個|枚|袋|セット|包|パック)$")
+_COUNT_UNIT_HAS_SET_WORD_PATTERN = re.compile(r"セット$")
 
 
 def _phrase_for_quantity(quantity_phrase: str, name: str) -> str:
@@ -1957,19 +2396,26 @@ def _phrase_for_quantity(quantity_phrase: str, name: str) -> str:
     チェックリスト項目にする。
 
     「数字＋で使いやすい」という単位を問わない画一的な生成を避けるための
-    汎用的な仕組み（description-genre-003対応。商品タイトルから確認
+    汎用的な仕組み（description-genre-003/004対応。商品タイトルから確認
     できる数量表現の組み合わせのみを使い、新しい効果・品質は追加しない）。
     """
+    if _COMBO_QUANTITY_PATTERN.search(quantity_phrase):
+        return f"{quantity_phrase}で使いやすい"
     if _SIZE_UNIT_SUFFIX_PATTERN.search(quantity_phrase):
         return f"サイズは約{quantity_phrase}"
     if _WEIGHT_UNIT_SUFFIX_PATTERN.search(quantity_phrase):
         return f"重さは約{quantity_phrase}"
     if _VOLUME_UNIT_SUFFIX_PATTERN.search(quantity_phrase):
         return f"容量は約{quantity_phrase}"
-    if _COUNT_UNIT_SUFFIX_PATTERN.search(quantity_phrase) and any(
-        word in name for word in _VARIETY_COUNT_INDICATOR_WORDS
-    ):
-        return f"{quantity_phrase}セットでいろいろな種類を試しやすい"
+    if _COUNT_UNIT_SUFFIX_PATTERN.search(quantity_phrase):
+        is_variety = any(
+            word in name for word in _VARIETY_COUNT_INDICATOR_WORDS
+        ) and not _SINGLE_CHOICE_PATTERN.search(name)
+        if is_variety:
+            return f"{quantity_phrase}セットでいろいろな種類を試しやすい"
+        if _COUNT_UNIT_HAS_SET_WORD_PATTERN.search(quantity_phrase):
+            return quantity_phrase
+        return f"{quantity_phrase}セット"
     return f"{quantity_phrase}で使いやすい"
 
 
@@ -2330,6 +2776,26 @@ _PRODUCT_TYPE_HASHTAG_OVERRIDES: dict[str, list[str]] = {
     "レトルトカレー": ["#グルメ", "#レトルトカレー"],
     "ラーメン": ["#グルメ", "#ラーメン"],
     "美顔ローラー": ["#美容", "#美容グッズ"],
+    # 2026-09-26生成分で新しく見つかった商品タイプ（description-genre-004対応）。
+    "鹿の角": ["#犬用品", "#ペット用品"],
+    "鹿角": ["#犬用品", "#ペット用品"],
+    "フードボウル": ["#ペット用品", "#フードボウル"],
+    "ペットボウル": ["#ペット用品", "#フードボウル"],
+    "リチウムコイン電池": ["#ボタン電池", "#電池"],
+    "コイン電池": ["#ボタン電池", "#電池"],
+    "アルカリボタン電池": ["#ボタン電池", "#電池"],
+    "ボタン電池": ["#ボタン電池", "#電池"],
+    "サーキュレーター": ["#家電", "#サーキュレーター"],
+    "扇風機": ["#家電", "#扇風機"],
+    "マミーポコパンツ": ["#ベビー用品", "#おむつ"],
+    "オムツ": ["#ベビー用品", "#おむつ"],
+    "おしりナップ": ["#ベビー用品", "#おしりふき"],
+    "おしりふき": ["#ベビー用品", "#おしりふき"],
+    "お尻拭き": ["#ベビー用品", "#おしりふき"],
+    "お尻ふき": ["#ベビー用品", "#おしりふき"],
+    "エコバッグ": ["#エコバッグ", "#折りたたみバッグ"],
+    "ひもかわうどん": ["#グルメ", "#うどん"],
+    "うどん": ["#グルメ", "#うどん"],
 }
 
 
