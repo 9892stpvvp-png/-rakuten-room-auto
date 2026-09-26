@@ -1846,8 +1846,11 @@ class Sept26BatchRegressionTest(unittest.TestCase):
         self.assertEqual(phrase, "80枚×40個")
         item = make_item(name=self.BABY_WIPES_NAME)
         description = dg.generate_description(item, category="ベビー用品", base_hashtags=BASE_HASHTAGS)
-        self.assertIn("80枚×40個", description)
+        # 「80枚×40個」→「80枚入り×40個」という、数量の意味を保持した
+        # 自然な言い回しになっている（description-genre-005対応）。
+        self.assertIn("80枚入り×40個", description)
         self.assertNotIn("✔️ 80枚で使いやすい", description)
+        self.assertNotIn("80枚×40個で使いやすい", description)
 
     # 10. 「詰め替え」から「ごみを減らせる」等の環境効果を推測しない
     # （「詰め替えタイプ」までは可）。
@@ -1955,6 +1958,91 @@ class Sept26BatchRegressionTest(unittest.TestCase):
             for phrase in forbidden_phrases:
                 self.assertNotIn(phrase, description, description)
             self.assertLessEqual(len(description), 500)
+
+
+class DescriptionGenre005RegressionTest(unittest.TestCase):
+    """2026-09-26 15:46生成分の最終調整（description-genre-005）の回帰
+    テスト。同じ商品タイプ（ボタン電池）でも、確認できない他商品固有の
+    用途（CR1220の「体温計用」をLR41へ流用する等）を混入させないこと、
+    複合数量表現（80枚×40個・170g×4袋 8人前）を自然な言い回しに整える
+    こと、ひもかわうどんの導入文が商品の性質と矛盾しないことを確認する。
+    商品名はSept26BatchRegressionTestと同じ、本番で実際に取得された
+    表記を再利用する。"""
+
+    CR1220_BATTERY_NAME = Sept26BatchRegressionTest.CR1220_BATTERY_NAME
+    LR41_BATTERY_NAME = Sept26BatchRegressionTest.LR41_BATTERY_NAME
+    BABY_WIPES_NAME = Sept26BatchRegressionTest.BABY_WIPES_NAME
+    HIMOKAWA_UDON_NAME = Sept26BatchRegressionTest.HIMOKAWA_UDON_NAME
+
+    # 1. LR41紹介文に「体温計」を勝手に追加しない（CR1220の商品固有情報を
+    # 流用しない）。
+    def test_lr41_description_does_not_borrow_cr1220_thermometer_claim(self):
+        item = make_item(name=self.LR41_BATTERY_NAME)
+        description = dg.generate_description(item, category="健康", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("体温計", description)
+
+    # 2. CR1220はタイトルに「体温計用」とあるため、その情報は使用可能。
+    def test_cr1220_description_may_use_its_own_thermometer_claim(self):
+        item = make_item(name=self.CR1220_BATTERY_NAME)
+        description = dg.generate_description(item, category="健康", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("体温計", description)
+
+    # 3. 同じ商品タイプ（ボタン電池）間で、商品固有の用途を流用しない
+    # （CR1220とLR41で、確認できる用途が異なることを確認する）。
+    def test_battery_products_do_not_share_each_others_specific_use_case(self):
+        cr1220_description = dg.generate_description(
+            make_item(name=self.CR1220_BATTERY_NAME), category="健康", base_hashtags=BASE_HASHTAGS
+        )
+        lr41_description = dg.generate_description(
+            make_item(name=self.LR41_BATTERY_NAME), category="健康", base_hashtags=BASE_HASHTAGS
+        )
+        self.assertIn("体温計", cr1220_description)
+        self.assertNotIn("体温計", lr41_description)
+        self.assertIn("LEDペンライト", lr41_description)
+        self.assertNotIn("LEDペンライト", cr1220_description)
+
+    # 4. 「20Pで使いやすい」を生成しない。
+    def test_lr41_does_not_generate_generic_20p_phrase(self):
+        item = make_item(name=self.LR41_BATTERY_NAME)
+        description = dg.generate_description(item, category="健康", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("20Pで使いやすい", description)
+        self.assertIn("20P", description)
+
+    # 5. 「80枚×40個」→数量の意味を保持した自然な表現（80枚入り×40個）に
+    # なる。
+    def test_baby_wipes_compound_quantity_becomes_natural_phrasing(self):
+        item = make_item(name=self.BABY_WIPES_NAME)
+        description = dg.generate_description(item, category="ベビー用品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("80枚入り×40個", description)
+
+    # 6. 「80枚×40個で使いやすい」を生成しない。
+    def test_baby_wipes_does_not_generate_the_old_unnatural_phrase(self):
+        item = make_item(name=self.BABY_WIPES_NAME)
+        description = dg.generate_description(item, category="ベビー用品", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("80枚×40個で使いやすい", description)
+
+    # 7. 「170g×4袋・8人前」の意味を保持する。
+    def test_udon_quantity_and_servings_are_both_kept(self):
+        item = make_item(name=self.HIMOKAWA_UDON_NAME)
+        description = dg.generate_description(item, category="食品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("170g", description)
+        self.assertIn("4袋", description)
+        self.assertIn("8人前", description)
+
+    # 8. 「170g×4袋 8人前で使いやすい」を生成しない。
+    def test_udon_does_not_generate_the_old_unnatural_phrase(self):
+        item = make_item(name=self.HIMOKAWA_UDON_NAME)
+        description = dg.generate_description(item, category="食品", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("170g × 4袋 8人前で使いやすい", description)
+        self.assertNotIn("170g×4袋 8人前で使いやすい", description)
+
+    # 9. ひもかわうどんに不自然な「茹でるのが手間」という導入を生成しない
+    # （乾麺である本商品自体も茹でる必要があるため、悩みの解決にならない）。
+    def test_udon_intro_does_not_claim_boiling_is_a_hassle(self):
+        item = make_item(name=self.HIMOKAWA_UDON_NAME)
+        description = dg.generate_description(item, category="食品", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("茹でるところから始めると", description)
+        self.assertNotIn("茹でるのが", description)
 
 
 if __name__ == "__main__":

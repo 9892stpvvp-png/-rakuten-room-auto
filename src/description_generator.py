@@ -1136,13 +1136,21 @@ PRODUCT_TYPE_TEMPLATES: list[tuple[str, _PostTemplate]] = [
     (
         "リチウムコイン電池",
         _PostTemplate(
+            # 「体温計用」等の具体的な用途は、このキーワードに一致する
+            # 全ての電池商品に共通するとは限らない（例：LR41はLEDペンライト
+            # 用で、体温計用の記載はタイトルに無い）。hook・worry・solution
+            # には特定の用途を固定で書かず、確認できた用途だけをFEATURE_
+            # CLAUSES（体温計・LEDペンライト等）で動的に反映する
+            # （description-genre-005対応。同じ商品タイプでも商品ごとに
+            # タイトルが異なるため、他商品の固有情報を流用しないための
+            # 設計）。
             hook_text="小さいボタン電池、いざ探すと地味に手間じゃない？",
             topic_emoji="🔋",
             worry_lines=[
-                "体温計や小型機器の電池切れって、",
+                "小型機器の電池切れって、",
                 "急に困ることがありますよね…😅",
             ],
-            solution_text="体温計や小型機器に使えるボタン電池",
+            solution_text="小型機器に使えるボタン電池",
             checklist_core=["小型機器の電池交換に使いやすい", "ストックしておくと便利"],
             checklist_fallback="普段使う小型機器に取り入れやすい",
             closing_variants=[
@@ -1154,13 +1162,21 @@ PRODUCT_TYPE_TEMPLATES: list[tuple[str, _PostTemplate]] = [
     (
         "コイン電池",
         _PostTemplate(
+            # 「体温計用」等の具体的な用途は、このキーワードに一致する
+            # 全ての電池商品に共通するとは限らない（例：LR41はLEDペンライト
+            # 用で、体温計用の記載はタイトルに無い）。hook・worry・solution
+            # には特定の用途を固定で書かず、確認できた用途だけをFEATURE_
+            # CLAUSES（体温計・LEDペンライト等）で動的に反映する
+            # （description-genre-005対応。同じ商品タイプでも商品ごとに
+            # タイトルが異なるため、他商品の固有情報を流用しないための
+            # 設計）。
             hook_text="小さいボタン電池、いざ探すと地味に手間じゃない？",
             topic_emoji="🔋",
             worry_lines=[
-                "体温計や小型機器の電池切れって、",
+                "小型機器の電池切れって、",
                 "急に困ることがありますよね…😅",
             ],
-            solution_text="体温計や小型機器に使えるボタン電池",
+            solution_text="小型機器に使えるボタン電池",
             checklist_core=["小型機器の電池交換に使いやすい", "ストックしておくと便利"],
             checklist_fallback="普段使う小型機器に取り入れやすい",
             closing_variants=[
@@ -1172,13 +1188,21 @@ PRODUCT_TYPE_TEMPLATES: list[tuple[str, _PostTemplate]] = [
     (
         "アルカリボタン電池",
         _PostTemplate(
+            # 「体温計用」等の具体的な用途は、このキーワードに一致する
+            # 全ての電池商品に共通するとは限らない（例：LR41はLEDペンライト
+            # 用で、体温計用の記載はタイトルに無い）。hook・worry・solution
+            # には特定の用途を固定で書かず、確認できた用途だけをFEATURE_
+            # CLAUSES（体温計・LEDペンライト等）で動的に反映する
+            # （description-genre-005対応。同じ商品タイプでも商品ごとに
+            # タイトルが異なるため、他商品の固有情報を流用しないための
+            # 設計）。
             hook_text="小さいボタン電池、いざ探すと地味に手間じゃない？",
             topic_emoji="🔋",
             worry_lines=[
-                "体温計や小型機器の電池切れって、",
+                "小型機器の電池切れって、",
                 "急に困ることがありますよね…😅",
             ],
-            solution_text="体温計や小型機器に使えるボタン電池",
+            solution_text="小型機器に使えるボタン電池",
             checklist_core=["小型機器の電池交換に使いやすい", "ストックしておくと便利"],
             checklist_fallback="普段使う小型機器に取り入れやすい",
             closing_variants=[
@@ -1190,13 +1214,21 @@ PRODUCT_TYPE_TEMPLATES: list[tuple[str, _PostTemplate]] = [
     (
         "ボタン電池",
         _PostTemplate(
+            # 「体温計用」等の具体的な用途は、このキーワードに一致する
+            # 全ての電池商品に共通するとは限らない（例：LR41はLEDペンライト
+            # 用で、体温計用の記載はタイトルに無い）。hook・worry・solution
+            # には特定の用途を固定で書かず、確認できた用途だけをFEATURE_
+            # CLAUSES（体温計・LEDペンライト等）で動的に反映する
+            # （description-genre-005対応。同じ商品タイプでも商品ごとに
+            # タイトルが異なるため、他商品の固有情報を流用しないための
+            # 設計）。
             hook_text="小さいボタン電池、いざ探すと地味に手間じゃない？",
             topic_emoji="🔋",
             worry_lines=[
-                "体温計や小型機器の電池切れって、",
+                "小型機器の電池切れって、",
                 "急に困ることがありますよね…😅",
             ],
-            solution_text="体温計や小型機器に使えるボタン電池",
+            solution_text="小型機器に使えるボタン電池",
             checklist_core=["小型機器の電池交換に使いやすい", "ストックしておくと便利"],
             checklist_fallback="普段使う小型機器に取り入れやすい",
             closing_variants=[
@@ -1393,14 +1425,20 @@ PRODUCT_TYPE_TEMPLATES: list[tuple[str, _PostTemplate]] = [
             # 乾麺・つゆ付きかどうかは、確認できた場合だけFEATURE_CLAUSES
             # （乾麺・つゆ）で動的に反映する（description-genre-004対応）。
             # 味・品質は商品名以上に推測しない。
-            hook_text="麺類のストック、うどんも増やしてみない？",
+            # 「毎回麺を茹でるところから始めると手間」という悩みは、乾麺
+            # である本商品自体も茹でる必要があるため、商品のメリットに
+            # つながらない（悩みを解決しない商品になってしまう）。悩みは
+            # 「食べたいときに麺のストックが家にない」ことに変更し、乾麺を
+            # 常備できることが解決になるようにした（description-genre-005
+            # 対応）。
+            hook_text="うどんが食べたい日、家に麺のストックがなかったりしない？",
             topic_emoji="🍜",
             worry_lines=[
-                "毎回麺を茹でるところから始めると、",
-                "地味に手間がかかりますよね…😅",
+                "食べたいと思ったときに",
+                "麺のストックがないと困りますよね…😅",
             ],
-            solution_text="自宅で手軽に楽しめるひもかわうどん",
-            checklist_core=["自宅で手軽に楽しめる", "普段の食事に取り入れやすい"],
+            solution_text="自宅にストックしておきやすいひもかわうどん",
+            checklist_core=["自宅にストックしておきやすい", "普段の食事に取り入れやすい"],
             checklist_fallback="自宅での食事に取り入れやすい",
             closing_variants=[
                 "自宅でうどんを楽しみたい人におすすめ",
@@ -1411,14 +1449,14 @@ PRODUCT_TYPE_TEMPLATES: list[tuple[str, _PostTemplate]] = [
     (
         "うどん",
         _PostTemplate(
-            hook_text="麺類のストック、うどんも増やしてみない？",
+            hook_text="うどんが食べたい日、家に麺のストックがなかったりしない？",
             topic_emoji="🍜",
             worry_lines=[
-                "毎回麺を茹でるところから始めると、",
-                "地味に手間がかかりますよね…😅",
+                "食べたいと思ったときに",
+                "麺のストックがないと困りますよね…😅",
             ],
-            solution_text="自宅で手軽に楽しめるうどん",
-            checklist_core=["自宅で手軽に楽しめる", "普段の食事に取り入れやすい"],
+            solution_text="自宅にストックしておきやすいうどん",
+            checklist_core=["自宅にストックしておきやすい", "普段の食事に取り入れやすい"],
             checklist_fallback="自宅での食事に取り入れやすい",
             closing_variants=[
                 "自宅でうどんを楽しみたい人におすすめ",
@@ -2254,6 +2292,12 @@ FEATURE_CLAUSES: list[tuple[str, str | dict[str, str], str | dict[str, str]]] = 
     ("風量", "風量調整で使いやすい", "🌬️"),
     ("乾麺", "乾麺でストックしやすい", "🍜"),
     ("つゆ", "つゆ付きで準備の手間を減らしやすい", "🍜"),
+    # ここから下は、同じ商品タイプ（ボタン電池等）でも商品ごとに用途が
+    # 異なる場合に、確認できた用途だけを反映するための追加
+    # （description-genre-005対応。CR1220の「体温計用」をLR41に流用しない
+    # ようにするための一般的な仕組み）。
+    ("体温計", "体温計等の小型機器に使いやすい", "🌡️"),
+    ("LEDペンライト", "LEDペンライト等の小型機器に使いやすい", "🔋"),
 ]
 
 # 商品名にこれらの言葉が含まれる場合、より具体的なハッシュタグを1つ追加する。
@@ -2378,9 +2422,35 @@ _SINGLE_CHOICE_PATTERN = re.compile(r"1\s*種類?\s*(?:を)?\s*選べる")
 # 一部しか反映されなかったり、意味が変わってしまう（例：「380g×4セット」
 # を単純に個数用の言い回しに変換すると「セット」が重複したり、「1種類を
 # 選べる」商品なのにアソートのような表現になってしまう）。そのため、
-# 複合表記はそのまま「〜で使いやすい」の言い回しにとどめる
-# （description-genre-004対応）。
+# 複合表記は単位ごとの言い換えをせず、以下の追加の整形だけを行う
+# （description-genre-004/005対応）。
 _COMBO_QUANTITY_PATTERN = re.compile(r"[×xX+＋]")
+
+# 複合表記の末尾に「◯人前」が付いている場合（例：「170g × 4袋 8人前」）、
+# 内容量部分と人数分部分を分けて、「内容量・計◯人前」という自然な言い回しに
+# する（description-genre-005対応。「170g×4袋 8人前で使いやすい」という
+# 不自然な言い回しを避けるための汎用的な仕組み。特定商品のハードコードでは
+# なく、末尾の「人前」表記があるかどうかで判定する）。
+_TRAILING_SERVINGS_PATTERN = re.compile(r"^(.+\S)\s*(\d+\s*人前)$")
+
+# 「◯枚×◯個」のように、最初の単位が個数（枚・個・本・袋・セット・包・
+# パック）である複合表記は、最初の単位の直後に「入り」を補うと、
+# 「1パックあたり◯枚入っていて、それが◯個ある」という意味が伝わりやすく
+# なる（例：「80枚×40個」→「80枚入り×40個」）。単純な文字列置換ではなく、
+# 数量の構造（先頭が個数単位＋×でつながっている）から判定する汎用的な
+# 仕組みなので、今後の同系統商品（◯枚×◯個・◯個×◯セット等）にも適用
+# される（description-genre-005対応）。先頭が重さ・容量の単位（例：
+# 「170g×4袋」）の場合は、単位の意味が変わってしまうため対象にしない。
+_COMBO_LEADING_COUNT_UNIT_PATTERN = re.compile(
+    r"^(\d+(?:\.\d+)?)(枚|個|本|袋|セット|包|パック)(\s*[×xX]\s*)"
+)
+
+
+def _add_iri_after_leading_count_unit(quantity_phrase: str) -> str:
+    return _COMBO_LEADING_COUNT_UNIT_PATTERN.sub(
+        lambda m: f"{m.group(1)}{m.group(2)}入り{m.group(3)}", quantity_phrase, count=1
+    )
+
 
 # 数量の単位ごとに末尾で判定するための正規表現（サイズ／重さ／容量）。
 _SIZE_UNIT_SUFFIX_PATTERN = re.compile(r"(?:cm|mm)$")
@@ -2388,6 +2458,10 @@ _WEIGHT_UNIT_SUFFIX_PATTERN = re.compile(r"(?:g|kg)$")
 _VOLUME_UNIT_SUFFIX_PATTERN = re.compile(r"(?:ml|mL|L|ℓ)$")
 _COUNT_UNIT_SUFFIX_PATTERN = re.compile(r"(?:本|個|枚|袋|セット|包|パック)$")
 _COUNT_UNIT_HAS_SET_WORD_PATTERN = re.compile(r"セット$")
+# 「20P」のような、個数を「P」で表す表記の末尾判定
+# （description-genre-005対応。「20Pで使いやすい」という、単位を無視した
+# 画一的な言い回しを避けるための追加）。
+_P_UNIT_SUFFIX_PATTERN = re.compile(r"P$")
 
 
 def _phrase_for_quantity(quantity_phrase: str, name: str) -> str:
@@ -2396,17 +2470,24 @@ def _phrase_for_quantity(quantity_phrase: str, name: str) -> str:
     チェックリスト項目にする。
 
     「数字＋で使いやすい」という単位を問わない画一的な生成を避けるための
-    汎用的な仕組み（description-genre-003/004対応。商品タイトルから確認
-    できる数量表現の組み合わせのみを使い、新しい効果・品質は追加しない）。
+    汎用的な仕組み（description-genre-003/004/005対応。商品タイトルから
+    確認できる数量表現の組み合わせのみを使い、新しい効果・品質は追加
+    しない）。
     """
     if _COMBO_QUANTITY_PATTERN.search(quantity_phrase):
-        return f"{quantity_phrase}で使いやすい"
+        servings_match = _TRAILING_SERVINGS_PATTERN.match(quantity_phrase)
+        if servings_match:
+            base, servings = servings_match.group(1), servings_match.group(2)
+            return f"{base}・計{servings}"
+        return f"{_add_iri_after_leading_count_unit(quantity_phrase)}で使いやすい"
     if _SIZE_UNIT_SUFFIX_PATTERN.search(quantity_phrase):
         return f"サイズは約{quantity_phrase}"
     if _WEIGHT_UNIT_SUFFIX_PATTERN.search(quantity_phrase):
         return f"重さは約{quantity_phrase}"
     if _VOLUME_UNIT_SUFFIX_PATTERN.search(quantity_phrase):
         return f"容量は約{quantity_phrase}"
+    if _P_UNIT_SUFFIX_PATTERN.search(quantity_phrase):
+        return f"{quantity_phrase}入り"
     if _COUNT_UNIT_SUFFIX_PATTERN.search(quantity_phrase):
         is_variety = any(
             word in name for word in _VARIETY_COUNT_INDICATOR_WORDS
