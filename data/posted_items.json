@@ -8,6 +8,7 @@
     "anker:10002525",
     "asahikei:10000028",
     "asai-tool:10002127",
+    "askrtech:10000293",
     "aspa:10000003",
     "at-life:10050736",
     "auc-risecreation:10003265",
@@ -17,6 +18,7 @@
     "bathroom:10002808",
     "biyoudou:10000164",
     "calico-a1:10000058",
+    "calmisence:10000038",
     "ccsz:10000871",
     "charmying:10000053",
     "charmying:10000151",
@@ -25,6 +27,7 @@
     "coming:10000440",
     "creaswing:10000209",
     "decori:10000569",
+    "dogfood-koubou:10000037",
     "dondon:10003669",
     "dondon:10004199",
     "dondon:10004336",
@@ -40,6 +43,7 @@
     "hibec:10000019",
     "higasa:10000507",
     "honjien-3:10000310",
+    "honjien-3:10000446",
     "honjien-3:10003174",
     "honjien-3:10003220",
     "hseason:10000260",
@@ -48,6 +52,7 @@
     "ichifujiec:10000032",
     "ichikawa929:10000637",
     "idea-happy-life:10003997",
+    "inscent:10002563",
     "irisplaza-r:10156833",
     "irisplaza-r:10158173",
     "ishimatsudo:10000077",
@@ -65,6 +70,7 @@
     "kurashikaiteki-shop:10010285",
     "kurashikaiteki-shop:10010350",
     "laitnature:10000872",
+    "larutan:10000000",
     "larutan:10000154",
     "let-ochanomise:10000187",
     "liberesta:10000014",
@@ -73,10 +79,12 @@
     "magokoro-eshop:10001366",
     "makinoharacha:10000040",
     "mamano:10000009",
+    "masayosiryouhin:10000072",
     "midorimushishop:10000442",
     "midorimushishop:10000455",
     "midorimushishop:10000479",
     "nactasukaru:10000285",
+    "natural-living:10010377",
     "netbaby:10028506",
     "next-online:10000140",
     "niceitems:10000227",
@@ -96,6 +104,7 @@
     "risu-onlineshop:10002060",
     "royal3000:10006630",
     "sanki-shop:10000001",
+    "sasayama-bee:10000020",
     "shimoyama-onlineshop:10001811",
     "shimoyama-onlineshop:10002758",
     "shinbido:10002621",
@@ -110,6 +119,7 @@
     "takara-jiang:10034170",
     "tcol:10000012",
     "value-create:10000010",
+    "wagashidonya:10000686",
     "winwinproduct:10000988",
     "yamatoya-d:10000208",
     "yamayuu:10016527",
@@ -1473,6 +1483,86 @@
       "product_name": "ひもかわうどん 帯麺 乾麺 めん170g × 4袋 8人前 濃縮つゆ8人前 送料無料 ひも川 通販 人気【ポスト投函配送】",
       "posted_at": "2026-09-26T18:17:17.023Z",
       "category": "食品",
+      "match_keywords": []
+    },
+    {
+      "item_code": "inscent:10002563",
+      "item_url": "https://item.rakuten.co.jp/inscent/682625/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "ブレンド お試し よりどり5本セット (各5ml) エッセンシャルオイル 精油 アロマオイル 【送料無料】 全20種 メール便 (追跡番号付き) 代金引換不可 アロマディフューザー アロマ加湿器",
+      "posted_at": "2026-09-27T17:43:48.138Z",
+      "category": "生活雑貨",
+      "match_keywords": []
+    },
+    {
+      "item_code": "sasayama-bee:10000020",
+      "item_url": "https://item.rakuten.co.jp/sasayama-bee/10000020/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "マスクスプレー アロマスプレー よりどり3本 30ml 篠山精油 花粉スプレー 香りを楽しむ アロマ 精油 ハーブウォーター スプレー レモングラス ひのき 杉 ゼラニウム ハッカ プチギフト アロマオイル ピローミスト 天然成分100%",
+      "posted_at": "2026-09-27T17:44:17.391Z",
+      "category": "生活雑貨",
+      "match_keywords": []
+    },
+    {
+      "item_code": "masayosiryouhin:10000072",
+      "item_url": "https://item.rakuten.co.jp/masayosiryouhin/refa-1/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "リファカラットレイ Refa CARAT RAY RF-PC2019B【MTG 美顔ローラー 美顔器 美容ローラー リファ カラットレイ 美容ローラー RFPC2019B クリスマス プレゼント ギフト 誕生日 敬老の日 父の日 母の日】【楽天ランキング1位受賞】",
+      "posted_at": "2026-09-27T17:44:49.479Z",
+      "category": "美容",
+      "match_keywords": []
+    },
+    {
+      "item_code": "dogfood-koubou:10000037",
+      "item_url": "https://item.rakuten.co.jp/dogfood-koubou/10000037/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "［公式 ドッグフード工房］ドッグフード 無添加 国産 馬肉 鶏肉 野菜畑 鹿肉 小麦不使用 選べる小袋 3袋セット｜厳選自然素材 天然食材 栄養食材 ドライフード ペットフード 獣医師推奨 全犬種 全年齢 毛並み 目 涙やけ におい",
+      "posted_at": "2026-09-27T17:45:08.954Z",
+      "category": "ペット用品",
+      "match_keywords": []
+    },
+    {
+      "item_code": "wagashidonya:10000686",
+      "item_url": "https://item.rakuten.co.jp/wagashidonya/go-milk-powder/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "【P5倍!9/30迄】【まとめ買い割引適応！】 無添加 ヤギミルクパウダー 100g 500g 1000g 全脂粉乳 脱脂粉乳 ヤギミルク 保存料 オーガニック 山羊 やぎ ミルク 粉末 パウダー ペット用 愛犬用 小型犬 大型犬 栄養豊富 タンパク質 ミネラル ペットフード ドッグフード おやつ",
+      "posted_at": "2026-09-27T17:45:28.279Z",
+      "category": "ペット用品",
+      "match_keywords": []
+    },
+    {
+      "item_code": "honjien-3:10000446",
+      "item_url": "https://item.rakuten.co.jp/honjien-3/dattansobacha-1kg/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "国産 韃靼そば茶 1kg [ 北海道産 など 国産100％ ] ほんぢ園 ＜ ペットボトルよりお得 蕎麦茶 ダッタンそば茶 だったんそばちゃ 韃靼そばちゃ だったんそば茶 韃靼そば ルチン ノンカフェイン ＞ 送料無料 同梱不可 ／ラ／",
+      "posted_at": "2026-09-27T17:45:48.364Z",
+      "category": "お茶",
+      "match_keywords": []
+    },
+    {
+      "item_code": "askrtech:10000293",
+      "item_url": "https://item.rakuten.co.jp/askrtech/biganrora/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "【クーポンで2,650円】＼楽天1位／ 美容ローラー 美顔ローラー 美顔器 顔 ボディ 小顔ローラー Y字型 マッサージ 3D 充電不要 防水 マイクロカレント フェイスケア フェイスローラー 充電不要 リフトアップ レディース 美顔 母の日 ギフト 送料無料",
+      "posted_at": "2026-09-27T17:46:11.702Z",
+      "category": "美容",
+      "match_keywords": []
+    },
+    {
+      "item_code": "calmisence:10000038",
+      "item_url": "https://item.rakuten.co.jp/calmisence/swaddle/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "スワドルメリー おくるみ スワドル スリーパー 新生児 通気性 すわどる 手が出せる キッズ 赤ちゃん ベビー モロー反射 くま レモン 星 おしゃれ かわいい 寝かしつけ 夜泣き 退院 綿 100 男の子 女の子 出産祝い ベビー用品 手出し コペルタ 通年 春 夏 秋 冬 兼 用",
+      "posted_at": "2026-09-27T17:46:37.590Z",
+      "category": "ベビー用品",
+      "match_keywords": []
+    },
+    {
+      "item_code": "natural-living:10010377",
+      "item_url": "https://item.rakuten.co.jp/natural-living/u119712/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "＼最大5万ポイント当たる!／＼楽天1位獲得！／ 防臭 ウッビー Ubbi おむつペール カートリッジ不要 おむつ ゴミ箱 臭わない インテリア オムツ ペール おむつ処理ポット 18L 赤ちゃん ベビー 出産祝い 出産準備 ペット 犬 猫 トイレ 介護 ペットシーツ ネコ砂",
+      "posted_at": "2026-09-27T17:46:57.212Z",
+      "category": "ベビー用品",
+      "match_keywords": []
+    },
+    {
+      "item_code": "larutan:10000000",
+      "item_url": "https://item.rakuten.co.jp/larutan/n022-a-wh-set/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "口コミ2800件!!＜芸能人愛用＞楽天1位6冠≪レビュー特典≫LARUTAN おむつストッカー 蓋付き 仕切り 収納 オムツストッカー お世話セット おむつバッグ 大容量 ベビー用品 収納ケース おむつ入れ おもちゃ バッグ 出産準備 赤ちゃん 出産祝い おしゃれ おむつケーキ ギフト",
+      "posted_at": "2026-09-27T17:47:22.250Z",
+      "category": "収納",
       "match_keywords": []
     }
   ]
