@@ -2045,5 +2045,191 @@ class DescriptionGenre005RegressionTest(unittest.TestCase):
         self.assertNotIn("茹でるのが", description)
 
 
+class Sept27BatchRegressionTest(unittest.TestCase):
+    """2026-09-27 15:47生成分のroom/data/candidates.jsonで実際に見つかった、
+    商品本体判定の誤り（description-genre-006）の回帰テスト。商品名に
+    複数の商品タイプ語が含まれる場合、単純な出現位置だけでなく、より
+    具体的な商品タイプ語を優先することを確認する。商品名は本番で実際に
+    取得された表記をそのまま使っている。"""
+
+    AROMA_OIL_5_SET_NAME = (
+        "ブレンド お試し よりどり5本セット (各5ml) エッセンシャルオイル 精油 アロマオイル "
+        "【送料無料】 全20種 メール便 (追跡番号付き) 代金引換不可 アロマディフューザー "
+        "アロマ加湿器"
+    )
+    MASK_SPRAY_NAME = (
+        "マスクスプレー アロマスプレー よりどり3本 30ml 篠山精油 花粉スプレー 香りを楽しむ "
+        "アロマ 精油 ハーブウォーター スプレー レモングラス ひのき 杉 ゼラニウム ハッカ "
+        "プチギフト アロマオイル ピローミスト 天然成分100%"
+    )
+    DOG_FOOD_NAME = (
+        "［公式 ドッグフード工房］ドッグフード 無添加 国産 馬肉 鶏肉 野菜畑 鹿肉 小麦不使用 "
+        "選べる小袋 3袋セット｜厳選自然素材 天然食材 栄養食材 ドライフード ペットフード "
+        "獣医師推奨 全犬種 全年齢 毛並み 目 涙やけ におい"
+    )
+    GOAT_MILK_NAME = (
+        "【P5倍!9/30迄】【まとめ買い割引適応！】 無添加 ヤギミルクパウダー 100g 500g 1000g "
+        "全脂粉乳 脱脂粉乳 ヤギミルク 保存料 オーガニック 山羊 やぎ ミルク 粉末 パウダー "
+        "ペット用 愛犬用 小型犬 大型犬 栄養豊富 タンパク質 ミネラル ペットフード ドッグフード "
+        "おやつ"
+    )
+    SWADDLE_NAME = (
+        "スワドルメリー おくるみ スワドル スリーパー 新生児 通気性 すわどる 手が出せる キッズ "
+        "赤ちゃん ベビー モロー反射 くま レモン 星 おしゃれ かわいい 寝かしつけ 夜泣き 退院 綿 "
+        "100 男の子 女の子 出産祝い ベビー用品 手出し コペルタ 通年 春 夏 秋 冬 兼 用"
+    )
+    DIAPER_PAIL_NAME = (
+        "＼最大5万ポイント当たる!／＼楽天1位獲得！／ 防臭 ウッビー Ubbi おむつペール "
+        "カートリッジ不要 おむつ ゴミ箱 臭わない インテリア オムツ ペール おむつ処理ポット 18L "
+        "赤ちゃん ベビー 出産祝い 出産準備 ペット 犬 猫 トイレ 介護 ペットシーツ ネコ砂"
+    )
+    DIAPER_STOCKER_NAME = (
+        "口コミ2800件!!＜芸能人愛用＞楽天1位6冠≪レビュー特典≫LARUTAN おむつストッカー "
+        "蓋付き 仕切り 収納 オムツストッカー お世話セット おむつバッグ 大容量 ベビー用品 "
+        "収納ケース おむつ入れ おもちゃ バッグ 出産準備 赤ちゃん 出産祝い おしゃれ おむつケーキ "
+        "ギフト"
+    )
+
+    # 1. アロマスプレーをアロマオイルと誤認しない（「アロマオイル」という
+    # 関連語が後半にあっても、商品本体のスプレーを優先する）。
+    def test_mask_spray_is_not_mistaken_for_aroma_oil(self):
+        item = make_item(name=self.MASK_SPRAY_NAME)
+        description = dg.generate_description(item, category="生活雑貨", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("アロマスプレー", description)
+        self.assertNotIn("ディフューザー", description)
+        for phrase in ("花粉を防ぐ", "花粉症に効く", "花粉症に良い"):
+            self.assertNotIn(phrase, description)
+
+    # 2. アロマオイル本体は従来通り正しく判定する（アロマスプレー対応を
+    # 追加しても、本物のアロマオイルまでスプレー扱いしない）。
+    def test_real_aroma_oil_is_still_recognized_as_aroma_oil_not_spray(self):
+        item = make_item(name=self.AROMA_OIL_5_SET_NAME)
+        description = dg.generate_description(item, category="生活雑貨", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("アロマオイル", description)
+        self.assertNotIn("スプレー", description)
+        hashtag_line = description.split("\n\n")[-1]
+        self.assertIn("#アロマオイル", hashtag_line)
+
+    # 3. ドッグフードを犬用フードとして認識する（暮らしの便利グッズ扱いに
+    # しない）。
+    def test_dog_food_is_recognized_as_dog_food(self):
+        item = make_item(name=self.DOG_FOOD_NAME)
+        description = dg.generate_description(item, category="ペット用品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("ドッグフード", description)
+        self.assertNotIn("そんな暮らしの小さな不便を解消してくれそうな便利グッズ", description)
+        for phrase in ("毛並みが改善する", "涙やけが治る", "健康になる"):
+            self.assertNotIn(phrase, description)
+
+    # 4. ヤギミルクをペット用食品として認識する。
+    def test_goat_milk_is_recognized_as_pet_food(self):
+        item = make_item(name=self.GOAT_MILK_NAME)
+        description = dg.generate_description(item, category="ペット用品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("ヤギミルク", description)
+        self.assertNotIn("そんな暮らしの小さな不便を解消してくれそうな便利グッズ", description)
+
+    # 5. 「100g 500g 1000g」を「重さは約100g」のように最初の値だけに
+    # 固定しない。
+    def test_goat_milk_multiple_sizes_are_not_fixed_to_the_first_value(self):
+        item = make_item(name=self.GOAT_MILK_NAME)
+        description = dg.generate_description(item, category="ペット用品", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("重さは約100g", description)
+        self.assertIn("100g", description)
+        self.assertIn("500g", description)
+        self.assertIn("1000g", description)
+
+    # 6. スワドル/おくるみをスワドル/おくるみとして認識する。
+    def test_swaddle_is_recognized_as_a_swaddle(self):
+        item = make_item(name=self.SWADDLE_NAME)
+        description = dg.generate_description(item, category="ベビー用品", base_hashtags=BASE_HASHTAGS)
+        self.assertTrue("スワドル" in description or "おくるみ" in description)
+        for phrase in ("夜泣きを改善する", "よく眠れる", "モロー反射を防ぐ"):
+            self.assertNotIn(phrase, description)
+
+    # 7. おむつペールをゴミ箱として認識する。
+    def test_diaper_pail_is_recognized_as_a_trash_can(self):
+        item = make_item(name=self.DIAPER_PAIL_NAME)
+        description = dg.generate_description(item, category="ベビー用品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("ゴミ箱", description)
+        self.assertNotIn("臭いが完全になくなる", description)
+
+    # 8. おむつペールを紙おむつと誤認しない。
+    def test_diaper_pail_is_not_mistaken_for_a_paper_diaper(self):
+        item = make_item(name=self.DIAPER_PAIL_NAME)
+        description = dg.generate_description(item, category="ベビー用品", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("おむつ選び、地味に悩みませんか", description)
+        self.assertNotIn("紙おむつ◎", description)
+
+    # 9. おむつストッカーを収納用品として認識する。
+    def test_diaper_stocker_is_recognized_as_storage_goods(self):
+        item = make_item(name=self.DIAPER_STOCKER_NAME)
+        description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("おむつストッカー", description)
+        hashtag_line = description.split("\n\n")[-1]
+        self.assertIn("#おむつ収納", hashtag_line)
+
+    # 10. おむつストッカーを紙おむつと誤認しない。
+    def test_diaper_stocker_is_not_mistaken_for_a_paper_diaper(self):
+        item = make_item(name=self.DIAPER_STOCKER_NAME)
+        description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("おむつ選び、地味に悩みませんか", description)
+        self.assertNotIn("紙おむつ◎", description)
+
+    # 11. 具体的複合商品名が一般語より優先される（「おむつ」という一般語を
+    # 含んでいても、複合語「おむつペール」「おむつストッカー」を商品本体
+    # として優先する）。
+    def test_specific_compound_product_name_outranks_generic_word(self):
+        self.assertEqual(dg.match_product_type_keyword(self.DIAPER_PAIL_NAME), "おむつペール")
+        self.assertEqual(dg.match_product_type_keyword(self.DIAPER_STOCKER_NAME), "おむつストッカー")
+
+    # 12. 健康効果を勝手に生成しない（今回の新規6商品まとめての確認）。
+    def test_new_product_types_do_not_generate_unconfirmed_health_effects(self):
+        forbidden_phrases = (
+            "改善する", "治る", "健康になる", "花粉症に効く", "よく眠れる", "臭いが完全になくなる",
+        )
+        for name, category in (
+            (self.MASK_SPRAY_NAME, "生活雑貨"),
+            (self.DOG_FOOD_NAME, "ペット用品"),
+            (self.GOAT_MILK_NAME, "ペット用品"),
+            (self.SWADDLE_NAME, "ベビー用品"),
+            (self.DIAPER_PAIL_NAME, "ベビー用品"),
+            (self.DIAPER_STOCKER_NAME, "収納"),
+        ):
+            item = make_item(name=name)
+            description = dg.generate_description(item, category=category, base_hashtags=BASE_HASHTAGS)
+            for phrase in forbidden_phrases:
+                self.assertNotIn(phrase, description, description)
+
+    # 13. 商品タイプに合ったハッシュタグが付く（今回の新規6商品）。
+    def test_new_product_types_get_matching_hashtags(self):
+        expectations = {
+            self.MASK_SPRAY_NAME: ("生活雑貨", "#アロマスプレー"),
+            self.DOG_FOOD_NAME: ("ペット用品", "#ドッグフード"),
+            self.GOAT_MILK_NAME: ("ペット用品", "#犬用品"),
+            self.SWADDLE_NAME: ("ベビー用品", "#スワドル"),
+            self.DIAPER_PAIL_NAME: ("ベビー用品", "#おむつゴミ箱"),
+            self.DIAPER_STOCKER_NAME: ("収納", "#おむつ収納"),
+        }
+        for name, (category, expected_tag) in expectations.items():
+            item = make_item(name=name)
+            description = dg.generate_description(item, category=category, base_hashtags=BASE_HASHTAGS)
+            hashtag_line = description.split("\n\n")[-1]
+            self.assertIn(expected_tag, hashtag_line, description)
+            self.assertNotIn("#暮らしの便利グッズ", hashtag_line)
+            self.assertNotIn("#便利グッズ", hashtag_line)
+            self.assertLessEqual(len(description), 500)
+
+    # 14. 別商品の固有情報を流用しない（今回新設したテンプレート同士でも、
+    # 前回description-genre-005の設計方針が維持されていることを確認）。
+    def test_new_templates_do_not_borrow_unconfirmed_specifics_across_items(self):
+        dog_food_description = dg.generate_description(
+            make_item(name=self.DOG_FOOD_NAME), category="ペット用品", base_hashtags=BASE_HASHTAGS
+        )
+        goat_milk_description = dg.generate_description(
+            make_item(name=self.GOAT_MILK_NAME), category="ペット用品", base_hashtags=BASE_HASHTAGS
+        )
+        self.assertNotIn("ヤギミルク", dog_food_description)
+        self.assertNotIn("ドッグフード", goat_milk_description.split("◎")[0])
+
+
 if __name__ == "__main__":
     unittest.main()

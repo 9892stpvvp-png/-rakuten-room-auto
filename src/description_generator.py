@@ -1464,6 +1464,206 @@ PRODUCT_TYPE_TEMPLATES: list[tuple[str, _PostTemplate]] = [
             ],
         ),
     ),
+    # ここから下は、2026-09-27生成分で新しく見つかった商品タイプ
+    # （description-genre-006対応）。「花粉スプレー」「獣医師推奨」
+    # 「モロー反射」等の広告・用途表現があっても、健康・美容効果を保証
+    # する文章には拡大しない。「アロマスプレー」「マスクスプレー」は、
+    # タイトルに「アロマオイル」「精油」等の関連語が含まれていても、
+    # 商品本体（スプレー）を優先するために、_iter_product_type_keyword_
+    # matches()の出現位置優先判定より先に登録している（アロマオイル系の
+    # キーワードより前に置くことで、同じ位置優先度の中でも登録順で
+    # わずかに有利になるようにしているが、実際の優先順位は商品名内の
+    # 出現位置で決まる）。
+    (
+        "アロマスプレー",
+        _PostTemplate(
+            hook_text="気分に合わせて香りを変えたくならない？",
+            topic_emoji="🌿",
+            worry_lines=[
+                "香りものって、",
+                "何を選べばいいか迷いますよね…😅",
+            ],
+            solution_text="スプレータイプで使いやすいアロマスプレー",
+            checklist_core=["スプレータイプで使いやすい", "気になる場面で香りを楽しみやすい"],
+            checklist_fallback="普段の生活に取り入れやすい",
+            closing_variants=[
+                "好きな香りを見つけたい人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "マスクスプレー",
+        _PostTemplate(
+            hook_text="気分に合わせて香りを変えたくならない？",
+            topic_emoji="🌿",
+            worry_lines=[
+                "香りものって、",
+                "何を選べばいいか迷いますよね…😅",
+            ],
+            solution_text="スプレータイプで使いやすいアロマスプレー",
+            checklist_core=["スプレータイプで使いやすい", "気になる場面で香りを楽しみやすい"],
+            checklist_fallback="普段の生活に取り入れやすい",
+            closing_variants=[
+                "好きな香りを見つけたい人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "ドッグフード",
+        _PostTemplate(
+            # 「毛並み」「涙やけ」「におい」「獣医師推奨」等の表現があっても、
+            # 「改善する」「治る」「健康になる」等の効果は断定しない。
+            hook_text="愛犬のごはん選び、悩んだりしない？",
+            topic_emoji="🐶",
+            worry_lines=[
+                "毎日のごはん選びって、",
+                "何を選べばいいか迷いますよね…😅",
+            ],
+            solution_text="愛犬に使いやすいドッグフード",
+            checklist_core=["毎日のごはんに取り入れやすい", "ストックしておくと便利"],
+            checklist_fallback="普段のペットのお世話に取り入れやすい",
+            closing_variants=[
+                "愛犬のごはんを探している人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "ヤギミルクパウダー",
+        _PostTemplate(
+            # 「栄養豊富」「タンパク質」「ミネラル」等から健康効果を
+            # 勝手に生成しない。
+            hook_text="愛犬のおやつ・ミルク、何がいいか迷わない？",
+            topic_emoji="🐾",
+            worry_lines=[
+                "ペットのおやつ選びって、",
+                "何を選べばいいか迷いますよね…😅",
+            ],
+            solution_text="愛犬用のヤギミルクパウダー",
+            checklist_core=["愛犬のおやつ・ミルクに取り入れやすい", "粉末タイプで使いやすい"],
+            checklist_fallback="普段のペットのお世話に取り入れやすい",
+            closing_variants=[
+                "愛犬用のミルクを探している人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "ヤギミルク",
+        _PostTemplate(
+            hook_text="愛犬のおやつ・ミルク、何がいいか迷わない？",
+            topic_emoji="🐾",
+            worry_lines=[
+                "ペットのおやつ選びって、",
+                "何を選べばいいか迷いますよね…😅",
+            ],
+            solution_text="愛犬用のヤギミルクパウダー",
+            checklist_core=["愛犬のおやつ・ミルクに取り入れやすい", "粉末タイプで使いやすい"],
+            checklist_fallback="普段のペットのお世話に取り入れやすい",
+            closing_variants=[
+                "愛犬用のミルクを探している人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "スワドル",
+        _PostTemplate(
+            # 「モロー反射」「寝かしつけ」「夜泣き」等の表現があっても、
+            # 「夜泣きを改善する」「よく眠れる」「モロー反射を防ぐ」等の
+            # 効果は断定しない。
+            hook_text="新生児の寝かしつけ、何を使うか迷ったりしない？",
+            topic_emoji="👶",
+            worry_lines=[
+                "新生児のお世話グッズ選びって、",
+                "何がいいのか迷いますよね…😅",
+            ],
+            solution_text="新生児から使いやすいスワドル（おくるみ）",
+            checklist_core=["新生児のお世話に使いやすい", "通気性の良さで使いやすい"],
+            checklist_fallback="普段のお世話に取り入れやすい",
+            closing_variants=[
+                "おくるみを探している人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "おくるみ",
+        _PostTemplate(
+            hook_text="新生児の寝かしつけ、何を使うか迷ったりしない？",
+            topic_emoji="👶",
+            worry_lines=[
+                "新生児のお世話グッズ選びって、",
+                "何がいいのか迷いますよね…😅",
+            ],
+            solution_text="新生児から使いやすいおくるみ（スワドル）",
+            checklist_core=["新生児のお世話に使いやすい", "通気性の良さで使いやすい"],
+            checklist_fallback="普段のお世話に取り入れやすい",
+            closing_variants=[
+                "おくるみを探している人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "おむつペール",
+        _PostTemplate(
+            # 「臭わない」等の広告表現があっても、「臭いが完全になくなる」
+            # 等の過剰な効果は断定しない（確認できるのは「防臭」仕様が
+            # あることだけ）。
+            hook_text="使用済みおむつのニオイ、地味に気になったりしない？",
+            topic_emoji="🗑️",
+            worry_lines=[
+                "使用済みのおむつって、",
+                "捨てるまでのニオイが気になりますよね…😅",
+            ],
+            solution_text="おむつ専用のゴミ箱（おむつペール）",
+            checklist_core=["使用済みおむつの処理に使いやすい", "防臭仕様で使いやすい"],
+            checklist_fallback="普段のおむつ替えに取り入れやすい",
+            closing_variants=[
+                "おむつ用のゴミ箱を探している人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "おむつ処理ポット",
+        _PostTemplate(
+            hook_text="使用済みおむつのニオイ、地味に気になったりしない？",
+            topic_emoji="🗑️",
+            worry_lines=[
+                "使用済みのおむつって、",
+                "捨てるまでのニオイが気になりますよね…😅",
+            ],
+            solution_text="おむつ専用のゴミ箱（おむつ処理ポット）",
+            checklist_core=["使用済みおむつの処理に使いやすい", "防臭仕様で使いやすい"],
+            checklist_fallback="普段のおむつ替えに取り入れやすい",
+            closing_variants=[
+                "おむつ用のゴミ箱を探している人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "おむつストッカー",
+        _PostTemplate(
+            hook_text="おむつまわりのグッズ、散らかりがちじゃない？",
+            topic_emoji="🧺",
+            worry_lines=[
+                "おむつやお世話グッズって、",
+                "気づくと散らかりがちですよね…😅",
+            ],
+            solution_text="おむつまわりの収納に使いやすいおむつストッカー",
+            checklist_core=["おむつまわりの収納に使いやすい", "お世話グッズをまとめて置きやすい"],
+            checklist_fallback="普段のお世話に取り入れやすい",
+            closing_variants=[
+                "おむつまわりを整理したい人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
 ]
 
 # 同じ商品タイプキーワード（例：「ドライヤースタンド」）でも、周辺語（文脈）
@@ -1504,11 +1704,21 @@ _PRODUCT_TYPE_CONTEXT_OVERRIDES: list[tuple[str, tuple[str, ...], _PostTemplate]
 # 個別の商品名をハードコードするのではなく、キーワードの前後関係で判定する）。
 _FEATURE_MENTION_SUFFIX_PATTERN = re.compile(r"^(付き|対応|式|機能|内蔵)")
 
+# 「オムツ」「うどん」は、より具体的な商品名（マミーポコパンツ・
+# ひもかわうどん等）に一致しなかった場合の“商品ジャンルとしての最後の
+# 保険”として登録した、意図的に汎用的なキーワード。そのため、同じ商品名に
+# 他の（より具体的な）商品タイプキーワードが一致する場合は、登場位置に
+# 関わらずそちらを優先する（description-genre-006対応。「おむつペール」
+# 「おむつストッカー」のように、商品本体は紙おむつではないのに「オムツ」
+# という語だけを含む商品名で誤って紙おむつ用テンプレートが選ばれる問題の
+# 対応。商品名の中で「オムツ」がたまたま先に登場していても、他の具体的な
+# 商品タイプ語があればそちらを優先するための汎用的な優先度）。
+_GENERIC_FALLBACK_PRODUCT_TYPE_KEYWORDS: frozenset[str] = frozenset({"オムツ", "うどん"})
+
 
 def _iter_product_type_keyword_matches(name: str):
     """商品名の中からPRODUCT_TYPE_TEMPLATESのキーワードに一致する
-    (キーワード, テンプレート)を、商品名の中で登場する位置が早い順に返す
-    ジェネレーター。
+    (キーワード, テンプレート)を、優先度の高い順に返すジェネレーター。
 
     同じキーワードが複数回登場する場合、「◯◯付き」等の付属品・対応機能
     としての言及（_FEATURE_MENTION_SUFFIX_PATTERN）はスキップし、商品
@@ -1522,17 +1732,25 @@ def _iter_product_type_keyword_matches(name: str):
     書くため。description-genre-004対応：SEO目的で複数の商品タイプ語が
     混在する商品名でも、実際の商品本体を優先しやすくするための汎用的な
     仕組み）。
+
+    ただし、_GENERIC_FALLBACK_PRODUCT_TYPE_KEYWORDS（オムツ・うどん等、
+    意図的に汎用的な最後の保険として登録したキーワード）は、登場位置に
+    関わらず他の具体的な商品タイプキーワードより優先度を下げる
+    （「具体的な複合商品名 > 商品本体を表す名詞」を、商品名内の位置だけ
+    でなくキーワードの具体性でも判定するための仕組み。
+    description-genre-006対応）。
     """
-    candidates: list[tuple[int, int, str, _PostTemplate]] = []
+    candidates: list[tuple[int, int, int, str, _PostTemplate]] = []
     for order, (keyword, template) in enumerate(PRODUCT_TYPE_TEMPLATES):
+        is_generic_fallback = keyword in _GENERIC_FALLBACK_PRODUCT_TYPE_KEYWORDS
         for match in re.finditer(re.escape(keyword), name):
             remainder = name[match.end():]
             if _FEATURE_MENTION_SUFFIX_PATTERN.match(remainder):
                 continue
-            candidates.append((match.start(), order, keyword, template))
+            candidates.append((int(is_generic_fallback), match.start(), order, keyword, template))
             break
-    candidates.sort(key=lambda item: (item[0], item[1]))
-    for _start, _order, keyword, template in candidates:
+    candidates.sort(key=lambda item: (item[0], item[1], item[2]))
+    for _tier, _start, _order, keyword, template in candidates:
         yield keyword, template
 
 
@@ -2318,6 +2536,18 @@ SUBTOPIC_HASHTAGS: list[tuple[str, str | dict[str, str]]] = [
 # 使うためのもの（推測せず、商品名にそのまま書かれている表記だけを使う）。
 # より具体的なパターンを先に判定する（例：「5gカット」は「5g」より先に見る）。
 _QUANTITY_PATTERNS: tuple[re.Pattern[str], ...] = (
+    # 例：「100g 500g 1000g」のように、同じ単位の数値が空白区切りで
+    # 複数並んでいる表記。これは「1つの商品の内容量」ではなく、「複数の
+    # サイズ・容量から選べる」ことを示すバリエーション一覧である可能性が
+    # 高いため、最優先で1つのまとまりとして抜き出す（description-
+    # genre-006対応。最初の数値だけを拾って「重さは約100g」のように
+    # 固定サイズだと誤認させないための汎用的な仕組み。数値と数値の間に
+    # 単位以外の語が入らない、空白だけで区切られた並びに限定している
+    # ため、誤検出のリスクは低い）。
+    re.compile(
+        r"\d+(?:\.\d+)?\s*(?:g|kg|ml|mL|L|ℓ|cm|mm)"
+        r"(?:\s+\d+(?:\.\d+)?\s*(?:g|kg|ml|mL|L|ℓ|cm|mm)){1,4}"
+    ),
     # 例：「枠2枚+フィルター4枚」のような、ラベル付きの個数を「+」でつないだ
     # セット内容表記。片方の数字だけを拾うと「枠」「フィルター」のどちらの
     # 数かが分からなくなり情報が不完全になるため、この組み合わせを最優先で
@@ -2404,7 +2634,7 @@ def _extract_quantity_phrase(name: str) -> str:
 # ある場合だけ、個数を「セットで色々選べる」という言い回しにする
 # （description-genre-003対応。特定商品のハードコードではなく、商品名の
 # 周辺語から判定する汎用的な仕組み）。
-_VARIETY_COUNT_INDICATOR_WORDS: tuple[str, ...] = ("選べる", "種類", "種から", "アソート")
+_VARIETY_COUNT_INDICATOR_WORDS: tuple[str, ...] = ("選べる", "種類", "種から", "アソート", "よりどり")
 
 # 「1種類を選べる」「1種選べる」は、複数の種類（例：M/L/BIGのサイズ）から
 # 1つだけを選ぶという意味であり、「選んだ結果、複数の種類が手元に届く」
@@ -2463,6 +2693,28 @@ _COUNT_UNIT_HAS_SET_WORD_PATTERN = re.compile(r"セット$")
 # 画一的な言い回しを避けるための追加）。
 _P_UNIT_SUFFIX_PATTERN = re.compile(r"P$")
 
+# 「100g 500g 1000g」のように、同じ単位の数値が空白区切りで複数並んで
+# いる表記かどうかの判定用（description-genre-006対応）。
+_SIZE_OPTIONS_TOKEN_PATTERN = re.compile(r"^\d+(?:\.\d+)?(?:g|kg|ml|mL|L|ℓ|cm|mm)$")
+
+
+def _phrase_for_size_options(quantity_phrase: str) -> str | None:
+    """quantity_phraseが「100g 500g 1000g」のような、同じ単位のサイズ
+    候補の並びであれば「100g・500g・1000gから選べる」という言い回しを
+    返す。並びでなければNone（呼び出し側で通常の単位別の言い回しに
+    フォールバックする）。
+
+    複数サイズの中の最初の値だけを取り出して「重さは約100g」のように
+    固定サイズだと誤認させないための仕組み（description-genre-006対応。
+    数値と数値の間に単位以外の語が入らない、空白区切りの並びだけを
+    対象にしているため、無関係な数値を誤ってサイズ候補として扱う
+    リスクは低い）。
+    """
+    tokens = quantity_phrase.split()
+    if len(tokens) < 2 or not all(_SIZE_OPTIONS_TOKEN_PATTERN.match(token) for token in tokens):
+        return None
+    return "・".join(tokens) + "から選べる"
+
 
 def _phrase_for_quantity(quantity_phrase: str, name: str) -> str:
     """_extract_quantity_phrase()が抜き出した数量表現を、単位の意味
@@ -2470,10 +2722,13 @@ def _phrase_for_quantity(quantity_phrase: str, name: str) -> str:
     チェックリスト項目にする。
 
     「数字＋で使いやすい」という単位を問わない画一的な生成を避けるための
-    汎用的な仕組み（description-genre-003/004/005対応。商品タイトルから
+    汎用的な仕組み（description-genre-003/004/005/006対応。商品タイトルから
     確認できる数量表現の組み合わせのみを使い、新しい効果・品質は追加
     しない）。
     """
+    size_options_phrase = _phrase_for_size_options(quantity_phrase)
+    if size_options_phrase is not None:
+        return size_options_phrase
     if _COMBO_QUANTITY_PATTERN.search(quantity_phrase):
         servings_match = _TRAILING_SERVINGS_PATTERN.match(quantity_phrase)
         if servings_match:
@@ -2877,6 +3132,17 @@ _PRODUCT_TYPE_HASHTAG_OVERRIDES: dict[str, list[str]] = {
     "エコバッグ": ["#エコバッグ", "#折りたたみバッグ"],
     "ひもかわうどん": ["#グルメ", "#うどん"],
     "うどん": ["#グルメ", "#うどん"],
+    # 2026-09-27生成分で新しく見つかった商品タイプ（description-genre-006対応）。
+    "アロマスプレー": ["#アロマ", "#アロマスプレー"],
+    "マスクスプレー": ["#アロマ", "#アロマスプレー"],
+    "ドッグフード": ["#ペット用品", "#ドッグフード"],
+    "ヤギミルクパウダー": ["#ペット用品", "#犬用品"],
+    "ヤギミルク": ["#ペット用品", "#犬用品"],
+    "スワドル": ["#ベビー用品", "#スワドル"],
+    "おくるみ": ["#ベビー用品", "#スワドル"],
+    "おむつペール": ["#ベビー用品", "#おむつゴミ箱"],
+    "おむつ処理ポット": ["#ベビー用品", "#おむつゴミ箱"],
+    "おむつストッカー": ["#ベビー用品", "#おむつ収納"],
 }
 
 
