@@ -2231,5 +2231,91 @@ class Sept27BatchRegressionTest(unittest.TestCase):
         self.assertNotIn("ドッグフード", goat_milk_description.split("◎")[0])
 
 
+class DescriptionGenre007RegressionTest(unittest.TestCase):
+    """2026-09-27 15:47生成分の最終調整（description-genre-007）の回帰
+    テスト。①数量と種類数を分離し、明確な根拠がない場合に「いろいろな
+    種類を試しやすい」を生成しないこと、②GENERIC_TEMPLATESの汎用文を
+    使う消耗品（韃靼そば茶等）でも、商品本体に合ったハッシュタグを使い、
+    #暮らしの便利グッズ・#便利グッズを機械的に付けないこと、を確認する。
+    商品名はSept27BatchRegressionTestと同じ、本番で実際に取得された
+    表記を再利用する。"""
+
+    DOG_FOOD_NAME = Sept27BatchRegressionTest.DOG_FOOD_NAME
+    AROMA_OIL_NAME = (
+        "アロマオイル AEAJ認定 40種から選べる6本 各5ml 精油 返品保証付 送料無料 100%ピュア "
+        "エッセンシャルオイル セット アロマ 加湿器 オーガニック お試し ラベンダー オレンジ 天然"
+    )
+    MASK_SPRAY_NAME = Sept27BatchRegressionTest.MASK_SPRAY_NAME
+    DIAPER_PANTS_NAME = (
+        "【1種類を選べる】マミーポコパンツ 大きめで長〜く使える オムツ M L BIG(3個)【マミーポコパンツ】"
+    )
+    BUCKWHEAT_TEA_NAME = (
+        "国産 韃靼そば茶 1kg [ 北海道産 など 国産100％ ] ほんぢ園 ＜ ペットボトルよりお得 蕎麦茶 "
+        "ダッタンそば茶 だったんそばちゃ 韃靼そばちゃ だったんそば茶 韃靼そば ルチン "
+        "ノンカフェイン ＞ 送料無料 同梱不可 ／ラ／"
+    )
+
+    # 1. 「選べる小袋3袋セット」から3種類セットと断定しない。
+    def test_dog_food_does_not_assume_three_varieties_from_bare_selectable(self):
+        item = make_item(name=self.DOG_FOOD_NAME)
+        description = dg.generate_description(item, category="ペット用品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("3袋セット", description)
+        self.assertNotIn("3袋セットでいろいろな種類を試しやすい", description)
+
+    # 2. 数量と種類数を別に扱う（明確な根拠（40種から選べる等）がある
+    # 場合は従来通りアソート表現を維持する）。
+    def test_quantity_and_variety_count_are_handled_separately(self):
+        aroma_oil_description = dg.generate_description(
+            make_item(name=self.AROMA_OIL_NAME), category="家電", base_hashtags=BASE_HASHTAGS
+        )
+        self.assertIn("6本セットでいろいろな種類を試しやすい", aroma_oil_description)
+
+        dog_food_description = dg.generate_description(
+            make_item(name=self.DOG_FOOD_NAME), category="ペット用品", base_hashtags=BASE_HASHTAGS
+        )
+        self.assertNotIn("いろいろな種類を試しやすい", dog_food_description)
+
+    # 3. 明確な根拠がない場合「いろいろな種類を試しやすい」を生成しない
+    # （「選べる」が商品本体の数量と無関係な文脈で使われている場合。
+    # マミーポコパンツの「1種類を選べる」も引き続き除外されることを確認）。
+    def test_bare_selectable_word_without_species_count_does_not_trigger_variety(self):
+        item = make_item(name=self.DIAPER_PANTS_NAME)
+        description = dg.generate_description(item, category="ベビー用品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("3個セット", description)
+        self.assertNotIn("3個セットでいろいろな種類を試しやすい", description)
+
+        # 「よりどり」は単語自体が複数種類からの詰め合わせを意味するため、
+        # 引き続きアソート表現を維持する。
+        mask_spray_description = dg.generate_description(
+            make_item(name=self.MASK_SPRAY_NAME), category="生活雑貨", base_hashtags=BASE_HASHTAGS
+        )
+        self.assertIn("3本セットでいろいろな種類を試しやすい", mask_spray_description)
+
+    # 4. 韃靼そば茶に#暮らしの便利グッズを付けない。
+    def test_buckwheat_tea_does_not_get_mechanical_kurashi_hashtag(self):
+        item = make_item(name=self.BUCKWHEAT_TEA_NAME)
+        description = dg.generate_description(item, category="お茶", base_hashtags=BASE_HASHTAGS)
+        hashtag_line = description.split("\n\n")[-1]
+        self.assertNotIn("#暮らしの便利グッズ", hashtag_line)
+
+    # 5. 韃靼そば茶に#便利グッズを付けない。
+    def test_buckwheat_tea_does_not_get_mechanical_benri_hashtag(self):
+        item = make_item(name=self.BUCKWHEAT_TEA_NAME)
+        description = dg.generate_description(item, category="お茶", base_hashtags=BASE_HASHTAGS)
+        hashtag_line = description.split("\n\n")[-1]
+        self.assertNotIn("#便利グッズ", hashtag_line)
+
+    # 6. 韃靼そば茶の商品本体に合ったタグを生成する。
+    def test_buckwheat_tea_gets_a_product_specific_hashtag(self):
+        item = make_item(name=self.BUCKWHEAT_TEA_NAME)
+        description = dg.generate_description(item, category="お茶", base_hashtags=BASE_HASHTAGS)
+        hashtag_line = description.split("\n\n")[-1]
+        self.assertIn("#お茶", hashtag_line)
+        self.assertIn("#韃靼そば茶", hashtag_line)
+        # 紹介文の本文（GENERIC_TEMPLATES["お茶"]の安全な汎用文）は
+        # 変更していないため、商品タイプ判定の構造自体は維持されている。
+        self.assertIn("お茶", description)
+
+
 if __name__ == "__main__":
     unittest.main()

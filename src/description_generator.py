@@ -2630,20 +2630,33 @@ def _extract_quantity_phrase(name: str) -> str:
 
 
 # 商品名の中で、数量が「同じ物がまとまって入っている」のではなく
-# 「複数の種類・香り等から選べる」ことを示す言葉。この言葉が商品名に
-# ある場合だけ、個数を「セットで色々選べる」という言い回しにする
-# （description-genre-003対応。特定商品のハードコードではなく、商品名の
-# 周辺語から判定する汎用的な仕組み）。
-_VARIETY_COUNT_INDICATOR_WORDS: tuple[str, ...] = ("選べる", "種類", "種から", "アソート", "よりどり")
+# 「複数の種類・香り等から選べる」ことを、単語自体の意味だけで確実に
+# 示す言葉。「よりどり」「アソート」はどちらも「複数の選択肢から好きな
+# ものを選ぶ詰め合わせ」という意味を単語自体が持つため、他に数字の
+# 根拠が無くても安全に使える（description-genre-003/006対応）。
+_VARIETY_COUNT_INDICATOR_WORDS: tuple[str, ...] = ("よりどり", "アソート")
+
+# 「選べる」「種類」は、単語だけでは「数量＝種類数」を意味しない
+# （例：「10本単位で選べる16色」の「選べる」は色の選択肢の話で、本数とは
+# 無関係。「選べる小袋 3袋セット」も、3袋が必ず異なる種類かは商品名から
+# 断定できない）。「◯種類から選べる」「◯種から選べる」のように、選択肢の
+# 数（◯種／◯種類）が数字で明示され、かつそれが「選べる」に直接つながって
+# いる場合だけ、複数の種類から選んだ詰め合わせだと判定する
+# （description-genre-006対応。数量と種類数を分離し、明確な根拠がない
+# 限り「いろいろな種類を試しやすい」を生成しないための汎用的な仕組み。
+# 例：「40種から選べる6本」→○（40種の中から6本を選ぶ、と明示されている）、
+# 「選べる小袋3袋セット」→×（何種類あるか、3袋がそれぞれ違う種類かの
+# いずれも明示されていない））。
+_VARIETY_EXPLICIT_SPECIES_PATTERN = re.compile(r"\d+\s*種類?(?:から)?(?:を)?\s*選べる")
 
 # 「1種類を選べる」「1種選べる」は、複数の種類（例：M/L/BIGのサイズ）から
 # 1つだけを選ぶという意味であり、「選んだ結果、複数の種類が手元に届く」
 # という意味ではない。このパターンに一致する場合は、_VARIETY_COUNT_
-# INDICATOR_WORDSに一致していても、いろいろな種類を試せるセットとは
-# 判定しない（description-genre-004対応。マミーポコパンツ「1種類を
-# 選べる」＋「3個」を、3種類の詰め合わせセットと誤認しないようにする
-# ための汎用的な仕組み。「40種から選べる6本」のような、選択肢の数が
-# 2以上の場合は従来どおりアソートとして扱う）。
+# INDICATOR_WORDS・_VARIETY_EXPLICIT_SPECIES_PATTERNに一致していても、
+# いろいろな種類を試せるセットとは判定しない（description-genre-004対応。
+# マミーポコパンツ「1種類を選べる」＋「3個」を、3種類の詰め合わせセットと
+# 誤認しないようにするための汎用的な仕組み。「40種から選べる6本」のような、
+# 選択肢の数が2以上の場合は従来どおりアソートとして扱う）。
 _SINGLE_CHOICE_PATTERN = re.compile(r"1\s*種類?\s*(?:を)?\s*選べる")
 
 # 数量表現がすでに「＋」「×」等で複数の内訳をつないだ複合表記になっている
@@ -2744,9 +2757,10 @@ def _phrase_for_quantity(quantity_phrase: str, name: str) -> str:
     if _P_UNIT_SUFFIX_PATTERN.search(quantity_phrase):
         return f"{quantity_phrase}入り"
     if _COUNT_UNIT_SUFFIX_PATTERN.search(quantity_phrase):
-        is_variety = any(
+        has_variety_evidence = any(
             word in name for word in _VARIETY_COUNT_INDICATOR_WORDS
-        ) and not _SINGLE_CHOICE_PATTERN.search(name)
+        ) or _VARIETY_EXPLICIT_SPECIES_PATTERN.search(name)
+        is_variety = has_variety_evidence and not _SINGLE_CHOICE_PATTERN.search(name)
         if is_variety:
             return f"{quantity_phrase}セットでいろいろな種類を試しやすい"
         if _COUNT_UNIT_HAS_SET_WORD_PATTERN.search(quantity_phrase):
@@ -3143,7 +3157,32 @@ _PRODUCT_TYPE_HASHTAG_OVERRIDES: dict[str, list[str]] = {
     "おむつペール": ["#ベビー用品", "#おむつゴミ箱"],
     "おむつ処理ポット": ["#ベビー用品", "#おむつゴミ箱"],
     "おむつストッカー": ["#ベビー用品", "#おむつ収納"],
+    # 2026-09-27生成分で見つかった、GENERIC_TEMPLATES（お茶等の消耗品）の
+    # 汎用テンプレートを使う商品でも、商品名から具体的な商品タイプが確認
+    # できる場合はハッシュタグだけ商品本体に合わせる（description-
+    # genre-007対応。紹介文の生成ロジック（PRODUCT_TYPE_TEMPLATES）は
+    # 変更せず、ハッシュタグの仕組みだけを拡張している）。
+    "韃靼そば茶": ["#お茶", "#韃靼そば茶"],
+    "ダッタンそば茶": ["#お茶", "#韃靼そば茶"],
+    "だったんそば茶": ["#お茶", "#韃靼そば茶"],
+    "そば茶": ["#お茶", "#そば茶"],
 }
+
+
+def _find_hashtag_override_by_name(name: str) -> list[str] | None:
+    """match_product_type_keyword()がPRODUCT_TYPE_TEMPLATESの一致を
+    返さない商品（例：お茶・水等、GENERIC_TEMPLATESの安全な汎用テンプレ
+    ートで案内している消耗品）でも、商品名から具体的な商品タイプが
+    _PRODUCT_TYPE_HASHTAG_OVERRIDESの対応表と一致する場合は、そのタグを
+    使う（description-genre-007対応）。PRODUCT_TYPE_TEMPLATESに一致する
+    商品は、_build_hashtags()側で先にそちらの結果を使うため、この関数は
+    「紹介文の本文は安全な汎用テンプレートのままで、ハッシュタグだけ商品
+    本体に合わせたい」場合の追加のフォールバックとして働く。
+    """
+    for keyword, tags in _PRODUCT_TYPE_HASHTAG_OVERRIDES.items():
+        if keyword in name:
+            return tags
+    return None
 
 
 def _build_hashtags(category: str, name: str, base_hashtags: list[str]) -> list[str]:
@@ -3157,6 +3196,8 @@ def _build_hashtags(category: str, name: str, base_hashtags: list[str]) -> list[
     """
     product_type = match_product_type_keyword(name)
     override_tags = _PRODUCT_TYPE_HASHTAG_OVERRIDES.get(product_type or "")
+    if override_tags is None:
+        override_tags = _find_hashtag_override_by_name(name)
 
     if override_tags:
         tags = list(override_tags)
