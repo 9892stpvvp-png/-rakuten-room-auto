@@ -1664,6 +1664,313 @@ PRODUCT_TYPE_TEMPLATES: list[tuple[str, _PostTemplate]] = [
             ],
         ),
     ),
+    # ここから下は、2026-09-28生成分で新しく見つかった商品タイプ
+    # （description-genre-008対応）。「収納できる物」「関連する用途語」
+    # ではなく、商品本体を示す具体的複合語を優先する
+    # （例：ヒップシート＞おしりふき、サンシェード＞日傘、
+    # ほこり取りスポンジ＞スポンジ）。
+    (
+        "ヒップシート",
+        _PostTemplate(
+            # 「おしりふき」「おむつ」は収納できる持ち物の一例であり、
+            # 商品本体ではない。「腰痛対策」という販売語があっても、
+            # 腰痛が改善する等の医療・健康効果は断定しない。
+            hook_text="長時間の抱っこ、腰や腕に負担を感じたりしない？",
+            topic_emoji="🍼",
+            worry_lines=[
+                "赤ちゃんを抱っこする時間が長いと、",
+                "腰や腕への負担が気になりますよね…😅",
+            ],
+            solution_text="抱っこの負担を軽くしやすいヒップシート",
+            checklist_core=["抱っこの負担を軽くしやすい", "荷物を収納できて外出しやすい"],
+            checklist_fallback="普段のお出かけに取り入れやすい",
+            closing_variants=[
+                "抱っこの負担を軽くしたい人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "ミルクウォーマー",
+        _PostTemplate(
+            # 温度・時間・除菌性能等、タイトルだけで確認できない具体的な
+            # 性能は生成しない。
+            hook_text="夜中のミルク作り、地味に大変だったりしない？",
+            topic_emoji="🍼",
+            worry_lines=[
+                "授乳やミルクの準備って、",
+                "時間帯を選ばず必要になりますよね…😅",
+            ],
+            solution_text="ミルクや哺乳瓶まわりに使いやすいミルクウォーマー",
+            checklist_core=["ミルクや哺乳瓶まわりに使いやすい", "普段のお世話に取り入れやすい"],
+            checklist_fallback="普段のミルク作りに取り入れやすい",
+            closing_variants=[
+                "ミルク作りを楽にしたい人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "ボトルウォーマー",
+        _PostTemplate(
+            hook_text="夜中のミルク作り、地味に大変だったりしない？",
+            topic_emoji="🍼",
+            worry_lines=[
+                "授乳やミルクの準備って、",
+                "時間帯を選ばず必要になりますよね…😅",
+            ],
+            solution_text="ミルクや哺乳瓶まわりに使いやすいボトルウォーマー",
+            checklist_core=["ミルクや哺乳瓶まわりに使いやすい", "普段のお世話に取り入れやすい"],
+            checklist_fallback="普段のミルク作りに取り入れやすい",
+            closing_variants=[
+                "ミルク作りを楽にしたい人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "哺乳瓶ウォーマー",
+        _PostTemplate(
+            hook_text="夜中のミルク作り、地味に大変だったりしない？",
+            topic_emoji="🍼",
+            worry_lines=[
+                "授乳やミルクの準備って、",
+                "時間帯を選ばず必要になりますよね…😅",
+            ],
+            solution_text="ミルクや哺乳瓶まわりに使いやすい哺乳瓶ウォーマー",
+            checklist_core=["ミルクや哺乳瓶まわりに使いやすい", "普段のお世話に取り入れやすい"],
+            checklist_fallback="普段のミルク作りに取り入れやすい",
+            closing_variants=[
+                "ミルク作りを楽にしたい人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "車用サンシェード",
+        _PostTemplate(
+            # 一般的な日傘（PRODUCT_TYPE_TEMPLATESの「日傘」）とは別の
+            # 商品タイプとして扱う。遮光率100％・断熱100％等のタイトル
+            # 記載があっても、紹介文では過剰な性能保証に拡大しない。
+            hook_text="車内の暑さ、乗る前から対策できたらいいよね",
+            topic_emoji="🚗",
+            worry_lines=[
+                "炎天下に停めた車の中って、",
+                "びっくりするくらい暑くなりますよね…😅",
+            ],
+            solution_text="フロントガラスに取り付けて使う車用サンシェード",
+            checklist_core=["フロントガラスの日よけに使いやすい", "簡単に取り付けやすい"],
+            checklist_fallback="普段の車移動に取り入れやすい",
+            closing_variants=[
+                "車内の暑さ対策をしたい人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "傘型サンシェード",
+        _PostTemplate(
+            hook_text="車内の暑さ、乗る前から対策できたらいいよね",
+            topic_emoji="🚗",
+            worry_lines=[
+                "炎天下に停めた車の中って、",
+                "びっくりするくらい暑くなりますよね…😅",
+            ],
+            solution_text="フロントガラスに取り付けて使う傘型サンシェード",
+            checklist_core=["フロントガラスの日よけに使いやすい", "簡単に取り付けやすい"],
+            checklist_fallback="普段の車移動に取り入れやすい",
+            closing_variants=[
+                "車内の暑さ対策をしたい人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "折りたたみ傘",
+        _PostTemplate(
+            # 「日傘」（紫外線対策・日差し対策を主目的とするテンプレート）
+            # とは別に、雨・風にも使う一般的な折りたたみ傘用のテンプレート
+            # にしている。
+            hook_text="急な雨、傘を持ってなくて困ったりしない？",
+            topic_emoji="☔",
+            worry_lines=[
+                "普段のカバンに傘を入れておくと、",
+                "かさばって邪魔に感じますよね…😅",
+            ],
+            solution_text="コンパクトに持ち歩きやすい折りたたみ傘",
+            checklist_core=["コンパクトに持ち歩きやすい", "急な雨に備えやすい"],
+            checklist_fallback="普段の外出に取り入れやすい",
+            closing_variants=[
+                "折りたたみ傘を探している人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "折り畳み傘",
+        _PostTemplate(
+            hook_text="急な雨、傘を持ってなくて困ったりしない？",
+            topic_emoji="☔",
+            worry_lines=[
+                "普段のカバンに傘を入れておくと、",
+                "かさばって邪魔に感じますよね…😅",
+            ],
+            solution_text="コンパクトに持ち歩きやすい折りたたみ傘",
+            checklist_core=["コンパクトに持ち歩きやすい", "急な雨に備えやすい"],
+            checklist_fallback="普段の外出に取り入れやすい",
+            closing_variants=[
+                "折りたたみ傘を探している人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "夜久野そば",
+        _PostTemplate(
+            hook_text="そばが食べたい日、家に麺のストックがなかったりしない？",
+            topic_emoji="🍜",
+            worry_lines=[
+                "食べたいと思ったときに",
+                "麺のストックがないと困りますよね…😅",
+            ],
+            solution_text="自宅にストックしておきやすい夜久野そば",
+            checklist_core=["自宅にストックしておきやすい", "普段の食事に取り入れやすい"],
+            checklist_fallback="自宅での食事に取り入れやすい",
+            closing_variants=[
+                "自宅でそばを楽しみたい人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "やくのそば",
+        _PostTemplate(
+            hook_text="そばが食べたい日、家に麺のストックがなかったりしない？",
+            topic_emoji="🍜",
+            worry_lines=[
+                "食べたいと思ったときに",
+                "麺のストックがないと困りますよね…😅",
+            ],
+            solution_text="自宅にストックしておきやすい夜久野そば",
+            checklist_core=["自宅にストックしておきやすい", "普段の食事に取り入れやすい"],
+            checklist_fallback="自宅での食事に取り入れやすい",
+            closing_variants=[
+                "自宅でそばを楽しみたい人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "信州戸隠そば",
+        _PostTemplate(
+            hook_text="そばが食べたい日、家に麺のストックがなかったりしない？",
+            topic_emoji="🍜",
+            worry_lines=[
+                "食べたいと思ったときに",
+                "麺のストックがないと困りますよね…😅",
+            ],
+            solution_text="自宅にストックしておきやすい信州戸隠そば",
+            checklist_core=["自宅にストックしておきやすい", "普段の食事に取り入れやすい"],
+            checklist_fallback="自宅での食事に取り入れやすい",
+            closing_variants=[
+                "自宅でそばを楽しみたい人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "信州そば",
+        _PostTemplate(
+            hook_text="そばが食べたい日、家に麺のストックがなかったりしない？",
+            topic_emoji="🍜",
+            worry_lines=[
+                "食べたいと思ったときに",
+                "麺のストックがないと困りますよね…😅",
+            ],
+            solution_text="自宅にストックしておきやすい信州そば",
+            checklist_core=["自宅にストックしておきやすい", "普段の食事に取り入れやすい"],
+            checklist_fallback="自宅での食事に取り入れやすい",
+            closing_variants=[
+                "自宅でそばを楽しみたい人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "十割そば",
+        _PostTemplate(
+            hook_text="そばが食べたい日、家に麺のストックがなかったりしない？",
+            topic_emoji="🍜",
+            worry_lines=[
+                "食べたいと思ったときに",
+                "麺のストックがないと困りますよね…😅",
+            ],
+            solution_text="自宅にストックしておきやすい十割そば",
+            checklist_core=["自宅にストックしておきやすい", "普段の食事に取り入れやすい"],
+            checklist_fallback="自宅での食事に取り入れやすい",
+            closing_variants=[
+                "自宅でそばを楽しみたい人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "ほこり取りスポンジ",
+        _PostTemplate(
+            # 「スポンジ」という一般語より、具体的複合語を優先する
+            # （_GENERIC_FALLBACK_PRODUCT_TYPE_KEYWORDSで「スポンジ」の
+            # 優先度を下げている）。食器洗い用途は断定しない。
+            hook_text="ホコリ、気づくとあちこちにたまっていない？",
+            topic_emoji="🧹",
+            worry_lines=[
+                "サッシや巾木のホコリって、",
+                "気づくとたまっていますよね…😅",
+            ],
+            solution_text="ホコリを取りやすいほこり取りスポンジ",
+            checklist_core=["ホコリを取りやすい", "水洗いして繰り返し使いやすい"],
+            checklist_fallback="普段のお掃除に取り入れやすい",
+            closing_variants=[
+                "ホコリ取りグッズを探している人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "ダスタースポンジ",
+        _PostTemplate(
+            hook_text="ホコリ、気づくとあちこちにたまっていない？",
+            topic_emoji="🧹",
+            worry_lines=[
+                "サッシや巾木のホコリって、",
+                "気づくとたまっていますよね…😅",
+            ],
+            solution_text="ホコリを取りやすいダスタースポンジ",
+            checklist_core=["ホコリを取りやすい", "水洗いして繰り返し使いやすい"],
+            checklist_fallback="普段のお掃除に取り入れやすい",
+            closing_variants=[
+                "ホコリ取りグッズを探している人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "掃除スポンジ",
+        _PostTemplate(
+            hook_text="ホコリ、気づくとあちこちにたまっていない？",
+            topic_emoji="🧹",
+            worry_lines=[
+                "サッシや巾木のホコリって、",
+                "気づくとたまっていますよね…😅",
+            ],
+            solution_text="ホコリを取りやすい掃除スポンジ",
+            checklist_core=["ホコリを取りやすい", "水洗いして繰り返し使いやすい"],
+            checklist_fallback="普段のお掃除に取り入れやすい",
+            closing_variants=[
+                "ホコリ取りグッズを探している人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
 ]
 
 # 同じ商品タイプキーワード（例：「ドライヤースタンド」）でも、周辺語（文脈）
@@ -1704,16 +2011,20 @@ _PRODUCT_TYPE_CONTEXT_OVERRIDES: list[tuple[str, tuple[str, ...], _PostTemplate]
 # 個別の商品名をハードコードするのではなく、キーワードの前後関係で判定する）。
 _FEATURE_MENTION_SUFFIX_PATTERN = re.compile(r"^(付き|対応|式|機能|内蔵)")
 
-# 「オムツ」「うどん」は、より具体的な商品名（マミーポコパンツ・
-# ひもかわうどん等）に一致しなかった場合の“商品ジャンルとしての最後の
-# 保険”として登録した、意図的に汎用的なキーワード。そのため、同じ商品名に
-# 他の（より具体的な）商品タイプキーワードが一致する場合は、登場位置に
-# 関わらずそちらを優先する（description-genre-006対応。「おむつペール」
-# 「おむつストッカー」のように、商品本体は紙おむつではないのに「オムツ」
-# という語だけを含む商品名で誤って紙おむつ用テンプレートが選ばれる問題の
-# 対応。商品名の中で「オムツ」がたまたま先に登場していても、他の具体的な
-# 商品タイプ語があればそちらを優先するための汎用的な優先度）。
-_GENERIC_FALLBACK_PRODUCT_TYPE_KEYWORDS: frozenset[str] = frozenset({"オムツ", "うどん"})
+# 「オムツ」「うどん」「スポンジ」は、より具体的な商品名（マミーポコ
+# パンツ・ひもかわうどん・ほこり取りスポンジ等）に一致しなかった場合の
+# “商品ジャンルとしての最後の保険”として登録した、意図的に汎用的な
+# キーワード。そのため、同じ商品名に他の（より具体的な）商品タイプ
+# キーワードが一致する場合は、登場位置に関わらずそちらを優先する
+# （description-genre-006/008対応。「おむつペール」「おむつストッカー」
+# のように、商品本体は紙おむつではないのに「オムツ」という語だけを含む
+# 商品名で誤って紙おむつ用テンプレートが選ばれる問題への対応。「スポンジ」
+# も同様に、「ほこり取り スポンジ」のように商品名の先頭付近に単独で
+# 登場することがあり、「ほこり取りスポンジ」等の具体的複合語より先に
+# マッチしてしまうことがあったため追加した。商品名の中でこれらの汎用語が
+# たまたま先に登場していても、他の具体的な商品タイプ語があればそちらを
+# 優先するための汎用的な優先度）。
+_GENERIC_FALLBACK_PRODUCT_TYPE_KEYWORDS: frozenset[str] = frozenset({"オムツ", "うどん", "スポンジ"})
 
 
 def _iter_product_type_keyword_matches(name: str):
@@ -2167,6 +2478,24 @@ GENERIC_TEMPLATES: dict[str, _PostTemplate] = {
             "気になる人はチェックしてみてほしい",
         ],
     ),
+    # 全ジャンル化以降、「ペット用品」カテゴリーでPRODUCT_TYPE_TEMPLATES
+    # に一致しない商品（具体的な商品タイプが商品名だけからは確定できない
+    # 商品）は、DEFAULT_CATEGORYの「暮らしの便利グッズ」に落ちていた。
+    # category="ペット用品"という確認済みの情報だけを使い、ドッグフード・
+    # おもちゃ等の具体的な商品タイプは断定しない、安全な汎用テンプレート
+    # を用意した（description-genre-008対応）。
+    "ペット用品": _PostTemplate(
+        hook_text="愛犬・愛猫のグッズ、あると助かるよね",
+        topic_emoji="🐾",
+        worry_lines=["ペットとの毎日って、", "必要なものが色々ありますよね…😅"],
+        solution_text="愛犬・愛猫のお世話に使いやすいペット用品",
+        checklist_core=["愛犬・愛猫のお世話に使いやすい", "普段のペットのお世話に取り入れやすい"],
+        checklist_fallback="必要な場面で使いやすい",
+        closing_variants=[
+            "ペット用品を探している人におすすめ",
+            "気になる人はチェックしてみてほしい",
+        ],
+    ),
 }
 
 # 商品名から「洗濯用」「食器用」「住宅用（掃除用）」のいずれかが確認できる
@@ -2548,6 +2877,14 @@ _QUANTITY_PATTERNS: tuple[re.Pattern[str], ...] = (
         r"\d+(?:\.\d+)?\s*(?:g|kg|ml|mL|L|ℓ|cm|mm)"
         r"(?:\s+\d+(?:\.\d+)?\s*(?:g|kg|ml|mL|L|ℓ|cm|mm)){1,4}"
     ),
+    # 例：「260g超軽量」のように、重さの単位の直後に「軽量」「超軽量」が
+    # 続く表記。単位の直後が漢字（「超」等）の場合、Unicode正規表現の
+    # 単語境界（\b）は数字・アルファベットと漢字の間では成立しないため、
+    # 下にある通常の単独パターン（末尾に\bを要求するもの）では
+    # 「260g」を抜き出せない。「軽量」「超軽量」は商品自体の重さである
+    # ことを商品名自体が明示しているため、境界を要求しない専用パターンを
+    # 先に判定する（description-genre-008対応）。
+    re.compile(r"\d+(?:\.\d+)?\s*(?:g|kg)(?=超軽量|軽量)"),
     # 例：「枠2枚+フィルター4枚」のような、ラベル付きの個数を「+」でつないだ
     # セット内容表記。片方の数字だけを拾うと「枠」「フィルター」のどちらの
     # 数かが分からなくなり情報が不完全になるため、この組み合わせを最優先で
@@ -2576,7 +2913,15 @@ _QUANTITY_PATTERNS: tuple[re.Pattern[str], ...] = (
     # 拾うと「×40個」の部分が失われてしまう。この組み合わせを1つの
     # まとまりとして先に抜き出す（description-genre-004対応。
     # おしりふき「80枚×40個」を「80枚」だけに落とさないようにするため）。
-    re.compile(r"\d+\s*(?:枚|個|本|袋|セット|包|パック)\s*[×xX]\s*\d+\s*(?:枚|個|本|袋|セット|包|パック|食)"),
+    # 末尾に「計◯枚」のような合計表記が直後に続く場合（例：「54枚×15個
+    # 計810枚」）は、合計も確認できる事実として一緒に抜き出す
+    # （description-genre-008対応。170g×4袋の「◯人前」と同じ考え方で、
+    # 商品名にすでに書かれている合計表記を落とさないようにするための
+    # 汎用的な仕組み）。
+    re.compile(
+        r"\d+\s*(?:枚|個|本|袋|セット|包|パック)\s*[×xX]\s*\d+\s*(?:枚|個|本|袋|セット|包|パック|食)"
+        r"(?:\s*計\s*\d+\s*(?:枚|個|本|袋|セット|包|パック))?"
+    ),
     re.compile(r"\d+(?:\.\d+)?\s*g\s*カット"),
     # 「6食」「4食セット」のような食品のセット内容表記も、内容量として
     # 抜き出せるようにする（description-genre-002対応。「食」を追加）。
@@ -2584,6 +2929,10 @@ _QUANTITY_PATTERNS: tuple[re.Pattern[str], ...] = (
     # 例：「20P」のような、個数を「P（パック／ピース）」で表す表記
     # （description-genre-004対応。ボタン電池等でよく使われる表記）。
     re.compile(r"\d+\s*P\b"),
+    # 例：「6人前」のような、重さ/個数の組み合わせを伴わない単独の人数分
+    # 表記（description-genre-008対応。そば・うどん等の食品で、内容量の
+    # 数字が無く人数分だけが書かれている場合に対応するための追加）。
+    re.compile(r"\d+\s*人前"),
     # 例：「個包装0.8g×50」のように、末尾に個数の単位が付いていない
     # 「重さ/容量×個数」表記。1つ上の（末尾に単位がある）パターンで
     # 拾えなかった場合だけ使う。「50本分」のような、実際の個数とは意味が
@@ -2609,6 +2958,27 @@ _QUANTITY_PATTERNS: tuple[re.Pattern[str], ...] = (
 # （6本入りパック等）ではないため同様に除外する（description-genre-002対応）。
 _QUANTITY_MATCH_EXCLUDE_SUFFIX = re.compile(r"^\s*(?:限り|まで|限定|分|骨)")
 
+# 「kg」単位は、商品自体の重さ以外の意味（抱っこ紐・ヒップシート等の
+# 対応体重、家具・収納用品の耐荷重等）で使われることが多く、数字と
+# 「kg」だけでは商品自体の重さかどうかを確認できない（「g」単位は、
+# 実務上ほぼ常に商品自体の重さ・内容量を指すため対象にしていない）。
+# 周辺（前後12文字）に「重量」「重さ」「軽量」「超軽量」「わずか」の
+# いずれかがある場合だけ、商品自体の重さとして確認できたと判定する
+# （description-genre-008対応。「20kgまで」のような明確な打ち消し語が
+# 無くても、確認できる根拠が無い数値は安全側に倒して省略するための
+# 汎用的な仕組み。「12kg」の商品全体重量／内容量／対応体重のいずれかは
+# 商品名だけからは確定できない、といったケースに対応）。
+_KG_UNIT_PATTERN = re.compile(r"kg", re.IGNORECASE)
+_KG_WEIGHT_CONFIRM_CONTEXT_WORDS = ("重量", "重さ", "軽量", "超軽量", "わずか")
+_KG_WEIGHT_CONFIRM_WINDOW = 12
+
+
+def _is_confirmed_kg_weight(name: str, start: int, end: int) -> bool:
+    window_start = max(0, start - _KG_WEIGHT_CONFIRM_WINDOW)
+    window_end = min(len(name), end + _KG_WEIGHT_CONFIRM_WINDOW)
+    context = name[window_start:window_end]
+    return any(word in context for word in _KG_WEIGHT_CONFIRM_CONTEXT_WORDS)
+
 
 def _extract_quantity_phrase(name: str) -> str:
     """商品名から、容量・個数・カット量等の「確認できる数字付きの事実」を
@@ -2618,14 +2988,21 @@ def _extract_quantity_phrase(name: str) -> str:
     「1本限り」のような購入制限の表記（_is_purchase_limited()が検出する
     パターンと同種）は、商品の内容量ではないため対象から除外する
     （例：「お1人様ご家族様1本限り！ドール グレープ100％200ml」から
-    「1本」ではなく「200ml」を抜き出す）。
+    「1本」ではなく「200ml」を抜き出す）。「kg」単位は、周辺の文脈から
+    商品自体の重さだと確認できない場合、意味を確定できない数値として
+    対象から除外する（description-genre-008対応）。
     """
     for pattern in _QUANTITY_PATTERNS:
         for match in pattern.finditer(name):
             remainder = name[match.end():]
             if _QUANTITY_MATCH_EXCLUDE_SUFFIX.match(remainder):
                 continue
-            return match.group(0)
+            matched_text = match.group(0)
+            if _KG_UNIT_PATTERN.search(matched_text) and not _is_confirmed_kg_weight(
+                name, match.start(), match.end()
+            ):
+                continue
+            return matched_text
     return ""
 
 
@@ -2675,6 +3052,17 @@ _COMBO_QUANTITY_PATTERN = re.compile(r"[×xX+＋]")
 # 不自然な言い回しを避けるための汎用的な仕組み。特定商品のハードコードでは
 # なく、末尾の「人前」表記があるかどうかで判定する）。
 _TRAILING_SERVINGS_PATTERN = re.compile(r"^(.+\S)\s*(\d+\s*人前)$")
+
+# 複合表記の末尾に「計◯枚」のような合計表記が付いている場合（例：
+# 「54枚×15個 計810枚」）も同様に、内容量部分と合計部分を分けて
+# 「内容量・計◯◯」という言い回しにする（description-genre-008対応。
+# 「54枚×15個で使いやすい」という、商品名にすでに書かれている合計を
+# 落とした不自然な言い回しを避けるための汎用的な仕組み）。「計」の
+# 有無を必須にすることで、合計表記の無い通常の複合表記（例：
+# 「80枚×40個」）の末尾を誤って2つに分割しないようにしている。
+_TRAILING_TOTAL_WITH_KEI_PATTERN = re.compile(
+    r"^(.+\S)\s*計\s*(\d+\s*(?:枚|個|本|袋|セット|包|パック))$"
+)
 
 # 「◯枚×◯個」のように、最初の単位が個数（枚・個・本・袋・セット・包・
 # パック）である複合表記は、最初の単位の直後に「入り」を補うと、
@@ -2743,10 +3131,13 @@ def _phrase_for_quantity(quantity_phrase: str, name: str) -> str:
     if size_options_phrase is not None:
         return size_options_phrase
     if _COMBO_QUANTITY_PATTERN.search(quantity_phrase):
-        servings_match = _TRAILING_SERVINGS_PATTERN.match(quantity_phrase)
+        servings_match = _TRAILING_SERVINGS_PATTERN.match(
+            quantity_phrase
+        ) or _TRAILING_TOTAL_WITH_KEI_PATTERN.match(quantity_phrase)
         if servings_match:
-            base, servings = servings_match.group(1), servings_match.group(2)
-            return f"{base}・計{servings}"
+            base = _add_iri_after_leading_count_unit(servings_match.group(1))
+            total = servings_match.group(2)
+            return f"{base}・計{total}"
         return f"{_add_iri_after_leading_count_unit(quantity_phrase)}で使いやすい"
     if _SIZE_UNIT_SUFFIX_PATTERN.search(quantity_phrase):
         return f"サイズは約{quantity_phrase}"
@@ -3166,6 +3557,23 @@ _PRODUCT_TYPE_HASHTAG_OVERRIDES: dict[str, list[str]] = {
     "ダッタンそば茶": ["#お茶", "#韃靼そば茶"],
     "だったんそば茶": ["#お茶", "#韃靼そば茶"],
     "そば茶": ["#お茶", "#そば茶"],
+    # 2026-09-28生成分で新しく見つかった商品タイプ（description-genre-008対応）。
+    "ヒップシート": ["#ベビー用品", "#ヒップシート"],
+    "ミルクウォーマー": ["#ベビー用品", "#ミルクウォーマー"],
+    "ボトルウォーマー": ["#ベビー用品", "#ミルクウォーマー"],
+    "哺乳瓶ウォーマー": ["#ベビー用品", "#ミルクウォーマー"],
+    "車用サンシェード": ["#車用品", "#サンシェード"],
+    "傘型サンシェード": ["#車用品", "#サンシェード"],
+    "折りたたみ傘": ["#折りたたみ傘", "#傘"],
+    "折り畳み傘": ["#折りたたみ傘", "#傘"],
+    "夜久野そば": ["#グルメ", "#そば"],
+    "やくのそば": ["#グルメ", "#そば"],
+    "信州戸隠そば": ["#グルメ", "#そば"],
+    "信州そば": ["#グルメ", "#そば"],
+    "十割そば": ["#グルメ", "#そば"],
+    "ほこり取りスポンジ": ["#掃除グッズ", "#ほこり取り"],
+    "ダスタースポンジ": ["#掃除グッズ", "#ほこり取り"],
+    "掃除スポンジ": ["#掃除グッズ", "#ほこり取り"],
 }
 
 

@@ -2317,5 +2317,197 @@ class DescriptionGenre007RegressionTest(unittest.TestCase):
         self.assertIn("お茶", description)
 
 
+class Sept28BatchRegressionTest(unittest.TestCase):
+    """2026-09-28 15:51生成分のroom/data/candidates.jsonで実際に見つかった、
+    商品本体判定・数値/重量判定・ペット用品の安全フォールバックの誤りの
+    回帰テスト（description-genre-008）。商品名は本番で実際に取得された
+    表記をそのまま使っている。"""
+
+    HIP_SEAT_NAME = (
+        "【楽天1位】ヒップシート コペルタ 抱っこ紐 コンパクト おむつ おしりふき 収納ポケット付き "
+        "20kg 抱っこ カバン 荷物 ショルダー バッグ 折り畳み 折りたたみ 赤ちゃん 前向き "
+        "ウエストポーチ 簡単 シングル 人気 出産祝い 新生児 腰痛対策 ママ ギフト ベビー用品 軽量"
+    )
+    MILK_WARMER_NAME = (
+        "口コミ3400件!!◆楽天1位17冠◆芸能人愛用＜管理栄養士推薦＞離乳食冊子付き♪ミルクウォーマー "
+        "ボトルウォーマー 哺乳瓶ウォーマー ミルク 調乳ポット 離乳食 缶ミルク 双子 哺乳瓶 "
+        "ウォーマー 保温 調乳 母乳 除菌 ベビー 出産準備 赤ちゃん ベビー用品 出産祝い ギフト"
+    )
+    CAR_SUNSHADE_NAME = (
+        "【クーポン利用で最安2280円】「楽天1位 37冠達成！」サンシェード 車 傘 フロント 10本骨 "
+        "自動車用 日よけ 車用品 フロント カーサンシェー UVカット 遮光率100％ 断熱100％ "
+        "傘型サンシェード 車用サンシェード 大きいサイズ シェード 簡単取付 車種汎用 日本製"
+    )
+    YAKUNO_SOBA_NAME = (
+        "乾麺夜久野そば6人前つゆ付 祝★レビュー2400件♪ メール便でお届け 国産そば粉使用 内祝い "
+        "やくのそば 国内産 ざる 蕎麦 10倍 年越しそば 年越し"
+    )
+    FOLDING_UMBRELLA_NAME = (
+        "【10％OFFクーポン配布中！】折りたたみ傘 メンズ 軽量【楽天第1位 260g超軽量 "
+        "10本骨12本骨追加】折り畳み傘 ワンタッチ 軽量 折りたたみ傘 メンズ 自動開閉 折り畳み傘 "
+        "メンズ レディー 折りたたみ傘 ワンタッチ 撥水速乾 耐強風 男女兼 梅雨 スポーツ観戦 《u43》"
+    )
+    NAGANO_SOBA_NAME = (
+        "お試しセット 信州戸隠そば 信州そば 本十割そば 信州戸隠そば乾麺2種 おまけ付 蕎麦 "
+        "乾麺（4人前）"
+    )
+    DUST_SPONGE_NAME = (
+        "【最大40%オフクーポン★お買い物マラソン】ほこり取り スポンジ ダスタースポンジ "
+        "ほこり取りスポンジ 掃除スポンジ 埃取り ホコリ取り 掃除用品 掃除グッズ 便利グッズ 水拭き "
+        "繰り返し使える 水洗い可能 髪の毛取り 巾木掃除 サッシ掃除 洗濯機まわり"
+    )
+    UNKNOWN_SENIOR_DOG_NAME = "【 サイエンス 】　シニア　小粒　【高齢犬用】　12kg"
+    UNKNOWN_PET_TOY_NAME = "サンジョルディ たまごちゃん"
+    BABY_WIPES_810_NAME = (
+        "おしりふき まとめ買い 水99.9 厚手 水分たっぷり シート【送料無料】54枚×15個 計810枚"
+        "【肌にやさしい】 おしり拭き お尻拭き お尻ふき 厚手 赤ちゃん おしりふき厚手 ベビー "
+        "レック ダイレクト"
+    )
+    OLD_BABY_WIPES_NAME = (
+        "【80枚×40個】おしりナップ やわらか厚手仕上げ 限定デザイン(森のかくれんぼ) | 0ヵ月〜 "
+        "おしり拭き お尻拭き お尻ふき おしりふき ナップ おてふき 体拭き からだふき 詰め替え "
+        "赤ちゃん 赤ちゃん用品 ベビー用品 衛生用品"
+    )
+
+    # 1. ヒップシートをおしりふきと誤認しない。
+    def test_hip_seat_is_not_mistaken_for_baby_wipes(self):
+        item = make_item(name=self.HIP_SEAT_NAME)
+        description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("ヒップシート", description)
+        self.assertNotIn("おしりふき、気づくとすぐ無くなっていない", description)
+
+    # 2. 「20kg」をヒップシート本体重量と誤認しない。
+    def test_hip_seat_20kg_is_not_mistaken_for_product_weight(self):
+        item = make_item(name=self.HIP_SEAT_NAME)
+        description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("重さは約20kg", description)
+        self.assertNotIn("腰痛が改善する", description)
+        self.assertNotIn("腰痛が治る", description)
+
+    # 3. ミルクウォーマーを正しく判定する。
+    def test_milk_warmer_is_recognized_correctly(self):
+        item = make_item(name=self.MILK_WARMER_NAME)
+        description = dg.generate_description(item, category="ベビー用品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("ミルクウォーマー", description)
+        self.assertNotIn("赤ちゃんとの暮らしに取り入れやすいベビー用品◎", description)
+        for phrase in ("除菌力が高い", "常に一定の温度", "○分で温まる"):
+            self.assertNotIn(phrase, description)
+
+    # 4. 車用サンシェードを日傘/ファッション用品と誤認しない。
+    def test_car_sunshade_is_not_mistaken_for_a_parasol_or_fashion_item(self):
+        item = make_item(name=self.CAR_SUNSHADE_NAME)
+        description = dg.generate_description(item, category="ファッション", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("サンシェード", description)
+        self.assertNotIn("日傘", description)
+        self.assertNotIn("普段のおでかけに取り入れやすいアイテム◎", description)
+
+    # 5. 「10本骨」を10個セットと誤認しない。
+    def test_car_sunshade_rib_count_is_not_mistaken_for_product_quantity(self):
+        item = make_item(name=self.CAR_SUNSHADE_NAME)
+        description = dg.generate_description(item, category="ファッション", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("10個セット", description)
+        self.assertNotIn("10本で使いやすい", description)
+
+    # 6. 乾麺そばを汎用食品だけで終わらせない。
+    def test_dried_soba_is_not_only_generic_food(self):
+        for name in (self.YAKUNO_SOBA_NAME, self.NAGANO_SOBA_NAME):
+            item = make_item(name=name)
+            description = dg.generate_description(item, category="食品", base_hashtags=BASE_HASHTAGS)
+            self.assertIn("そば", description)
+            self.assertNotIn("手軽に楽しめそうな食品◎", description)
+            self.assertNotIn("ストックしておきたい食品◎", description)
+
+    # 7. 折りたたみ傘を正しく判定する。
+    def test_folding_umbrella_is_recognized_correctly(self):
+        item = make_item(name=self.FOLDING_UMBRELLA_NAME)
+        description = dg.generate_description(item, category="ファッション", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("折りたたみ傘", description)
+        self.assertNotIn("普段のおでかけに取り入れやすいアイテム◎", description)
+
+    # 8. 「260g超軽量」は明示された商品重量として使用できる。
+    def test_folding_umbrella_260g_is_confirmed_as_product_weight(self):
+        item = make_item(name=self.FOLDING_UMBRELLA_NAME)
+        description = dg.generate_description(item, category="ファッション", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("重さは約260g", description)
+
+    # 9. 「10本骨」「12本骨」を数量セットと誤認しない。
+    def test_folding_umbrella_rib_counts_are_not_mistaken_for_product_quantity(self):
+        item = make_item(name=self.FOLDING_UMBRELLA_NAME)
+        description = dg.generate_description(item, category="ファッション", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("10本で使いやすい", description)
+        self.assertNotIn("12本で使いやすい", description)
+        self.assertNotIn("10本骨", description)
+        self.assertNotIn("12本骨", description)
+
+    # 10. ほこり取りスポンジを食器洗いスポンジと誤認しない。
+    def test_dust_sponge_is_not_mistaken_for_a_dishwashing_sponge(self):
+        item = make_item(name=self.DUST_SPONGE_NAME)
+        description = dg.generate_description(item, category="掃除", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("食器洗い", description)
+        self.assertTrue(
+            any(keyword in description for keyword in ("ほこり取り", "ダスタースポンジ", "掃除スポンジ", "ホコリ")),
+            description,
+        )
+
+    # 11. 商品タイプを確定できないペット商品は、暮らし用品ではなく
+    # ペット用品へ安全にフォールバックする。
+    def test_unclear_pet_products_fall_back_to_pet_goods_not_generic_life_goods(self):
+        for name in (self.UNKNOWN_SENIOR_DOG_NAME, self.UNKNOWN_PET_TOY_NAME):
+            item = make_item(name=name)
+            description = dg.generate_description(item, category="ペット用品", base_hashtags=BASE_HASHTAGS)
+            self.assertNotIn("そんな暮らしの小さな不便を解消してくれそうな便利グッズ", description)
+            self.assertIn("ペット", description)
+
+    # 12. 商品タイプを確定できないペット商品を、勝手に「ドッグフード」
+    # 「犬用おもちゃ」等と断定しない。
+    def test_unclear_pet_products_do_not_get_a_fabricated_specific_type(self):
+        senior_dog_description = dg.generate_description(
+            make_item(name=self.UNKNOWN_SENIOR_DOG_NAME), category="ペット用品", base_hashtags=BASE_HASHTAGS
+        )
+        self.assertNotIn("ドッグフード", senior_dog_description)
+        self.assertNotIn("重さは約12kg", senior_dog_description)
+
+        pet_toy_description = dg.generate_description(
+            make_item(name=self.UNKNOWN_PET_TOY_NAME), category="ペット用品", base_hashtags=BASE_HASHTAGS
+        )
+        for phrase in ("犬用おもちゃ", "噛むおもちゃ"):
+            self.assertNotIn(phrase, pet_toy_description)
+
+    # 13. 「54枚×15個」→「54枚入り×15個・計810枚」という、数量の意味を
+    # 保持した自然な表現になる。
+    def test_baby_wipes_compound_quantity_with_explicit_total_is_kept(self):
+        item = make_item(name=self.BABY_WIPES_810_NAME)
+        description = dg.generate_description(item, category="ベビー用品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("54枚入り×15個・計810枚", description)
+        self.assertNotIn("54枚入り×15個で使いやすい", description)
+
+    # 14. 過去の「80枚×40個」等の複合数量判定を壊さない（回帰確認）。
+    def test_previous_compound_quantity_without_explicit_total_still_works(self):
+        item = make_item(name=self.OLD_BABY_WIPES_NAME)
+        description = dg.generate_description(item, category="ベビー用品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("80枚入り×40個で使いやすい", description)
+
+    # 15. 具体的商品タイプが判定できる商品には、旧
+    # #暮らしの便利グッズ／#便利グッズ を付けない。
+    def test_new_product_types_do_not_get_mechanical_kurashi_hashtags(self):
+        expectations = {
+            self.HIP_SEAT_NAME: ("収納", "#ヒップシート"),
+            self.MILK_WARMER_NAME: ("ベビー用品", "#ミルクウォーマー"),
+            self.CAR_SUNSHADE_NAME: ("ファッション", "#サンシェード"),
+            self.YAKUNO_SOBA_NAME: ("食品", "#そば"),
+            self.FOLDING_UMBRELLA_NAME: ("ファッション", "#折りたたみ傘"),
+            self.NAGANO_SOBA_NAME: ("食品", "#そば"),
+            self.DUST_SPONGE_NAME: ("掃除", "#ほこり取り"),
+        }
+        for name, (category, expected_tag) in expectations.items():
+            item = make_item(name=name)
+            description = dg.generate_description(item, category=category, base_hashtags=BASE_HASHTAGS)
+            hashtag_line = description.split("\n\n")[-1]
+            self.assertIn(expected_tag, hashtag_line, description)
+            self.assertNotIn("#暮らしの便利グッズ", hashtag_line)
+            self.assertNotIn("#便利グッズ", hashtag_line)
+            self.assertLessEqual(len(description), 500)
+
+
 if __name__ == "__main__":
     unittest.main()
