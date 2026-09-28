@@ -1,6 +1,7 @@
 {
   "posted_item_codes": [
     "a2care-official:10000003",
+    "angelingg:10001033",
     "angelique:10047977",
     "angie:10014605",
     "anker:10002285",
@@ -18,6 +19,7 @@
     "bathroom:10002808",
     "biyoudou:10000164",
     "calico-a1:10000058",
+    "calmisence:10000000",
     "calmisence:10000038",
     "ccsz:10000871",
     "charmying:10000053",
@@ -37,6 +39,8 @@
     "eunicedress:10001735",
     "exception5251:10000572",
     "f222038-numazu:10000205",
+    "freedom-shops:10000002",
+    "furumiyashop:10000108",
     "good-item:10000868",
     "gotoken1879:10000205",
     "green365:10000000",
@@ -69,9 +73,12 @@
     "konpouya:10003368",
     "kurashikaiteki-shop:10010285",
     "kurashikaiteki-shop:10010350",
+    "kurosu:10003426",
     "laitnature:10000872",
     "larutan:10000000",
+    "larutan:10000015",
     "larutan:10000154",
+    "lecdirect:10001750",
     "let-ochanomise:10000187",
     "liberesta:10000014",
     "livingut:310675",
@@ -84,6 +91,7 @@
     "midorimushishop:10000455",
     "midorimushishop:10000479",
     "nactasukaru:10000285",
+    "naganosoba:10000033",
     "natural-living:10010377",
     "netbaby:10028506",
     "next-online:10000140",
@@ -94,6 +102,7 @@
     "oujiseiyaku:10000038",
     "ownlife:10000777",
     "pasodentsushin:10723971",
+    "peaceone:10001236",
     "pia-konodai:10000180",
     "pia-konodai:10000499",
     "pigeon-shop:10001747",
@@ -121,6 +130,7 @@
     "value-create:10000010",
     "wagashidonya:10000686",
     "winwinproduct:10000988",
+    "yakunosoba:10000147",
     "yamatoya-d:10000208",
     "yamayuu:10016527",
     "yamayuu:10016536",
@@ -1563,6 +1573,86 @@
       "product_name": "口コミ2800件!!＜芸能人愛用＞楽天1位6冠≪レビュー特典≫LARUTAN おむつストッカー 蓋付き 仕切り 収納 オムツストッカー お世話セット おむつバッグ 大容量 ベビー用品 収納ケース おむつ入れ おもちゃ バッグ 出産準備 赤ちゃん 出産祝い おしゃれ おむつケーキ ギフト",
       "posted_at": "2026-09-27T17:47:22.250Z",
       "category": "収納",
+      "match_keywords": []
+    },
+    {
+      "item_code": "lecdirect:10001750",
+      "item_url": "https://item.rakuten.co.jp/lecdirect/e170_999atsu15p/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "おしりふき まとめ買い 水99.9 厚手 水分たっぷり シート【送料無料】54枚×15個 計810枚【肌にやさしい】 おしり拭き お尻拭き お尻ふき 厚手 赤ちゃん おしりふき厚手 ベビー レック ダイレクト",
+      "posted_at": "2026-09-28T23:33:15.595Z",
+      "category": "ベビー用品",
+      "match_keywords": []
+    },
+    {
+      "item_code": "larutan:10000015",
+      "item_url": "https://item.rakuten.co.jp/larutan/n026/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "口コミ3400件!!◆楽天1位17冠◆芸能人愛用＜管理栄養士推薦＞離乳食冊子付き♪ミルクウォーマー ボトルウォーマー 哺乳瓶ウォーマー ミルク 調乳ポット 離乳食 缶ミルク 双子 哺乳瓶 ウォーマー 保温 調乳 母乳 除菌 ベビー 出産準備 赤ちゃん ベビー用品 出産祝い ギフト",
+      "posted_at": "2026-09-28T23:33:42.471Z",
+      "category": "ベビー用品",
+      "match_keywords": []
+    },
+    {
+      "item_code": "calmisence:10000000",
+      "item_url": "https://item.rakuten.co.jp/calmisence/hipseatbk/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "【楽天1位】ヒップシート コペルタ 抱っこ紐 コンパクト おむつ おしりふき 収納ポケット付き 20kg 抱っこ カバン 荷物 ショルダー バッグ 折り畳み 折りたたみ 赤ちゃん 前向き ウエストポーチ 簡単 シングル 人気 出産祝い 新生児 腰痛対策 ママ ギフト ベビー用品 軽量",
+      "posted_at": "2026-09-28T23:34:01.352Z",
+      "category": "収納",
+      "match_keywords": []
+    },
+    {
+      "item_code": "furumiyashop:10000108",
+      "item_url": "https://item.rakuten.co.jp/furumiyashop/rayg03-1/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "【クーポン利用で最安2280円】「楽天1位 37冠達成！」サンシェード 車 傘 フロント 10本骨 自動車用 日よけ 車用品 フロント カーサンシェー UVカット 遮光率100％ 断熱100％ 傘型サンシェード 車用サンシェード 大きいサイズ シェード 簡単取付 車種汎用 日本製",
+      "posted_at": "2026-09-28T23:34:17.751Z",
+      "category": "ファッション",
+      "match_keywords": []
+    },
+    {
+      "item_code": "yakunosoba:10000147",
+      "item_url": "https://item.rakuten.co.jp/yakunosoba/k-s300t5-2/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "乾麺夜久野そば6人前つゆ付 祝★レビュー2400件♪ メール便でお届け 国産そば粉使用 内祝い やくのそば 国内産 ざる 蕎麦 10倍 年越しそば 年越し",
+      "posted_at": "2026-09-28T23:34:35.301Z",
+      "category": "食品",
+      "match_keywords": []
+    },
+    {
+      "item_code": "freedom-shops:10000002",
+      "item_url": "https://item.rakuten.co.jp/freedom-shops/u43/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "【10％OFFクーポン配布中！】折りたたみ傘 メンズ 軽量【楽天第1位 260g超軽量 10本骨12本骨追加】折り畳み傘 ワンタッチ 軽量 折りたたみ傘 メンズ 自動開閉 折り畳み傘 メンズ レディー 折りたたみ傘 ワンタッチ 撥水速乾 耐強風 男女兼 梅雨 スポーツ観戦 《u43》",
+      "posted_at": "2026-09-28T23:34:50.950Z",
+      "category": "ファッション",
+      "match_keywords": []
+    },
+    {
+      "item_code": "naganosoba:10000033",
+      "item_url": "https://item.rakuten.co.jp/naganosoba/trial-01/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "お試しセット 信州戸隠そば 信州そば 本十割そば 信州戸隠そば乾麺2種 おまけ付 蕎麦 乾麺（4人前）",
+      "posted_at": "2026-09-28T23:35:07.765Z",
+      "category": "食品",
+      "match_keywords": []
+    },
+    {
+      "item_code": "angelingg:10001033",
+      "item_url": "https://item.rakuten.co.jp/angelingg/ag-r-00180/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "【最大40%オフクーポン★お買い物マラソン】ほこり取り スポンジ ダスタースポンジ ほこり取りスポンジ 掃除スポンジ 埃取り ホコリ取り 掃除用品 掃除グッズ 便利グッズ 水拭き 繰り返し使える 水洗い可能 髪の毛取り 巾木掃除 サッシ掃除 洗濯機まわり",
+      "posted_at": "2026-09-28T23:35:24.516Z",
+      "category": "掃除",
+      "match_keywords": []
+    },
+    {
+      "item_code": "peaceone:10001236",
+      "item_url": "https://item.rakuten.co.jp/peaceone/10001236/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "【 サイエンス 】　シニア　小粒　【高齢犬用】　12kg",
+      "posted_at": "2026-09-28T23:35:41.264Z",
+      "category": "ペット用品",
+      "match_keywords": []
+    },
+    {
+      "item_code": "kurosu:10003426",
+      "item_url": "https://item.rakuten.co.jp/kurosu/10003426/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "サンジョルディ たまごちゃん",
+      "posted_at": "2026-09-28T23:35:56.655Z",
+      "category": "ペット用品",
       "match_keywords": []
     }
   ]
