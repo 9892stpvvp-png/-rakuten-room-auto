@@ -1674,18 +1674,19 @@ PRODUCT_TYPE_TEMPLATES: list[tuple[str, _PostTemplate]] = [
         _PostTemplate(
             # 「おしりふき」「おむつ」は収納できる持ち物の一例であり、
             # 商品本体ではない。「腰痛対策」という販売語があっても、
-            # 腰痛が改善する等の医療・健康効果は断定しない。
-            hook_text="長時間の抱っこ、腰や腕に負担を感じたりしない？",
+            # 「負担を軽くする」「腰痛が改善する」等の効果は断定せず、
+            # 用途ベースの言い回しにとどめる（description-genre-009対応）。
+            hook_text="長時間の抱っこ、腰や腕が疲れたりしない？",
             topic_emoji="🍼",
             worry_lines=[
                 "赤ちゃんを抱っこする時間が長いと、",
-                "腰や腕への負担が気になりますよね…😅",
+                "腰や腕が疲れてきますよね…😅",
             ],
-            solution_text="抱っこの負担を軽くしやすいヒップシート",
-            checklist_core=["抱っこの負担を軽くしやすい", "荷物を収納できて外出しやすい"],
+            solution_text="抱っこのときに使いやすいヒップシート",
+            checklist_core=["抱っこのときに使いやすい", "荷物を収納できて外出しやすい"],
             checklist_fallback="普段のお出かけに取り入れやすい",
             closing_variants=[
-                "抱っこの負担を軽くしたい人におすすめ",
+                "抱っこのときに使いやすいアイテムを探している人におすすめ",
                 "気になる人はチェックしてみてほしい",
             ],
         ),
@@ -2483,13 +2484,18 @@ GENERIC_TEMPLATES: dict[str, _PostTemplate] = {
     # 商品）は、DEFAULT_CATEGORYの「暮らしの便利グッズ」に落ちていた。
     # category="ペット用品"という確認済みの情報だけを使い、ドッグフード・
     # おもちゃ等の具体的な商品タイプは断定しない、安全な汎用テンプレート
-    # を用意した（description-genre-008対応）。
+    # を用意した（description-genre-008対応）。対象動物（犬・猫）が商品名
+    # から確認できない場合の既定（neutral）版。商品名に「犬用」「猫用」等の
+    # 明示がある場合は、_resolve_pet_generic_template()が犬用・猫用の
+    # 専用版に差し替える（description-genre-009対応。「ペット用品」という
+    # カテゴリーだけを根拠に「愛犬・愛猫」と両方を自動生成しないように
+    # するため）。
     "ペット用品": _PostTemplate(
-        hook_text="愛犬・愛猫のグッズ、あると助かるよね",
+        hook_text="ペットとの暮らし、頼れるアイテムがあると助かるよね",
         topic_emoji="🐾",
         worry_lines=["ペットとの毎日って、", "必要なものが色々ありますよね…😅"],
-        solution_text="愛犬・愛猫のお世話に使いやすいペット用品",
-        checklist_core=["愛犬・愛猫のお世話に使いやすい", "普段のペットのお世話に取り入れやすい"],
+        solution_text="ペットとの暮らしに取り入れやすいペット用品",
+        checklist_core=["ペットとの暮らしに取り入れやすい", "普段のお世話に取り入れやすい"],
         checklist_fallback="必要な場面で使いやすい",
         closing_variants=[
             "ペット用品を探している人におすすめ",
@@ -2497,6 +2503,58 @@ GENERIC_TEMPLATES: dict[str, _PostTemplate] = {
         ],
     ),
 }
+
+# GENERIC_TEMPLATES["ペット用品"]の犬用・猫用の専用版。商品名に「犬用」
+# （「愛犬用」「高齢犬用」等も末尾が「犬用」のため含まれる）が確認できる
+# 場合だけ犬向けの表現を使い、「猫用」（「愛猫用」等も同様）が確認できる
+# 場合だけ猫向けの表現を使う。商品タイプ自体（ドッグフード等）は引き続き
+# 断定しない（description-genre-009対応）。
+_PET_GENERIC_TEMPLATE_DOG = _PostTemplate(
+    hook_text="愛犬のグッズ、あると助かるよね",
+    topic_emoji="🐾",
+    worry_lines=["愛犬との毎日って、", "必要なものが色々ありますよね…😅"],
+    solution_text="愛犬のお世話に使いやすいペット用品",
+    checklist_core=["愛犬のお世話に使いやすい", "普段のペットのお世話に取り入れやすい"],
+    checklist_fallback="必要な場面で使いやすい",
+    closing_variants=[
+        "愛犬用のペット用品を探している人におすすめ",
+        "気になる人はチェックしてみてほしい",
+    ],
+)
+_PET_GENERIC_TEMPLATE_CAT = _PostTemplate(
+    hook_text="愛猫のグッズ、あると助かるよね",
+    topic_emoji="🐾",
+    worry_lines=["愛猫との毎日って、", "必要なものが色々ありますよね…😅"],
+    solution_text="愛猫のお世話に使いやすいペット用品",
+    checklist_core=["愛猫のお世話に使いやすい", "普段のペットのお世話に取り入れやすい"],
+    checklist_fallback="必要な場面で使いやすい",
+    closing_variants=[
+        "愛猫用のペット用品を探している人におすすめ",
+        "気になる人はチェックしてみてほしい",
+    ],
+)
+
+# 商品名の末尾が「犬用」「猫用」であれば、対象動物が確認できたと判定する
+# （「愛犬用」「高齢犬用」「子犬用」等は末尾が「犬用」のため、この判定
+# だけで自然にカバーできる。「猫用」も同様）。
+_PET_DOG_CONFIRM_WORD = "犬用"
+_PET_CAT_CONFIRM_WORD = "猫用"
+
+
+def _resolve_pet_generic_template(name: str) -> _PostTemplate:
+    """GENERIC_TEMPLATES["ペット用品"]について、商品名から対象動物
+    （犬・猫）が確認できる場合だけ、犬用・猫用の専用版を返す
+    （description-genre-009対応）。両方確認できる場合や、どちらも
+    確認できない場合は、対象動物を限定しない既定（neutral）版のまま
+    にする（安全側のフォールバック）。
+    """
+    is_dog = _PET_DOG_CONFIRM_WORD in name
+    is_cat = _PET_CAT_CONFIRM_WORD in name
+    if is_dog and not is_cat:
+        return _PET_GENERIC_TEMPLATE_DOG
+    if is_cat and not is_dog:
+        return _PET_GENERIC_TEMPLATE_CAT
+    return GENERIC_TEMPLATES["ペット用品"]
 
 # 商品名から「洗濯用」「食器用」「住宅用（掃除用）」のいずれかが確認できる
 # 場合に使う、洗剤カテゴリー専用のサブタイプテンプレート。GENERIC_TEMPLATES
@@ -3093,6 +3151,12 @@ _COUNT_UNIT_HAS_SET_WORD_PATTERN = re.compile(r"セット$")
 # （description-genre-005対応。「20Pで使いやすい」という、単位を無視した
 # 画一的な言い回しを避けるための追加）。
 _P_UNIT_SUFFIX_PATTERN = re.compile(r"P$")
+# 「6人前」のような、単独の人数分表記の末尾判定（複合表記の一部としての
+# 「人前」は_TRAILING_SERVINGS_PATTERN側で扱うため、ここでは複合表記
+# ではない場合だけを対象にする）。「6人前で使いやすい」のように、数量
+# だけから「使いやすい」という評価を自動で付け加えず、商品名の表記
+# そのままにする（description-genre-009対応）。
+_SERVINGS_UNIT_SUFFIX_PATTERN = re.compile(r"人前$")
 
 # 「100g 500g 1000g」のように、同じ単位の数値が空白区切りで複数並んで
 # いる表記かどうかの判定用（description-genre-006対応）。
@@ -3147,6 +3211,8 @@ def _phrase_for_quantity(quantity_phrase: str, name: str) -> str:
         return f"容量は約{quantity_phrase}"
     if _P_UNIT_SUFFIX_PATTERN.search(quantity_phrase):
         return f"{quantity_phrase}入り"
+    if _SERVINGS_UNIT_SUFFIX_PATTERN.search(quantity_phrase):
+        return quantity_phrase
     if _COUNT_UNIT_SUFFIX_PATTERN.search(quantity_phrase):
         has_variety_evidence = any(
             word in name for word in _VARIETY_COUNT_INDICATOR_WORDS
@@ -3229,7 +3295,10 @@ def _select_template(name: str, category: str) -> tuple[_PostTemplate, str, str]
         if template is not None:
             return template, location, template.topic_emoji
 
-    template = GENERIC_TEMPLATES[category]
+    if category == "ペット用品":
+        template = _resolve_pet_generic_template(name)
+    else:
+        template = GENERIC_TEMPLATES[category]
     topic_emoji = LOCATION_TOPIC_EMOJI.get(location, template.topic_emoji)
     return template, location, topic_emoji
 
@@ -3593,22 +3662,39 @@ def _find_hashtag_override_by_name(name: str) -> list[str] | None:
     return None
 
 
+# 「ペット用品」は全ジャンル型のジャンルとして確認できている（category
+# 由来）ため、具体的な商品タイプが判定できない場合でも、旧来の汎用タグ
+# （base_hashtags・#便利グッズ）を機械的に付けない（description-
+# genre-009対応。ジャンルが確認できている商品には旧タグを付けない、
+# という全ジャンル型の方針をGENERIC_TEMPLATESフォールバック時にも
+# 適用するためのもの）。カテゴリー別タグ（#ペット用品）だけで安全に
+# 紹介する。
+_CATEGORY_SUPPRESS_GENERIC_HASHTAGS: frozenset[str] = frozenset({"ペット用品"})
+
+
 def _build_hashtags(category: str, name: str, base_hashtags: list[str]) -> list[str]:
     """カテゴリ・商品名に応じて3〜5個程度のハッシュタグを組み立てる。
 
     商品タイプが具体的に判定できた場合（_PRODUCT_TYPE_HASHTAG_OVERRIDESに
     ある場合）は、その商品ジャンル・商品本体に合うタグだけを使い、汎用の
-    base_hashtags・#便利グッズは付けない。商品タイプが判定できない商品
-    （安全な汎用テンプレートにフォールバックする商品）では、従来どおり
-    base_hashtags・カテゴリー別タグ・#便利グッズを使う。
+    base_hashtags・#便利グッズは付けない。カテゴリー自体がジャンルとして
+    確認できている場合（_CATEGORY_SUPPRESS_GENERIC_HASHTAGS）も同様に、
+    カテゴリー別タグだけを使う。それ以外（安全な汎用テンプレートに
+    フォールバックする商品）では、従来どおりbase_hashtags・カテゴリー別
+    タグ・#便利グッズを使う。
     """
     product_type = match_product_type_keyword(name)
     override_tags = _PRODUCT_TYPE_HASHTAG_OVERRIDES.get(product_type or "")
     if override_tags is None:
         override_tags = _find_hashtag_override_by_name(name)
 
+    suppress_generic = category in _CATEGORY_SUPPRESS_GENERIC_HASHTAGS
+
     if override_tags:
         tags = list(override_tags)
+    elif suppress_generic:
+        category_tag = HASHTAG_BY_CATEGORY.get(category, "")
+        tags = [category_tag] if category_tag else []
     else:
         tags = list(base_hashtags)
         category_tag = HASHTAG_BY_CATEGORY.get(category, "")
@@ -3622,7 +3708,7 @@ def _build_hashtags(category: str, name: str, base_hashtags: list[str]) -> list[
                 tags.append(tag)
             break
 
-    if not override_tags and "#便利グッズ" not in tags:
+    if not override_tags and not suppress_generic and "#便利グッズ" not in tags:
         tags.append("#便利グッズ")
 
     return list(dict.fromkeys(tags))[:5]

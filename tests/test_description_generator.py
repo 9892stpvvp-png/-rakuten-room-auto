@@ -398,11 +398,18 @@ class DescriptionStructureTest(unittest.TestCase):
 
     def test_hashtag_block_has_three_to_five_tags_and_no_emoji(self):
         item = make_item(name="テスト商品")
+        # 「ペット用品」は全ジャンル型のジャンルとして確認できているため、
+        # 具体的な商品タイプが判定できない場合、旧来の汎用タグ
+        # （base_hashtags・#便利グッズ）を機械的に付けず、カテゴリー別タグ
+        # （#ペット用品）だけになる（description-genre-009対応。他の
+        # カテゴリーは従来通り3〜5個のタグを維持する）。
+        categories_with_minimum_one_tag = {"ペット用品"}
         for category in dg.GENERIC_TEMPLATES:
             description = dg.generate_description(item, category=category, base_hashtags=BASE_HASHTAGS)
             hashtag_line = _blocks(description)[5]
             hashtags = hashtag_line.split(" ")
-            self.assertGreaterEqual(len(hashtags), 3, f"category={category}: {hashtag_line}")
+            min_tags = 1 if category in categories_with_minimum_one_tag else 3
+            self.assertGreaterEqual(len(hashtags), min_tags, f"category={category}: {hashtag_line}")
             self.assertLessEqual(len(hashtags), 5, f"category={category}: {hashtag_line}")
             for tag in hashtags:
                 self.assertTrue(tag.startswith("#"), tag)
@@ -2507,6 +2514,128 @@ class Sept28BatchRegressionTest(unittest.TestCase):
             self.assertNotIn("#暮らしの便利グッズ", hashtag_line)
             self.assertNotIn("#便利グッズ", hashtag_line)
             self.assertLessEqual(len(description), 500)
+
+
+class DescriptionGenre009RegressionTest(unittest.TestCase):
+    """2026-09-28 15:51生成分の最終調整（description-genre-009）の回帰
+    テスト。①ペット用品の安全フォールバックで対象動物（犬・猫）を推測
+    しないこと、②ペット用品フォールバックの旧ハッシュタグ削除、
+    ③ヒップシートの効果表現の安全化、④「◯人前」の数量表現の自然化、
+    を確認する。商品名はSept28BatchRegressionTestと同じ、本番で実際に
+    取得された表記を再利用する。"""
+
+    UNKNOWN_SENIOR_DOG_NAME = Sept28BatchRegressionTest.UNKNOWN_SENIOR_DOG_NAME
+    UNKNOWN_PET_TOY_NAME = Sept28BatchRegressionTest.UNKNOWN_PET_TOY_NAME
+    HIP_SEAT_NAME = Sept28BatchRegressionTest.HIP_SEAT_NAME
+    YAKUNO_SOBA_NAME = Sept28BatchRegressionTest.YAKUNO_SOBA_NAME
+    NAGANO_SOBA_NAME = Sept28BatchRegressionTest.NAGANO_SOBA_NAME
+    BABY_WIPES_810_NAME = Sept28BatchRegressionTest.BABY_WIPES_810_NAME
+    OLD_BABY_WIPES_NAME = Sept28BatchRegressionTest.OLD_BABY_WIPES_NAME
+
+    # 1. 高齢犬用商品に「愛猫」を追加しない。
+    def test_senior_dog_product_does_not_add_cat_wording(self):
+        item = make_item(name=self.UNKNOWN_SENIOR_DOG_NAME)
+        description = dg.generate_description(item, category="ペット用品", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("愛猫", description)
+        self.assertNotIn("猫", description)
+        self.assertIn("愛犬", description)
+
+    # 2. 対象動物不明のペット用品に犬/猫を勝手に追加しない。
+    def test_unclear_pet_product_does_not_guess_the_target_animal(self):
+        item = make_item(name=self.UNKNOWN_PET_TOY_NAME)
+        description = dg.generate_description(item, category="ペット用品", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("愛犬", description)
+        self.assertNotIn("愛猫", description)
+
+    # 3. タイトルに「犬用」と明記された場合のみ犬表現を許可する。
+    def test_dog_wording_is_used_only_when_title_confirms_it(self):
+        confirmed_description = dg.generate_description(
+            make_item(name=self.UNKNOWN_SENIOR_DOG_NAME), category="ペット用品", base_hashtags=BASE_HASHTAGS
+        )
+        self.assertIn("愛犬", confirmed_description)
+
+        unconfirmed_description = dg.generate_description(
+            make_item(name=self.UNKNOWN_PET_TOY_NAME), category="ペット用品", base_hashtags=BASE_HASHTAGS
+        )
+        self.assertNotIn("愛犬", unconfirmed_description)
+
+    # 4. タイトルに「猫用」と明記された場合のみ猫表現を許可する
+    # （汎用的な仕組みの確認：猫用商品を仮定してテストする）。
+    def test_cat_wording_is_used_only_when_title_confirms_it(self):
+        item = make_item(name="キャットフード 猫用 国産 1kg")
+        description = dg.generate_description(item, category="ペット用品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("愛猫", description)
+        self.assertNotIn("愛犬", description)
+
+    # 5. ペット用品フォールバックに#暮らしの便利グッズを付けない。
+    def test_pet_fallback_does_not_get_mechanical_kurashi_hashtag(self):
+        for name in (self.UNKNOWN_SENIOR_DOG_NAME, self.UNKNOWN_PET_TOY_NAME):
+            item = make_item(name=name)
+            description = dg.generate_description(item, category="ペット用品", base_hashtags=BASE_HASHTAGS)
+            hashtag_line = description.split("\n\n")[-1]
+            self.assertNotIn("#暮らしの便利グッズ", hashtag_line)
+
+    # 6. ペット用品フォールバックに#便利グッズを付けない。
+    def test_pet_fallback_does_not_get_mechanical_benri_hashtag(self):
+        for name in (self.UNKNOWN_SENIOR_DOG_NAME, self.UNKNOWN_PET_TOY_NAME):
+            item = make_item(name=name)
+            description = dg.generate_description(item, category="ペット用品", base_hashtags=BASE_HASHTAGS)
+            hashtag_line = description.split("\n\n")[-1]
+            self.assertNotIn("#便利グッズ", hashtag_line)
+            self.assertIn("#ペット用品", hashtag_line)
+
+    # 7. ヒップシートで負担軽減効果を断定しない。
+    def test_hip_seat_does_not_claim_reduced_burden(self):
+        item = make_item(name=self.HIP_SEAT_NAME)
+        description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS)
+        for phrase in ("負担を軽く", "腰痛を改善", "腰への負担を軽減", "腕への負担を軽減"):
+            self.assertNotIn(phrase, description)
+        self.assertIn("ヒップシート", description)
+
+    # 8. ヒップシート20kgを商品重量にしない（回帰確認）。
+    def test_hip_seat_20kg_is_still_not_treated_as_product_weight(self):
+        item = make_item(name=self.HIP_SEAT_NAME)
+        description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("重さは約20kg", description)
+
+    # 9. 「6人前」→「6人前で使いやすい」にしない。
+    def test_yakuno_soba_servings_does_not_add_generic_usability_phrase(self):
+        item = make_item(name=self.YAKUNO_SOBA_NAME)
+        description = dg.generate_description(item, category="食品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("6人前", description)
+        self.assertNotIn("6人前で使いやすい", description)
+
+    # 10. 「4人前」→「4人前で使いやすい」にしない。
+    def test_nagano_soba_servings_does_not_add_generic_usability_phrase(self):
+        item = make_item(name=self.NAGANO_SOBA_NAME)
+        description = dg.generate_description(item, category="食品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("4人前", description)
+        self.assertNotIn("4人前で使いやすい", description)
+
+    # 11. 過去の複合数量表現（170g×4袋・計8人前、54枚入り×15個・計810枚、
+    # 80枚入り×40個）を壊さない（回帰確認）。
+    def test_previous_compound_quantity_expressions_still_work(self):
+        udon_description = dg.generate_description(
+            make_item(
+                name=(
+                    "ひもかわうどん 帯麺 乾麺 めん170g × 4袋 8人前 濃縮つゆ8人前 送料無料 ひも川 "
+                    "通販 人気【ポスト投函配送】"
+                )
+            ),
+            category="食品",
+            base_hashtags=BASE_HASHTAGS,
+        )
+        self.assertIn("170g × 4袋・計8人前", udon_description)
+
+        new_wipes_description = dg.generate_description(
+            make_item(name=self.BABY_WIPES_810_NAME), category="ベビー用品", base_hashtags=BASE_HASHTAGS
+        )
+        self.assertIn("54枚入り×15個・計810枚", new_wipes_description)
+
+        old_wipes_description = dg.generate_description(
+            make_item(name=self.OLD_BABY_WIPES_NAME), category="ベビー用品", base_hashtags=BASE_HASHTAGS
+        )
+        self.assertIn("80枚入り×40個で使いやすい", old_wipes_description)
 
 
 if __name__ == "__main__":
