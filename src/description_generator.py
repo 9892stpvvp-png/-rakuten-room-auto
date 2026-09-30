@@ -1972,6 +1972,243 @@ PRODUCT_TYPE_TEMPLATES: list[tuple[str, _PostTemplate]] = [
             ],
         ),
     ),
+    # ここから下は、2026-09-29生成分で新しく見つかった商品タイプ
+    # （description-genre-010対応）。「レビュー特典」「用途語」「収納
+    # できる物」より商品本体を示す具体的複合語を優先する。
+    (
+        "おねしょズボン",
+        _PostTemplate(
+            # 「赤ちゃん」に対象年齢を限定しない（タイトルには「小学生」
+            # 「保育園」「子ども」等もあり、赤ちゃん専用とは確認できない）。
+            # 「完全防水」「漏れない」等の販売語があっても、絶対に漏れない
+            # という効果は断定しない。
+            hook_text="おねしょ対策、何を使うか迷ったりしない？",
+            topic_emoji="👖",
+            worry_lines=[
+                "おねしょが続く時期って、",
+                "寝具の洗濯が大変になりますよね…😅",
+            ],
+            solution_text="おねしょ対策に使いやすいおねしょズボン",
+            checklist_core=["おねしょ対策に使いやすい", "普段の寝具まわりに取り入れやすい"],
+            checklist_fallback="子どものおねしょ対策に取り入れやすい",
+            closing_variants=[
+                "おねしょ対策グッズを探している人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "おねしょパンツ",
+        _PostTemplate(
+            hook_text="おねしょ対策、何を使うか迷ったりしない？",
+            topic_emoji="👖",
+            worry_lines=[
+                "おねしょが続く時期って、",
+                "寝具の洗濯が大変になりますよね…😅",
+            ],
+            solution_text="おねしょ対策に使いやすいおねしょパンツ",
+            checklist_core=["おねしょ対策に使いやすい", "普段の寝具まわりに取り入れやすい"],
+            checklist_fallback="子どものおねしょ対策に取り入れやすい",
+            closing_variants=[
+                "おねしょ対策グッズを探している人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "スタイ",
+        _PostTemplate(
+            # 防水性能・汚れ落ち性能等、タイトルだけで確認できない具体的な
+            # 性能は生成しない。
+            hook_text="離乳食の食べこぼし、服が汚れて困ったりしない？",
+            topic_emoji="🍼",
+            worry_lines=[
+                "離乳食を食べさせるときって、",
+                "食べこぼしで服が汚れがちですよね…😅",
+            ],
+            solution_text="食べこぼしを受け止めやすいスタイ",
+            checklist_core=["食べこぼしを受け止めやすい", "普段のお食事タイムに使いやすい"],
+            checklist_fallback="離乳食の時間に取り入れやすい",
+            closing_variants=[
+                "食事用のスタイを探している人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "お食事エプロン",
+        _PostTemplate(
+            hook_text="離乳食の食べこぼし、服が汚れて困ったりしない？",
+            topic_emoji="🍼",
+            worry_lines=[
+                "離乳食を食べさせるときって、",
+                "食べこぼしで服が汚れがちですよね…😅",
+            ],
+            solution_text="食べこぼしを受け止めやすいお食事エプロン",
+            checklist_core=["食べこぼしを受け止めやすい", "普段のお食事タイムに使いやすい"],
+            checklist_fallback="離乳食の時間に取り入れやすい",
+            closing_variants=[
+                "食事用のエプロンを探している人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "保冷バッグ",
+        _PostTemplate(
+            # 「大容量」という語だけから具体的な容量は生成しない。
+            hook_text="買い物したものの保冷、途中で心配になったりしない？",
+            topic_emoji="🛍️",
+            worry_lines=[
+                "お買い物の帰り道って、",
+                "食材の温度が気になりますよね…😅",
+            ],
+            solution_text="お買い物に使いやすい保冷バッグ",
+            checklist_core=["お買い物に使いやすい", "普段の買い出しに取り入れやすい"],
+            checklist_fallback="普段のお買い物に取り入れやすい",
+            closing_variants=[
+                "保冷バッグを探している人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "保冷ふろしき",
+        _PostTemplate(
+            hook_text="買い物したものの保冷、途中で心配になったりしない？",
+            topic_emoji="🛍️",
+            worry_lines=[
+                "お買い物の帰り道って、",
+                "食材の温度が気になりますよね…😅",
+            ],
+            solution_text="お買い物に使いやすい保冷ふろしき",
+            checklist_core=["お買い物に使いやすい", "普段の買い出しに取り入れやすい"],
+            checklist_fallback="普段のお買い物に取り入れやすい",
+            closing_variants=[
+                "保冷ふろしきを探している人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "もつ煮",
+        _PostTemplate(
+            hook_text="今日のおつまみ、手軽に済ませたい日もあるよね",
+            topic_emoji="🍲",
+            worry_lines=[
+                "おつまみを一から作るのって、",
+                "手間がかかる日もありますよね…😅",
+            ],
+            solution_text="温めるだけで食べられるもつ煮",
+            checklist_core=["温めるだけで手軽に食べられる", "ストックしておくと便利"],
+            checklist_fallback="晩酌のお供に取り入れやすい",
+            closing_variants=[
+                "手軽におつまみを済ませたい人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "モツ煮",
+        _PostTemplate(
+            hook_text="今日のおつまみ、手軽に済ませたい日もあるよね",
+            topic_emoji="🍲",
+            worry_lines=[
+                "おつまみを一から作るのって、",
+                "手間がかかる日もありますよね…😅",
+            ],
+            solution_text="温めるだけで食べられるもつ煮",
+            checklist_core=["温めるだけで手軽に食べられる", "ストックしておくと便利"],
+            checklist_fallback="晩酌のお供に取り入れやすい",
+            closing_variants=[
+                "手軽におつまみを済ませたい人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "ハンガーラック",
+        _PostTemplate(
+            # 「ハンガー」という一般語より複合語を優先する
+            # （_GENERIC_FALLBACK_PRODUCT_TYPE_KEYWORDSで「ハンガー」の
+            # 優先度を下げている）。幅・高さ・耐荷重は、それぞれの意味を
+            # 区別して扱う（耐荷重は商品自体の重さではない）。
+            hook_text="衣類の一時置き場、うまく整理できていない？",
+            topic_emoji="👔",
+            worry_lines=[
+                "衣類や上着が増えてくると、",
+                "掛けておく場所に困りますよね…😅",
+            ],
+            solution_text="衣類をまとめて掛けやすいハンガーラック",
+            checklist_core=["衣類をまとめて掛けやすい", "収納スペースを増やしやすい"],
+            checklist_fallback="普段の衣類収納に取り入れやすい",
+            closing_variants=[
+                "ハンガーラックを探している人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "コートハンガー",
+        _PostTemplate(
+            hook_text="衣類の一時置き場、うまく整理できていない？",
+            topic_emoji="👔",
+            worry_lines=[
+                "衣類や上着が増えてくると、",
+                "掛けておく場所に困りますよね…😅",
+            ],
+            solution_text="衣類をまとめて掛けやすいコートハンガー",
+            checklist_core=["衣類をまとめて掛けやすい", "収納スペースを増やしやすい"],
+            checklist_fallback="普段の衣類収納に取り入れやすい",
+            closing_variants=[
+                "ハンガーラックを探している人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "マルチクロス",
+        _PostTemplate(
+            # 「研磨」等、商品名に明示されていない性能は追加しない
+            # （「水垢取り」は用途の1つであり、研磨材が入っているとは
+            # 確認できない）。
+            hook_text="サッと拭き掃除、1枚で済ませられたら楽じゃない？",
+            topic_emoji="🧽",
+            worry_lines=[
+                "場所ごとに違う布を使い分けるのって、",
+                "地味に手間じゃないですか…😅",
+            ],
+            solution_text="いろいろな場所の拭き掃除に使いやすいマルチクロス",
+            checklist_core=["いろいろな場所の拭き掃除に使いやすい", "水洗いして繰り返し使いやすい"],
+            checklist_fallback="普段のお掃除に取り入れやすい",
+            closing_variants=[
+                "マルチクロスを探している人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
+    (
+        "キッチンツール",
+        _PostTemplate(
+            # 「レビューでスポンジ」はレビュー特典であり商品本体ではない
+            # （_PROMOTIONAL_MENTION_PREFIX_PATTERNで除外）。菜箸・トング・
+            # お玉・フライ返し・スプーンヘラ等、商品名から確認できる構成品
+            # だけを安全に反映する。
+            hook_text="キッチンツール、バラバラで揃えると地味に大変じゃない？",
+            topic_emoji="🍳",
+            worry_lines=[
+                "調理に使う道具を1つずつ揃えると、",
+                "地味に手間がかかりますよね…😅",
+            ],
+            solution_text="まとめて揃えやすいキッチンツール",
+            checklist_core=["まとめて揃えやすい", "普段の調理に使いやすい"],
+            checklist_fallback="毎日の調理に取り入れやすい",
+            closing_variants=[
+                "キッチンツールをまとめて揃えたい人におすすめ",
+                "気になる人はチェックしてみてほしい",
+            ],
+        ),
+    ),
 ]
 
 # 同じ商品タイプキーワード（例：「ドライヤースタンド」）でも、周辺語（文脈）
@@ -2012,20 +2249,37 @@ _PRODUCT_TYPE_CONTEXT_OVERRIDES: list[tuple[str, tuple[str, ...], _PostTemplate]
 # 個別の商品名をハードコードするのではなく、キーワードの前後関係で判定する）。
 _FEATURE_MENTION_SUFFIX_PATTERN = re.compile(r"^(付き|対応|式|機能|内蔵)")
 
-# 「オムツ」「うどん」「スポンジ」は、より具体的な商品名（マミーポコ
-# パンツ・ひもかわうどん・ほこり取りスポンジ等）に一致しなかった場合の
-# “商品ジャンルとしての最後の保険”として登録した、意図的に汎用的な
-# キーワード。そのため、同じ商品名に他の（より具体的な）商品タイプ
-# キーワードが一致する場合は、登場位置に関わらずそちらを優先する
-# （description-genre-006/008対応。「おむつペール」「おむつストッカー」
-# のように、商品本体は紙おむつではないのに「オムツ」という語だけを含む
-# 商品名で誤って紙おむつ用テンプレートが選ばれる問題への対応。「スポンジ」
-# も同様に、「ほこり取り スポンジ」のように商品名の先頭付近に単独で
-# 登場することがあり、「ほこり取りスポンジ」等の具体的複合語より先に
-# マッチしてしまうことがあったため追加した。商品名の中でこれらの汎用語が
-# たまたま先に登場していても、他の具体的な商品タイプ語があればそちらを
-# 優先するための汎用的な優先度）。
-_GENERIC_FALLBACK_PRODUCT_TYPE_KEYWORDS: frozenset[str] = frozenset({"オムツ", "うどん", "スポンジ"})
+# 商品名にこれらの語が直前にある場合、直後の言葉（PRODUCT_TYPE_TEMPLATES
+# のキーワード）は商品本体ではなく、レビュー投稿・購入特典・おまけとして
+# 別途もらえる物の言及とみなす（例：「レビューでスポンジ【マーナ公式】
+# キッチンツール5点セット」の「スポンジ」は、キッチンツール本体とは別に
+# レビュー投稿でもらえる特典であり、商品本体ではない）。商品タイトル内の
+# 「販促文＋本体名＋特徴」が混在していても、商品本体の判定を販促の特典
+# 語が上書きしないようにするための汎用的な仕組み（description-
+# genre-010対応。_FEATURE_MENTION_SUFFIX_PATTERN（付属品の接尾語除外）と
+# 対になる、特典の接頭語除外）。
+_PROMOTIONAL_MENTION_PREFIX_PATTERN = re.compile(
+    r"(レビューで|レビュー特典|レビュー投稿で|購入特典|プレゼント|おまけ)$"
+)
+
+# 「オムツ」「うどん」「スポンジ」「ハンガー」「水垢」は、より具体的な
+# 商品名（マミーポコパンツ・ひもかわうどん・ほこり取りスポンジ・
+# ハンガーラック・マルチクロス等）に一致しなかった場合の“商品ジャンルと
+# しての最後の保険”として登録した、意図的に汎用的なキーワード。そのため、
+# 同じ商品名に他の（より具体的な）商品タイプキーワードが一致する場合は、
+# 登場位置に関わらずそちらを優先する（description-genre-006/008/010
+# 対応。「おむつペール」「おむつストッカー」のように、商品本体は紙おむつ
+# ではないのに「オムツ」という語だけを含む商品名で誤って紙おむつ用
+# テンプレートが選ばれる問題への対応。「ハンガー」も同様に、「ハンガー
+# ラック」（業務用の衣類収納什器）という別商品の一部分（プレフィックス）
+# として登場することがあり、「ハンガー」単体の商品と誤認されていた。
+# 「水垢」も、「マルチクロス」等の商品名に用途の1つとして「水垢取り」が
+# 含まれる場合に、商品本体（水垢取り専用シート）と誤認されていた。
+# 商品名の中でこれらの汎用語がたまたま先に登場していても、他の具体的な
+# 商品タイプ語があればそちらを優先するための汎用的な優先度）。
+_GENERIC_FALLBACK_PRODUCT_TYPE_KEYWORDS: frozenset[str] = frozenset(
+    {"オムツ", "うどん", "スポンジ", "ハンガー", "水垢"}
+)
 
 
 def _iter_product_type_keyword_matches(name: str):
@@ -2033,9 +2287,11 @@ def _iter_product_type_keyword_matches(name: str):
     (キーワード, テンプレート)を、優先度の高い順に返すジェネレーター。
 
     同じキーワードが複数回登場する場合、「◯◯付き」等の付属品・対応機能
-    としての言及（_FEATURE_MENTION_SUFFIX_PATTERN）はスキップし、商品
-    本体としての言及だけを対象にする。どの登場箇所も付属品としての言及
-    だった場合、そのキーワードは一致なしとして次のキーワードに進む。
+    としての言及（_FEATURE_MENTION_SUFFIX_PATTERN）や、「レビューで◯◯」
+    等のレビュー特典・購入特典としての言及（_PROMOTIONAL_MENTION_
+    PREFIX_PATTERN）はスキップし、商品本体としての言及だけを対象にする。
+    どの登場箇所も商品本体としての言及ではなかった場合、そのキーワードは
+    一致なしとして次のキーワードに進む。
 
     複数の異なる商品タイプキーワードが同じ商品名に登場する場合（例：
     「サーキュレーター」と「扇風機」が両方とも商品名に含まれる商品）、
@@ -2058,6 +2314,9 @@ def _iter_product_type_keyword_matches(name: str):
         for match in re.finditer(re.escape(keyword), name):
             remainder = name[match.end():]
             if _FEATURE_MENTION_SUFFIX_PATTERN.match(remainder):
+                continue
+            prefix = name[: match.start()]
+            if _PROMOTIONAL_MENTION_PREFIX_PATTERN.search(prefix):
                 continue
             candidates.append((int(is_generic_fallback), match.start(), order, keyword, template))
             break
@@ -2935,6 +3194,14 @@ _QUANTITY_PATTERNS: tuple[re.Pattern[str], ...] = (
         r"\d+(?:\.\d+)?\s*(?:g|kg|ml|mL|L|ℓ|cm|mm)"
         r"(?:\s+\d+(?:\.\d+)?\s*(?:g|kg|ml|mL|L|ℓ|cm|mm)){1,4}"
     ),
+    # 例：「3袋 10袋 20袋」のように、同じ個数単位の数値が空白区切りで
+    # 複数並んでいる表記。上と同じ理由で最優先で抜き出す（description-
+    # genre-010対応。もつ煮の「3袋・10袋・20袋から選べる」のように、
+    # 内容量ではなく購入数の選択肢を示す商品名に対応するための追加）。
+    re.compile(
+        r"\d+\s*(?:本|個|枚|袋|セット|包|パック)"
+        r"(?:\s+\d+\s*(?:本|個|枚|袋|セット|包|パック)){1,4}"
+    ),
     # 例：「260g超軽量」のように、重さの単位の直後に「軽量」「超軽量」が
     # 続く表記。単位の直後が漢字（「超」等）の場合、Unicode正規表現の
     # 単語境界（\b）は数字・アルファベットと漢字の間では成立しないため、
@@ -2983,7 +3250,9 @@ _QUANTITY_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(r"\d+(?:\.\d+)?\s*g\s*カット"),
     # 「6食」「4食セット」のような食品のセット内容表記も、内容量として
     # 抜き出せるようにする（description-genre-002対応。「食」を追加）。
-    re.compile(r"\d+\s*(?:本|個|枚|袋|セット|包|パック|食)(?:入り)?"),
+    # 「1個入」のように「入り」の「り」が省略された表記にも対応する
+    # （description-genre-010対応）。
+    re.compile(r"\d+\s*(?:本|個|枚|袋|セット|包|パック|食)(?:入り?)?"),
     # 例：「20P」のような、個数を「P（パック／ピース）」で表す表記
     # （description-genre-004対応。ボタン電池等でよく使われる表記）。
     re.compile(r"\d+\s*P\b"),
@@ -3161,24 +3430,64 @@ _SERVINGS_UNIT_SUFFIX_PATTERN = re.compile(r"人前$")
 # 「100g 500g 1000g」のように、同じ単位の数値が空白区切りで複数並んで
 # いる表記かどうかの判定用（description-genre-006対応）。
 _SIZE_OPTIONS_TOKEN_PATTERN = re.compile(r"^\d+(?:\.\d+)?(?:g|kg|ml|mL|L|ℓ|cm|mm)$")
+# 「3袋 10袋 20袋」のように、同じ個数単位の数値が空白区切りで複数並んで
+# いる表記かどうかの判定用（description-genre-010対応。もつ煮の
+# 「3袋・10袋・20袋」のように、内容量ではなく購入数の選択肢を示す
+# 商品名に対応するための追加。重さ・容量とは別の判定にすることで、
+# 単位の異なる数値同士を誤って1つの選択肢一覧として扱わないようにする）。
+_COUNT_OPTIONS_TOKEN_PATTERN = re.compile(r"^\d+(?:本|個|枚|袋|セット|包|パック)$")
 
 
 def _phrase_for_size_options(quantity_phrase: str) -> str | None:
-    """quantity_phraseが「100g 500g 1000g」のような、同じ単位のサイズ
-    候補の並びであれば「100g・500g・1000gから選べる」という言い回しを
-    返す。並びでなければNone（呼び出し側で通常の単位別の言い回しに
-    フォールバックする）。
+    """quantity_phraseが「100g 500g 1000g」「3袋 10袋 20袋」のような、
+    同じ単位のサイズ・数量候補の並びであれば「100g・500g・1000gから
+    選べる」という言い回しを返す。並びでなければNone（呼び出し側で通常の
+    単位別の言い回しにフォールバックする）。
 
-    複数サイズの中の最初の値だけを取り出して「重さは約100g」のように
-    固定サイズだと誤認させないための仕組み（description-genre-006対応。
-    数値と数値の間に単位以外の語が入らない、空白区切りの並びだけを
-    対象にしているため、無関係な数値を誤ってサイズ候補として扱う
-    リスクは低い）。
+    複数候補の中の最初の値だけを取り出して「重さは約100g」「3袋セット」
+    のように固定数量だと誤認させないための仕組み（description-
+    genre-006/010対応。数値と数値の間に単位以外の語が入らない、空白区切り
+    の並びだけを対象にしているため、無関係な数値を誤って選択肢として
+    扱うリスクは低い）。
     """
     tokens = quantity_phrase.split()
-    if len(tokens) < 2 or not all(_SIZE_OPTIONS_TOKEN_PATTERN.match(token) for token in tokens):
+    if len(tokens) < 2:
         return None
-    return "・".join(tokens) + "から選べる"
+    if all(_SIZE_OPTIONS_TOKEN_PATTERN.match(token) for token in tokens):
+        return "・".join(tokens) + "から選べる"
+    if all(_COUNT_OPTIONS_TOKEN_PATTERN.match(token) for token in tokens):
+        return "・".join(tokens) + "から選べる"
+    return None
+
+
+# 「幅90cm」「高さ180cm」のように、cm/mmの数値の直前に寸法の種類を示す
+# ラベルがある場合、そのラベルをそのまま使う（「サイズは約90cm」という
+# 種類を問わない画一的な言い回しではなく、「幅は約90cm」「高さは約180cm」
+# のように区別する。description-genre-010対応。「耐荷重100kg」を商品の
+# 重さと誤認しないようにした仕組み（_is_confirmed_kg_weight）と同じ
+# 考え方で、数値の直前の文脈から意味を確認する）。
+_DIMENSION_LABEL_WORDS: tuple[str, ...] = ("幅", "高さ", "奥行き", "奥行", "長さ", "直径", "厚み", "厚さ")
+_DIMENSION_LABEL_WINDOW = 4
+
+
+def _dimension_label_for(name: str, quantity_phrase: str) -> str | None:
+    index = name.find(quantity_phrase)
+    if index <= 0:
+        return None
+    prefix = name[max(0, index - _DIMENSION_LABEL_WINDOW) : index]
+    for label in _DIMENSION_LABEL_WORDS:
+        if prefix.endswith(label):
+            return label
+    return None
+
+
+# 「1個から販売」「1個入」のように、数量が1つだけの場合に「1個セット」
+# という不自然な言い回しにしない（「セット」は複数まとまっている場合の
+# 言い回しのため）。「入」「入り」が商品名にすでにある場合はその表記の
+# ままにし、無ければ数字と単位だけをそのまま使う（description-
+# genre-010対応。数量表現自体を安全に省略する方向のバリエーション）。
+_SINGLE_COUNT_QUANTITY_PATTERN = re.compile(r"^1(?:本|個|枚|袋|セット|包|パック)$")
+_IRI_SUFFIX_PATTERN = re.compile(r"入り?$")
 
 
 def _phrase_for_quantity(quantity_phrase: str, name: str) -> str:
@@ -3204,7 +3513,8 @@ def _phrase_for_quantity(quantity_phrase: str, name: str) -> str:
             return f"{base}・計{total}"
         return f"{_add_iri_after_leading_count_unit(quantity_phrase)}で使いやすい"
     if _SIZE_UNIT_SUFFIX_PATTERN.search(quantity_phrase):
-        return f"サイズは約{quantity_phrase}"
+        label = _dimension_label_for(name, quantity_phrase) or "サイズ"
+        return f"{label}は約{quantity_phrase}"
     if _WEIGHT_UNIT_SUFFIX_PATTERN.search(quantity_phrase):
         return f"重さは約{quantity_phrase}"
     if _VOLUME_UNIT_SUFFIX_PATTERN.search(quantity_phrase):
@@ -3212,6 +3522,8 @@ def _phrase_for_quantity(quantity_phrase: str, name: str) -> str:
     if _P_UNIT_SUFFIX_PATTERN.search(quantity_phrase):
         return f"{quantity_phrase}入り"
     if _SERVINGS_UNIT_SUFFIX_PATTERN.search(quantity_phrase):
+        return quantity_phrase
+    if _IRI_SUFFIX_PATTERN.search(quantity_phrase):
         return quantity_phrase
     if _COUNT_UNIT_SUFFIX_PATTERN.search(quantity_phrase):
         has_variety_evidence = any(
@@ -3221,6 +3533,8 @@ def _phrase_for_quantity(quantity_phrase: str, name: str) -> str:
         if is_variety:
             return f"{quantity_phrase}セットでいろいろな種類を試しやすい"
         if _COUNT_UNIT_HAS_SET_WORD_PATTERN.search(quantity_phrase):
+            return quantity_phrase
+        if _SINGLE_COUNT_QUANTITY_PATTERN.match(quantity_phrase):
             return quantity_phrase
         return f"{quantity_phrase}セット"
     return f"{quantity_phrase}で使いやすい"
@@ -3643,6 +3957,24 @@ _PRODUCT_TYPE_HASHTAG_OVERRIDES: dict[str, list[str]] = {
     "ほこり取りスポンジ": ["#掃除グッズ", "#ほこり取り"],
     "ダスタースポンジ": ["#掃除グッズ", "#ほこり取り"],
     "掃除スポンジ": ["#掃除グッズ", "#ほこり取り"],
+    # 2026-09-29生成分で新しく見つかった商品タイプ（description-genre-010対応）。
+    "おねしょズボン": ["#キッズ用品", "#おねしょズボン"],
+    "おねしょパンツ": ["#キッズ用品", "#おねしょズボン"],
+    "スタイ": ["#ベビー用品", "#お食事エプロン"],
+    "お食事エプロン": ["#ベビー用品", "#お食事エプロン"],
+    "保冷バッグ": ["#保冷バッグ", "#買い物グッズ"],
+    "保冷ふろしき": ["#保冷バッグ", "#買い物グッズ"],
+    "もつ煮": ["#グルメ", "#もつ煮"],
+    "モツ煮": ["#グルメ", "#もつ煮"],
+    "ハンガーラック": ["#収納", "#ハンガーラック"],
+    "コートハンガー": ["#収納", "#ハンガーラック"],
+    "マルチクロス": ["#掃除グッズ", "#マルチクロス"],
+    "キッチンツール": ["#キッチン用品", "#キッチンツール"],
+    # 既存の（description-genre-006以前からある）汎用「スポンジ」商品
+    # タイプ判定は、main.pyの商品タイプ偏り防止（ランキング）とも共有して
+    # いるため変更しない。ハッシュタグだけ商品本体（キッチン用スポンジ）
+    # に合わせる（description-genre-010対応）。
+    "スポンジ": ["#キッチン用品", "#キッチンスポンジ"],
 }
 
 

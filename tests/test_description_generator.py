@@ -2638,5 +2638,213 @@ class DescriptionGenre009RegressionTest(unittest.TestCase):
         self.assertIn("80枚入り×40個で使いやすい", old_wipes_description)
 
 
+class Sept29BatchRegressionTest(unittest.TestCase):
+    """2026-09-29 15:50生成分のroom/data/candidates.jsonで実際に見つかった、
+    商品本体判定の誤り（description-genre-010）の回帰テスト。「レビュー
+    特典」「用途語」「複合語の一部分」を商品本体と誤認しないこと、数値の
+    意味（幅・高さ・耐荷重の区別、数量1個の扱い、選択肢の並び）を正しく
+    扱うことを確認する。商品名は本番で実際に取得された表記をそのまま
+    使っている。"""
+
+    BEDWETTING_PANTS_NAME = (
+        "楽天No.1 おねしょ ズボン 秋 小学生 完全防水 夏素材 おねしょズボン 保育園 防水 パンツ "
+        "ケット 子ども 子供 こども 女の子 男の子 冬 漏れない パジャマ トレーニングパンツ トイトレ "
+        "綿100% おねしょパンツ"
+    )
+    MEAL_APRON_NAME = (
+        "【人気カラー在庫復活！】 テマロン スタイ お食事エプロン 長袖 食べこぼし 離乳食 掴み食べ "
+        "ベビーエプロン 保育園 撥水 大きめ 男の子 女の子 赤ちゃん おしゃれ BLW 子供用 幼児 "
+        "ベビー用品 出産祝い 送料無料"
+    )
+    COOLER_BAG_NAME = (
+        "【楽天デイリー1位】【Makuake公式】 保冷バッグ ORIBA ふろしき 保冷 保温 ふろしき 風呂敷 "
+        "買い物 アルミコート素材 接着力 耐久力 冷たさ持続 衛生的 大容量 肉 魚 野菜 ドリンク "
+        "乳製品 刺身 アイス 冷凍食品 お弁当 洗濯機 プレゼント ギフト Makuake マクアケ"
+    )
+    MOTSUNI_NAME = (
+        "国産豚のもつ煮 3袋 10袋 20袋　レトルト 310g / 1袋 もつ煮込み 国産豚 もつ煮 レトルト "
+        "モツ煮 お取り寄せ ギフト おつまみ 保存食 こんにゃく ピリ辛 惣菜 晩酌 家飲み ご飯のお供 "
+        "1000円ポッキリ ビールに合う"
+    )
+    HANGER_RACK_NAME = (
+        "業務用 ハンガーラック 組立不要 頑丈 幅90cm 耐荷重100kg 高さ180cm S-Class900 高耐荷重 "
+        "コートハンガー 洋服掛け 衣類収納 大容量 パイプハンガー 店舗什器 什器 キャスター付き "
+        "アパレル 大量収納 在庫管理 日本製 アイアン 溶接構造 スチール製 ハンガー什器 タフグラン"
+    )
+    LR41_SINGLE_NAME = "アルカリボタン電池（LR41）1個から販売 【送料無料 AG3/LR41 1.5V】"
+    MULTI_CLOTH_NAME = (
+        "〈10%OFFクーポンあり/3枚セット〉国内大手メーカー採用、汚れ拭き・吸水性・耐久性抜群 "
+        "daily特注マルチクロス3枚セット キッチン 洗面所 鏡拭き 窓拭き 雑巾 テーブルダスター "
+        "吸水性 速乾 水垢取り お掃除用品 北欧 おしゃれ マイクロファイバー お掃除クロス mukuri"
+    )
+    KITCHEN_SPONGE_SINGLE_NAME = (
+        "【お試し・初回購入限定】太陽油脂　パックスナチュロン　キッチンスポンジ 1個入 "
+        "PAX NATURONの束子・スポンジ ( 4904735053095 ) ※色は選べません ※本商品　初めての購入者"
+        "限定価格　お一人様1回限り"
+    )
+    KITCHEN_TOOLS_SET_NAME = (
+        "レビューでスポンジ【マーナ公式】キッチンツール 5点セット食洗機対応 シリコン 耐熱 菜ばし "
+        "トング お玉 フライ返し スプーンヘラ 調理スプーン 壁掛け 吊り下げ 収納 使いやすい "
+        "おしゃれ かわいい キッチン 便利グッズ 調理器具 一人暮らし 新生活 ギフト X162"
+    )
+
+    # 1. おねしょズボンを汎用ベビー用品だけで終わらせない。
+    def test_bedwetting_pants_is_not_only_generic_baby_goods(self):
+        item = make_item(name=self.BEDWETTING_PANTS_NAME)
+        description = dg.generate_description(item, category="ベビー用品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("おねしょ", description)
+        self.assertNotIn("赤ちゃんとの暮らしに取り入れやすいベビー用品◎", description)
+
+    # 2. おねしょズボンを赤ちゃん専用と決めつけない。
+    def test_bedwetting_pants_does_not_assume_babies_only(self):
+        item = make_item(name=self.BEDWETTING_PANTS_NAME)
+        description = dg.generate_description(item, category="ベビー用品", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("赤ちゃんとの暮らし", description)
+        for phrase in ("絶対に漏れない", "完全に防げる"):
+            self.assertNotIn(phrase, description)
+
+    # 3. お食事エプロンを具体的に判定する。
+    def test_meal_apron_is_recognized_specifically(self):
+        item = make_item(name=self.MEAL_APRON_NAME)
+        description = dg.generate_description(item, category="ベビー用品", base_hashtags=BASE_HASHTAGS)
+        self.assertTrue("スタイ" in description or "エプロン" in description)
+        self.assertNotIn("赤ちゃんとの暮らしに取り入れやすいベビー用品◎", description)
+
+    # 4. 保冷バッグを汎用ファッションと誤認しない。
+    def test_cooler_bag_is_not_mistaken_for_generic_fashion_item(self):
+        item = make_item(name=self.COOLER_BAG_NAME)
+        description = dg.generate_description(item, category="ファッション", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("保冷", description)
+        self.assertNotIn("普段のおでかけに取り入れやすいアイテム◎", description)
+        self.assertNotIn("天気や気温で困ることがあります", description)
+
+    # 5. もつ煮を具体的食品として判定する。
+    def test_motsuni_is_recognized_as_a_specific_food(self):
+        item = make_item(name=self.MOTSUNI_NAME)
+        description = dg.generate_description(item, category="食品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("もつ煮", description)
+        self.assertNotIn("手軽に楽しめそうな食品◎", description)
+
+    # 6. 3袋/10袋/20袋を選択肢として扱う。
+    def test_motsuni_bag_options_are_treated_as_choices(self):
+        item = make_item(name=self.MOTSUNI_NAME)
+        description = dg.generate_description(item, category="食品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("3袋・10袋・20袋から選べる", description)
+        self.assertNotIn("3袋セット", description)
+
+    # 7. 「310g / 1袋」の意味を壊さない（3袋×310gのように勝手に計算
+    # しない）。
+    def test_motsuni_per_bag_weight_is_not_multiplied(self):
+        phrase = dg._extract_quantity_phrase(self.MOTSUNI_NAME)
+        self.assertEqual(phrase, "3袋 10袋 20袋")
+        item = make_item(name=self.MOTSUNI_NAME)
+        description = dg.generate_description(item, category="食品", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("930g", description)
+
+    # 8. ハンガーラックをハンガーと誤認しない。
+    def test_hanger_rack_is_not_mistaken_for_a_plain_hanger(self):
+        item = make_item(name=self.HANGER_RACK_NAME)
+        description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("ハンガーラック", description)
+        self.assertNotIn("衣類が滑りにくく、まとめて揃えやすいハンガー◎", description)
+
+    # 9. 幅90cm / 高さ180cm / 耐荷重100kgを区別する。
+    def test_hanger_rack_dimensions_are_distinguished(self):
+        item = make_item(name=self.HANGER_RACK_NAME)
+        description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("幅は約90cm", description)
+        self.assertNotIn("サイズは約90cm", description)
+
+    # 10. 耐荷重100kgを商品重量と誤認しない。
+    def test_hanger_rack_load_capacity_is_not_mistaken_for_product_weight(self):
+        item = make_item(name=self.HANGER_RACK_NAME)
+        description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("重さは約100kg", description)
+
+    # 11. LR41の「1個」を「1個セット」にしない。
+    def test_lr41_single_unit_is_not_expressed_as_a_set(self):
+        item = make_item(name=self.LR41_SINGLE_NAME)
+        description = dg.generate_description(item, category="健康", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("1個", description)
+        self.assertNotIn("1個セット", description)
+
+    # 12. マルチクロスを研磨シートと誤認しない。
+    def test_multi_cloth_is_not_mistaken_for_an_abrasive_sheet(self):
+        item = make_item(name=self.MULTI_CLOTH_NAME)
+        description = dg.generate_description(item, category="掃除", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("マルチクロス", description)
+        self.assertNotIn("お手入れシート◎", description)
+
+    # 13. タイトルにない「研磨」を生成しない。
+    def test_multi_cloth_does_not_generate_unconfirmed_abrasive_claim(self):
+        item = make_item(name=self.MULTI_CLOTH_NAME)
+        description = dg.generate_description(item, category="掃除", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("研磨", description)
+
+    # 14. キッチンスポンジ「1個入」を「1個セット」にしない。
+    def test_kitchen_sponge_single_unit_is_not_expressed_as_a_set(self):
+        item = make_item(name=self.KITCHEN_SPONGE_SINGLE_NAME)
+        description = dg.generate_description(item, category="キッチン消耗品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("1個入", description)
+        self.assertNotIn("1個セット", description)
+
+    # 15. レビュー特典のスポンジを商品本体と誤認しない。
+    def test_review_incentive_sponge_is_not_mistaken_for_the_product_itself(self):
+        item = make_item(name=self.KITCHEN_TOOLS_SET_NAME)
+        description = dg.generate_description(item, category="キッチン", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("食器洗いに使いやすいキッチン用スポンジ◎", description)
+
+    # 16. マーナの商品をキッチンツール5点セットとして判定する。
+    def test_marna_product_is_recognized_as_a_kitchen_tools_set(self):
+        item = make_item(name=self.KITCHEN_TOOLS_SET_NAME)
+        description = dg.generate_description(item, category="キッチン", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("キッチンツール", description)
+
+    # 17. 本物のスポンジ商品は引き続きスポンジとして判定する（回帰確認）。
+    def test_genuine_sponge_product_is_still_recognized_as_a_sponge(self):
+        self.assertEqual(dg.match_product_type_keyword(self.KITCHEN_SPONGE_SINGLE_NAME), "スポンジ")
+        item = make_item(name=self.KITCHEN_SPONGE_SINGLE_NAME)
+        description = dg.generate_description(item, category="キッチン消耗品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("スポンジ", description)
+
+    # 18. 具体的商品タイプに旧#暮らしの便利グッズ/#便利グッズを付けない。
+    def test_new_product_types_do_not_get_mechanical_kurashi_hashtags(self):
+        expectations = {
+            self.BEDWETTING_PANTS_NAME: ("ベビー用品", "#おねしょズボン"),
+            self.MEAL_APRON_NAME: ("ベビー用品", "#お食事エプロン"),
+            self.COOLER_BAG_NAME: ("ファッション", "#保冷バッグ"),
+            self.MOTSUNI_NAME: ("食品", "#もつ煮"),
+            self.HANGER_RACK_NAME: ("収納", "#ハンガーラック"),
+            self.MULTI_CLOTH_NAME: ("掃除", "#マルチクロス"),
+            self.KITCHEN_SPONGE_SINGLE_NAME: ("キッチン消耗品", "#キッチンスポンジ"),
+            self.KITCHEN_TOOLS_SET_NAME: ("キッチン", "#キッチンツール"),
+        }
+        for name, (category, expected_tag) in expectations.items():
+            item = make_item(name=name)
+            description = dg.generate_description(item, category=category, base_hashtags=BASE_HASHTAGS)
+            hashtag_line = description.split("\n\n")[-1]
+            self.assertIn(expected_tag, hashtag_line, description)
+            self.assertNotIn("#暮らしの便利グッズ", hashtag_line)
+            self.assertNotIn("#便利グッズ", hashtag_line)
+            self.assertLessEqual(len(description), 500)
+
+    # 19. 稲庭うどんの商品タイプ・数量・ハッシュタグを壊さない（回帰確認）。
+    def test_inaniwa_udon_regression_is_preserved(self):
+        item = make_item(
+            name=(
+                "【オシャレパッケージでお届け】稲庭うどん プチギフト 送料無料 メール便 ポスト投函 "
+                "うどん 乾麺 グルメ お取り寄せ 稲庭うどん（6人前） 無限堂 秋田 おしゃれ パッケージ "
+                "贈答品 御礼 ご挨拶 気軽 手軽 お返し ご当地グルメ プレゼント 稲庭うどん"
+            )
+        )
+        description = dg.generate_description(item, category="食品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("うどん", description)
+        self.assertIn("6人前", description)
+        self.assertNotIn("6人前で使いやすい", description)
+        hashtag_line = description.split("\n\n")[-1]
+        self.assertIn("#グルメ", hashtag_line)
+        self.assertIn("#うどん", hashtag_line)
+
+
 if __name__ == "__main__":
     unittest.main()
