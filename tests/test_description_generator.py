@@ -2954,5 +2954,277 @@ class Sept29FinalReviewFixTest(unittest.TestCase):
         self.assertNotIn("研磨", description)
 
 
+class Sept30BatchRegressionTest(unittest.TestCase):
+    """2026-09-30 15:51生成分の商品名で、商品本体判定をAPI側categoryより
+    優先する一般化（description-genre-012）を確認する。商品名は本番で
+    実際に取得された表記をそのまま使っている。"""
+
+    SOAP_SCUM_SCRAPER_NAME = (
+        "【錫村商店公式】石鹸カス 落とし ヘラ スクレーパー 掃除道具 浴室 湯垢 ヌメリ【落ちない石鹸カスに】"
+        "根岸棒｜削って除去 プロ仕様 業務用"
+    )
+    SOBA_TEA_NAME = (
+        "国産 韃靼そば茶 5g x 50p（250g 大容量 ティーバッグ） ほんぢ園 ＜ペットボトルよりお得 蕎麦茶 "
+        "ダッタンそば茶 だったんそばちゃ 韃靼そばちゃ だったんそば茶 韃靼そば ルチン ノンカフェイン "
+        "そば茶国産＞送料無料【LC】／セ／●"
+    )
+    FACE_ROLLER_NAME = (
+        "【公式】鍼 マッサージ フェイスローラー ボディ 頭皮ケア ブラシ 血行促進 むくみ 胸鎖乳突筋美顔器 "
+        "リフトアップ ほうれい線 コロコロ 鍼 小顔 たるみ 充電不要 ギフト プレゼント HALIFT （ハリフト）シリーズ"
+    )
+    BABY_PILLOW_NAME = (
+        "【楽天1位】絶壁防止枕 ベビー枕 洗える 吐き戻し防止 赤ちゃん 枕 まくら 絶壁防止 出産祝い ベビー用品 "
+        "ベビー 絶壁 枕 三面調節 通気性抜群 丸洗い 新生児 0ヶ月 向き癖防止 高さ調節 子供 ベビーピロー "
+        "向き癖丸い頭 ベビーまくら 通気 睡眠サポート"
+    )
+    HAND_SPINNER_NAME = (
+        "2026年【TV紹介品】 ギフト無料 Polaristure 【正規品】くるくるスピンフレンド ハンドスピナー 赤ちゃん "
+        "お風呂 おもちゃ 赤ちゃん おもちゃ 0歳 固定バンドでベビーカーOK 【食品衛生法試験合格】 "
+        "蝶/てんとう虫/ハチ 3点セット 箱付き"
+    )
+    HAMBURG_NAME = (
+        "【33%OFFクーポン！9/30〜10/1】【楽天グルメ大賞受賞】ふるさと納税で大人気 累計4000万個突破！"
+        "食の便利屋きよかわ デミソース ハンバーグ 湯煎 鉄板焼 ハンバーグ 130g×10個/20個 温めるだけ 冷凍 "
+        "美味しい 小分け 大容量 冷凍食品 レトルト"
+    )
+    BEEF_TENDON_CURRY_NAME = (
+        "【レトルトでは味わえない本格カレー】じっくり煮込んだ牛すじの旨味がたっぷりとろけた、"
+        "ちょっとスパイシーな専門店のコク旨牛すじカレー！牛すじカレー専門店「戸紀屋」のこだわり"
+        "牛すじカレー 3パックセット"
+    )
+    PVC_HANGER_NAME = (
+        "極太PVCコーティング 滑らないハンガー 30本セット （軽くて丈夫！衣類が滑らず、かさばらないから"
+        "クローゼットもスッキリの便利なハンガー） 10本単位で選べる16色 収納 洋服 和服 軽い 軽量 洗濯 "
+        "外干し 部屋干し ステンレス ランドリー 上着 ジャケット コート スーツ"
+    )
+    HYPOCHLOROUS_WATER_NAME = (
+        "サライウォーター2L 次亜塩素酸水 除菌 消臭【7/8リアルタイムランキング1位】次亜塩素酸 無害 "
+        "消臭除菌水 靴 塩素 臭い キッチン 犬 猫 ペット臭 衛生 子ども たばこ 靴 嘔吐処理 スプレー トイレ臭 "
+        "におい カビ 汗臭 消臭剤 除菌剤 即送 遮光袋付 空間除菌 ギフト容器"
+    )
+    DESK_FAN_NAME = (
+        "【楽天総合ランキング1位】【正規品】【予約受付中】卓上扇風機 South Light 扇風機 壁掛け 吊り下げ "
+        "マグネットリモコン付き LED照明機能付き 1台3役 サーキュレーター USB充電 風量3段階 パワフル送風 "
+        "ギフト i-00004"
+    )
+
+    # 1. 石鹸カス用スクレーパーを具体的に判定する。
+    def test_soap_scum_scraper_is_recognized_specifically(self):
+        item = make_item(name=self.SOAP_SCUM_SCRAPER_NAME)
+        description = dg.generate_description(item, category="掃除", base_hashtags=BASE_HASHTAGS)
+        self.assertTrue("石鹸カス" in description or "スクレーパー" in description)
+        self.assertNotIn("そんな掃除の手間を減らしてくれそうな掃除グッズ◎", description)
+
+    # 2. 「業務用」だけで大容量/大型/たっぷりを生成しない。
+    def test_gyoumuyou_does_not_generate_bulk_size_claim(self):
+        item = make_item(name=self.SOAP_SCUM_SCRAPER_NAME)
+        description = dg.generate_description(item, category="掃除", base_hashtags=BASE_HASHTAGS)
+        for phrase in ("業務用サイズ", "大容量", "たっぷり", "大型"):
+            self.assertNotIn(phrase, description, description)
+
+    # 3. 韃靼そば茶5g×50Pを商品重量5gにしない。
+    def test_soba_tea_5g_is_not_mistaken_for_product_weight(self):
+        item = make_item(name=self.SOBA_TEA_NAME)
+        description = dg.generate_description(item, category="お茶", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("重さは約5g", description)
+
+    # 4. 5g×50包・計250gの意味を区別する。
+    def test_soba_tea_pack_and_total_are_distinguished(self):
+        item = make_item(name=self.SOBA_TEA_NAME)
+        description = dg.generate_description(item, category="お茶", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("5g×50包", description)
+        self.assertIn("計250g", description)
+
+    # 5. category=掃除でもフェイスローラーを掃除用品にしない。
+    def test_face_roller_is_not_treated_as_a_cleaning_product_despite_category(self):
+        item = make_item(name=self.FACE_ROLLER_NAME)
+        description = dg.generate_description(item, category="掃除", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("フェイスローラー", description)
+        self.assertNotIn("そんな掃除の手間を減らしてくれそうな掃除グッズ◎", description)
+
+    # 6. HALIFTで美容効果を断定しない。
+    def test_face_roller_does_not_claim_beauty_effects(self):
+        item = make_item(name=self.FACE_ROLLER_NAME)
+        description = dg.generate_description(item, category="掃除", base_hashtags=BASE_HASHTAGS)
+        for phrase in (
+            "むくみが取れる", "小顔になる", "リフトアップする",
+            "ほうれい線が消える", "血行が良くなる", "改善する",
+        ):
+            self.assertNotIn(phrase, description, description)
+
+    # 7. ベビー枕を具体的に判定する。
+    def test_baby_pillow_is_recognized_specifically(self):
+        item = make_item(name=self.BABY_PILLOW_NAME)
+        description = dg.generate_description(item, category="ベビー用品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("枕", description)
+        self.assertNotIn("赤ちゃんとの暮らしに取り入れやすいベビー用品◎", description)
+
+    # 8. ベビー枕で身体効果を断定しない。
+    def test_baby_pillow_does_not_claim_health_effects(self):
+        item = make_item(name=self.BABY_PILLOW_NAME)
+        description = dg.generate_description(item, category="ベビー用品", base_hashtags=BASE_HASHTAGS)
+        for phrase in ("絶壁を防ぐ", "頭の形を改善する", "吐き戻しを防ぐ", "向き癖を治す"):
+            self.assertNotIn(phrase, description, description)
+
+    # 9. ハンドスピナーを具体的に判定する。
+    def test_hand_spinner_is_recognized_specifically(self):
+        item = make_item(name=self.HAND_SPINNER_NAME)
+        description = dg.generate_description(item, category="ベビー用品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("ハンドスピナー", description)
+        self.assertNotIn("赤ちゃんとの暮らしに取り入れやすいベビー用品◎", description)
+
+    # 10. 3点セットを正しく扱う。
+    def test_hand_spinner_3_piece_set_is_handled_correctly(self):
+        item = make_item(name=self.HAND_SPINNER_NAME)
+        description = dg.generate_description(item, category="ベビー用品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("3点セット", description)
+
+    # 11. 130g×10個/20個を10個固定にしない。
+    def test_hamburg_pack_count_options_are_not_fixed_to_one_value(self):
+        item = make_item(name=self.HAMBURG_NAME)
+        description = dg.generate_description(item, category="食品", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("130g×10個で使いやすい", description)
+        self.assertIn("10個", description)
+        self.assertIn("20個", description)
+
+    # 12. 130gを1個あたりとして扱う。
+    def test_hamburg_130g_is_treated_as_per_unit_amount(self):
+        item = make_item(name=self.HAMBURG_NAME)
+        description = dg.generate_description(item, category="食品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("1個あたり130g", description)
+
+    # 13. 牛すじカレーを具体的に判定する。
+    def test_beef_tendon_curry_is_recognized_specifically(self):
+        item = make_item(name=self.BEEF_TENDON_CURRY_NAME)
+        description = dg.generate_description(item, category="食品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("牛すじカレー", description)
+        self.assertNotIn("ストックしておきたい食品◎", description)
+
+    # 14. 「レトルトでは味わえない」をレトルト商品と誤認しない。
+    def test_beef_tendon_curry_negation_context_is_not_misread_as_retort(self):
+        item = make_item(name=self.BEEF_TENDON_CURRY_NAME)
+        description = dg.generate_description(item, category="食品", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("温めるだけで食べられるレトルトカレー", description)
+
+    # 15. ハンガー30本セットを維持する（回帰確認）。
+    def test_pvc_hanger_30_pack_set_is_preserved(self):
+        item = make_item(name=self.PVC_HANGER_NAME)
+        description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("30本セット", description)
+        self.assertIn("衣類が滑り落ちにくい", description)
+
+    # 16. ハンガーの旧汎用タグを削除する。
+    def test_pvc_hanger_old_generic_hashtags_are_removed(self):
+        item = make_item(name=self.PVC_HANGER_NAME)
+        description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS)
+        hashtag_line = description.split("\n\n")[-1]
+        self.assertIn("#ハンガー", hashtag_line)
+        self.assertNotIn("#暮らしの便利グッズ", hashtag_line)
+        self.assertNotIn("#便利グッズ", hashtag_line)
+
+    # 17. category=キッチンでも次亜塩素酸水をキッチングッズにしない。
+    def test_hypochlorous_water_is_not_treated_as_a_kitchen_product_despite_category(self):
+        item = make_item(name=self.HYPOCHLOROUS_WATER_NAME)
+        description = dg.generate_description(item, category="キッチン", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("次亜塩素酸水", description)
+        self.assertNotIn("キッチングッズ", description)
+        self.assertNotIn("料理や後片付けをラクにする", description)
+
+    # 18. 2Lを商品容量として扱う。
+    def test_hypochlorous_water_2l_is_treated_as_confirmed_volume(self):
+        item = make_item(name=self.HYPOCHLOROUS_WATER_NAME)
+        description = dg.generate_description(item, category="キッチン", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("容量は2L", description)
+        self.assertNotIn("容量は約2L", description)
+
+    # 19. 次亜塩素酸水で安全性/除菌効果を過剰断定しない。
+    def test_hypochlorous_water_does_not_overclaim_safety_or_disinfection(self):
+        item = make_item(name=self.HYPOCHLOROUS_WATER_NAME)
+        description = dg.generate_description(item, category="キッチン", base_hashtags=BASE_HASHTAGS)
+        for phrase in (
+            "完全に無害", "人体に安全", "ペットに絶対安全", "病原体を確実に除去",
+            "空間を完全除菌", "感染症予防",
+        ):
+            self.assertNotIn(phrase, description, description)
+
+    # 20. 「マグネットリモコン付き」を本体マグネット設置と誤認しない。
+    def test_desk_fan_magnet_remote_is_not_read_as_magnetic_mounting(self):
+        item = make_item(name=self.DESK_FAN_NAME)
+        description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("マグネットで取り付けられる", description)
+
+    # 21. 扇風機の商品本体判定を維持する（回帰確認）。
+    def test_desk_fan_product_type_is_preserved(self):
+        item = make_item(name=self.DESK_FAN_NAME)
+        description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("扇風機", description)
+        hashtag_line = description.split("\n\n")[-1]
+        self.assertIn("#扇風機", hashtag_line)
+
+    # 22. 既存の特典語除外を壊さない（回帰確認）。
+    def test_review_incentive_exclusion_is_preserved(self):
+        name = (
+            "レビューでスポンジ【マーナ公式】キッチンツール 5点セット食洗機対応 シリコン 耐熱 菜ばし "
+            "トング お玉 フライ返し スプーンヘラ 調理スプーン 壁掛け 吊り下げ 収納 使いやすい おしゃれ "
+            "かわいい キッチン 便利グッズ 調理器具 一人暮らし 新生活 ギフト X162"
+        )
+        item = make_item(name=name)
+        description = dg.generate_description(item, category="キッチン", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("キッチンツール", description)
+        self.assertNotIn("食器洗いに使いやすいキッチン用スポンジ◎", description)
+
+    # 23. 既存の複数数量選択肢を壊さない（回帰確認）。
+    def test_existing_multi_quantity_options_are_preserved(self):
+        item = make_item(
+            name="国産豚のもつ煮 3袋 10袋 20袋　レトルト 310g / 1袋 もつ煮込み 国産豚 もつ煮"
+        )
+        description = dg.generate_description(item, category="食品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("3袋・10袋・20袋から選べる", description)
+        self.assertNotIn("930g", description)
+
+
+class NegationContextGeneralizationTest(unittest.TestCase):
+    """商品本体判定の否定文脈除外（_NEGATION_MENTION_SUFFIX_PATTERN・
+    _NEGATION_MENTION_PREFIX_PATTERN）が、特定商品の個別対応ではなく
+    汎用的に機能することを確認する（description-genre-012対応）。"""
+
+    def test_suffix_negation_dewa_nai_excludes_keyword(self):
+        self.assertIsNone(dg.match_product_type_keyword("レトルトカレーではない専門店のこだわりカレー"))
+
+    def test_suffix_negation_dewa_ajiwaenai_excludes_keyword(self):
+        self.assertIsNone(
+            dg.match_product_type_keyword("レトルトカレーでは味わえない専門店のこだわりカレー")
+        )
+
+    def test_prefix_negation_hi_excludes_keyword(self):
+        self.assertIsNone(dg.match_product_type_keyword("非レトルトカレー的な専門店のカレー"))
+
+    def test_positive_context_still_matches(self):
+        self.assertEqual(
+            dg.match_product_type_keyword("本格レトルトカレー 温めるだけ"), "レトルトカレー"
+        )
+
+
+class AccessoryAttributionGeneralizationTest(unittest.TestCase):
+    """付属品の属性を商品本体の機能へ誤転写しない一般ルール
+    （_ACCESSORY_NOUN_BEFORE_SUFFIX_PATTERN）が、扇風機以外の商品名でも
+    汎用的に機能することを確認する（description-genre-012対応）。"""
+
+    def test_accessory_noun_directly_before_tsuki_is_excluded(self):
+        # 「防水」の直後に別の名詞（ケース）をはさんで「付き」が続くため、
+        # 「防水」は除外され、次に見つかる本体自体の特徴（自立）が使われる
+        # ことを確認する（除外されて空文字になるのではなく、正しく次の
+        # 候補へ進むことまで検証する）。
+        clause, _emoji = dg._top_feature_clause("防水ケース付き 自立式スマホスタンド", "収納")
+        self.assertNotIn("水回りでも使いやすい", clause)
+        self.assertEqual(clause, "自立して置き場所を選びにくい")
+
+    def test_direct_product_body_feature_is_still_recognized(self):
+        # キーワード自体に直接「付き」が続く場合（間に別の名詞がない）は
+        # 従来どおり商品本体の特徴として扱う。
+        clause, _emoji = dg._top_feature_clause("マグネット付き収納ラック", "収納")
+        self.assertEqual(clause, "マグネットで取り付けられる")
+
+
 if __name__ == "__main__":
     unittest.main()
