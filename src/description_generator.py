@@ -2091,19 +2091,23 @@ PRODUCT_TYPE_TEMPLATES: list[tuple[str, _PostTemplate]] = [
         ),
     ),
     (
+        # 「温めるだけで食べられる」は、商品名から確認できるのは「レトルト」
+        # であることだけで、具体的な調理方法（温めるだけかどうか）までは
+        # タイトルから確認できないため、安全な表現に変更した
+        # （description-genre-011対応）。
         "もつ煮",
         _PostTemplate(
-            hook_text="今日のおつまみ、手軽に済ませたい日もあるよね",
+            hook_text="今日のおつまみ、何にしようか迷ったりしない？",
             topic_emoji="🍲",
             worry_lines=[
-                "おつまみを一から作るのって、",
-                "手間がかかる日もありますよね…😅",
+                "おつまみを一から準備するのって、",
+                "地味に悩みますよね…😅",
             ],
-            solution_text="温めるだけで食べられるもつ煮",
-            checklist_core=["温めるだけで手軽に食べられる", "ストックしておくと便利"],
+            solution_text="食事やおつまみに取り入れやすいもつ煮",
+            checklist_core=["食事やおつまみに取り入れやすい", "ストックしておくと便利"],
             checklist_fallback="晩酌のお供に取り入れやすい",
             closing_variants=[
-                "手軽におつまみを済ませたい人におすすめ",
+                "手軽におつまみを楽しみたい人におすすめ",
                 "気になる人はチェックしてみてほしい",
             ],
         ),
@@ -2111,17 +2115,17 @@ PRODUCT_TYPE_TEMPLATES: list[tuple[str, _PostTemplate]] = [
     (
         "モツ煮",
         _PostTemplate(
-            hook_text="今日のおつまみ、手軽に済ませたい日もあるよね",
+            hook_text="今日のおつまみ、何にしようか迷ったりしない？",
             topic_emoji="🍲",
             worry_lines=[
-                "おつまみを一から作るのって、",
-                "手間がかかる日もありますよね…😅",
+                "おつまみを一から準備するのって、",
+                "地味に悩みますよね…😅",
             ],
-            solution_text="温めるだけで食べられるもつ煮",
-            checklist_core=["温めるだけで手軽に食べられる", "ストックしておくと便利"],
+            solution_text="食事やおつまみに取り入れやすいもつ煮",
+            checklist_core=["食事やおつまみに取り入れやすい", "ストックしておくと便利"],
             checklist_fallback="晩酌のお供に取り入れやすい",
             closing_variants=[
-                "手軽におつまみを済ませたい人におすすめ",
+                "手軽におつまみを楽しみたい人におすすめ",
                 "気になる人はチェックしてみてほしい",
             ],
         ),
@@ -3481,6 +3485,44 @@ def _dimension_label_for(name: str, quantity_phrase: str) -> str | None:
     return None
 
 
+# 「幅90cm 耐荷重100kg 高さ180cm」のように、寸法ラベル（幅/高さ/奥行き等）
+# が2つ以上ある商品名は、_extract_quantity_phrase()が最初の1件しか拾えない
+# ため、「幅は約90cm」だけで高さ・耐荷重が紹介文から抜け落ちてしまう。
+# ラベル＋数値が直接つながっている（間に空白等が無い）確認できる表記を
+# 複数まとめて拾い、「幅90cm・高さ180cm」のように並べて示す
+# （description-genre-011対応。ラベルが1つしか無い商品名では従来どおり
+# _phrase_for_quantity()側の「◯◯は約90cm」という言い回しのまま。原文の
+# 表記そのままを使うため「約」は付けない）。
+_DIMENSION_LABEL_VALUE_PATTERN = re.compile(
+    r"(幅|高さ|奥行き|奥行|長さ|直径|厚み|厚さ)(\d+(?:\.\d+)?(?:cm|mm))"
+)
+
+# 「耐荷重100kg」のように、ラベルと数値が直接つながっている耐荷重の
+# 表記は、_is_confirmed_kg_weight()が対象とする「商品自体の重さ」とは
+# 別の確認できる仕様として、そのままラベル付きで示す
+# （description-genre-011対応。耐荷重を商品重量と誤認しないという既存
+# ルールは変えず、確認できる仕様として紹介文に反映するための追加）。
+_LOAD_CAPACITY_VALUE_PATTERN = re.compile(r"耐荷重(\d+(?:\.\d+)?kg)")
+
+
+def _extract_dimension_and_capacity_facts(name: str) -> list[str]:
+    """商品名から、ラベル付きの寸法（2件以上ある場合のみ）と耐荷重の
+    表記を、確認できる事実としてそのまま抜き出す。1件も無ければ空リスト
+    （呼び出し側で従来の_extract_quantity_phrase()の言い回しにフォール
+    バックする）。
+    """
+    labeled_sizes = [
+        f"{label}{value}" for label, value in _DIMENSION_LABEL_VALUE_PATTERN.findall(name)
+    ]
+    facts: list[str] = []
+    if len(labeled_sizes) >= 2:
+        facts.append("・".join(labeled_sizes))
+    capacity_matches = _LOAD_CAPACITY_VALUE_PATTERN.findall(name)
+    if capacity_matches:
+        facts.append(f"耐荷重{capacity_matches[0]}")
+    return facts
+
+
 # 「1個から販売」「1個入」のように、数量が1つだけの場合に「1個セット」
 # という不自然な言い回しにしない（「セット」は複数まとまっている場合の
 # 言い回しのため）。「入」「入り」が商品名にすでにある場合はその表記の
@@ -3684,9 +3726,15 @@ def _build_checklist(template: _PostTemplate, name: str, category: str, location
     third_item = clause if clause else template.checklist_fallback.format(location=location)
     checklist = checklist_core + [third_item]
 
-    quantity_phrase = _extract_quantity_phrase(name)
-    if quantity_phrase and not any(quantity_phrase in existing for existing in checklist):
-        checklist.append(_phrase_for_quantity(quantity_phrase, name))
+    dimension_facts = _extract_dimension_and_capacity_facts(name)
+    if dimension_facts:
+        for fact in dimension_facts:
+            if not any(fact in existing for existing in checklist):
+                checklist.append(fact)
+    else:
+        quantity_phrase = _extract_quantity_phrase(name)
+        if quantity_phrase and not any(quantity_phrase in existing for existing in checklist):
+            checklist.append(_phrase_for_quantity(quantity_phrase, name))
 
     return checklist
 
@@ -3869,9 +3917,28 @@ def get_template_components(item: dict[str, Any], category: str) -> TemplateComp
     )
 
 
+# 一部の商品タイプでは、FEATURE_CLAUSESのキーワードが商品名に含まれて
+# いても、その特徴を使った具体的な用途表現が実際の使われ方と合わない
+# ことがある（例：おねしょズボンの「完全防水」から「水回りでも使い
+# やすい」＝台所・洗面所等の水回りで使う商品、という誤った用途を連想
+# させてしまう）。商品タイプ（PRODUCT_TYPE_TEMPLATESの見出し語）ごとに、
+# 使わないFEATURE_CLAUSESのキーワードを限定して登録できるようにする
+# （description-genre-011対応。FEATURE_CLAUSES自体は他の商品タイプで
+# 引き続き使うため、全体からは削除しない）。
+_FEATURE_CLAUSE_SUPPRESSED_FOR_PRODUCT_TYPE: dict[str, frozenset[str]] = {
+    "おねしょズボン": frozenset({"防水"}),
+    "おねしょパンツ": frozenset({"防水"}),
+}
+
+
 def _top_feature_clause(name: str, category: str) -> tuple[str, str]:
     """商品名から、最初に見つかった特徴の（節, 絵文字）を返す。見つからなければ空文字。"""
+    suppressed = _FEATURE_CLAUSE_SUPPRESSED_FOR_PRODUCT_TYPE.get(
+        match_product_type_keyword(name) or "", frozenset()
+    )
     for keyword, clause_spec, emoji_spec in FEATURE_CLAUSES:
+        if keyword in suppressed:
+            continue
         if keyword in name:
             clause = _resolve_by_category(clause_spec, category)
             emoji = _resolve_by_category(emoji_spec, category)

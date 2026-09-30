@@ -2752,7 +2752,8 @@ class Sept29BatchRegressionTest(unittest.TestCase):
     def test_hanger_rack_dimensions_are_distinguished(self):
         item = make_item(name=self.HANGER_RACK_NAME)
         description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS)
-        self.assertIn("幅は約90cm", description)
+        self.assertIn("幅90cm・高さ180cm", description)
+        self.assertIn("耐荷重100kg", description)
         self.assertNotIn("サイズは約90cm", description)
 
     # 10. 耐荷重100kgを商品重量と誤認しない。
@@ -2844,6 +2845,113 @@ class Sept29BatchRegressionTest(unittest.TestCase):
         hashtag_line = description.split("\n\n")[-1]
         self.assertIn("#グルメ", hashtag_line)
         self.assertIn("#うどん", hashtag_line)
+
+
+class Sept29FinalReviewFixTest(unittest.TestCase):
+    """2026-09-29 15:50生成分の最終確認で残った3点（おねしょズボンの
+    「水回りでも使いやすい」・もつ煮の未確認な「温めるだけ」・ハンガー
+    ラックの幅/高さ/耐荷重の表現）を修正したことを確認する。それ以外の
+    7商品のdescriptionは変更していないことも合わせて確認する。"""
+
+    BEDWETTING_PANTS_NAME = Sept29BatchRegressionTest.BEDWETTING_PANTS_NAME
+    MOTSUNI_NAME = Sept29BatchRegressionTest.MOTSUNI_NAME
+    HANGER_RACK_NAME = Sept29BatchRegressionTest.HANGER_RACK_NAME
+    MEAL_APRON_NAME = Sept29BatchRegressionTest.MEAL_APRON_NAME
+    COOLER_BAG_NAME = Sept29BatchRegressionTest.COOLER_BAG_NAME
+    LR41_SINGLE_NAME = Sept29BatchRegressionTest.LR41_SINGLE_NAME
+    MULTI_CLOTH_NAME = Sept29BatchRegressionTest.MULTI_CLOTH_NAME
+    KITCHEN_SPONGE_SINGLE_NAME = Sept29BatchRegressionTest.KITCHEN_SPONGE_SINGLE_NAME
+    KITCHEN_TOOLS_SET_NAME = Sept29BatchRegressionTest.KITCHEN_TOOLS_SET_NAME
+
+    # 1. おねしょズボンに「水回りでも使いやすい」が出ない。
+    def test_bedwetting_pants_does_not_mention_water_areas(self):
+        item = make_item(name=self.BEDWETTING_PANTS_NAME)
+        description = dg.generate_description(item, category="ベビー用品", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("水回りでも使いやすい", description)
+        self.assertIn("おねしょ", description)
+
+    # 2. もつ煮に根拠のない「温めるだけ」が出ない。
+    def test_motsuni_does_not_claim_unconfirmed_cooking_method(self):
+        item = make_item(name=self.MOTSUNI_NAME)
+        description = dg.generate_description(item, category="食品", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("温めるだけ", description)
+        self.assertIn("もつ煮", description)
+
+    # 3. もつ煮の3袋・10袋・20袋の選択肢表現を維持する（回帰確認）。
+    def test_motsuni_size_options_phrase_is_preserved(self):
+        item = make_item(name=self.MOTSUNI_NAME)
+        description = dg.generate_description(item, category="食品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("3袋・10袋・20袋から選べる", description)
+        self.assertNotIn("930g", description)
+
+    # 4. ハンガーラックの90cmを幅として扱う。
+    def test_hanger_rack_90cm_is_treated_as_width(self):
+        item = make_item(name=self.HANGER_RACK_NAME)
+        description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("幅90cm", description)
+
+    # 5. ハンガーラックの180cmを高さとして扱う。
+    def test_hanger_rack_180cm_is_treated_as_height(self):
+        item = make_item(name=self.HANGER_RACK_NAME)
+        description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("高さ180cm", description)
+
+    # 6. ハンガーラックの100kgを耐荷重として扱う。
+    def test_hanger_rack_100kg_is_treated_as_load_capacity(self):
+        item = make_item(name=self.HANGER_RACK_NAME)
+        description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("耐荷重100kg", description)
+
+    # 7. ハンガーラックの100kgを商品重量として扱わない。
+    def test_hanger_rack_100kg_is_not_treated_as_product_weight(self):
+        item = make_item(name=self.HANGER_RACK_NAME)
+        description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("重さは約100kg", description)
+
+    # 8. ハンガーラックに根拠のない「約」を付けない（原文どおり「幅90cm」）。
+    def test_hanger_rack_dimensions_do_not_add_unconfirmed_approximation(self):
+        item = make_item(name=self.HANGER_RACK_NAME)
+        description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("幅は約90cm", description)
+        self.assertNotIn("高さは約180cm", description)
+
+    # 9. ハンガーラックは耐荷重100kgを「必ず安全」等の保証表現に拡大しない。
+    def test_hanger_rack_load_capacity_is_not_expanded_into_a_guarantee(self):
+        item = make_item(name=self.HANGER_RACK_NAME)
+        description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("必ず", description)
+        self.assertNotIn("安全", description)
+
+    # 10. 正しい7商品のdescriptionが変わらない（回帰確認）。
+    def test_seven_already_correct_items_are_unchanged(self):
+        cases = [
+            (self.MEAL_APRON_NAME, "ベビー用品", "#お食事エプロン"),
+            (self.COOLER_BAG_NAME, "ファッション", "#保冷バッグ"),
+            (self.LR41_SINGLE_NAME, "健康", None),
+            (self.MULTI_CLOTH_NAME, "掃除", "#マルチクロス"),
+            (self.KITCHEN_SPONGE_SINGLE_NAME, "キッチン消耗品", "#キッチンスポンジ"),
+            (self.KITCHEN_TOOLS_SET_NAME, "キッチン", "#キッチンツール"),
+        ]
+        for name, category, expected_tag in cases:
+            item = make_item(name=name)
+            description = dg.generate_description(item, category=category, base_hashtags=BASE_HASHTAGS)
+            first = dg.generate_description(item, category=category, base_hashtags=BASE_HASHTAGS)
+            self.assertEqual(description, first)
+            if expected_tag:
+                self.assertIn(expected_tag, description)
+        # LR41は「1個」を維持し、「1個セット」に戻らないことを個別に確認する。
+        item = make_item(name=self.LR41_SINGLE_NAME)
+        description = dg.generate_description(item, category="健康", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("1個", description)
+        self.assertNotIn("1個セット", description)
+        # マーナのキッチンツールがスポンジへ戻っていないことを確認する。
+        item = make_item(name=self.KITCHEN_TOOLS_SET_NAME)
+        description = dg.generate_description(item, category="キッチン", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("食器洗いに使いやすいキッチン用スポンジ◎", description)
+        # マルチクロスが研磨シートへ戻っていないことを確認する。
+        item = make_item(name=self.MULTI_CLOTH_NAME)
+        description = dg.generate_description(item, category="掃除", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("研磨", description)
 
 
 if __name__ == "__main__":
