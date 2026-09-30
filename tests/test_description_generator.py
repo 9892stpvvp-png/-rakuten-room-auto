@@ -3226,5 +3226,116 @@ class AccessoryAttributionGeneralizationTest(unittest.TestCase):
         self.assertEqual(clause, "マグネットで取り付けられる")
 
 
+class Sept30FinalReviewFixTest(unittest.TestCase):
+    """2026-09-30 15:51生成分の最終レビューで残った3点（牛すじカレーの
+    「専門店の味」という品質評価表現、PVCハンガーの「持ち運びしやすい」
+    という未確認の用途拡張、卓上扇風機の「吊り下げて収納できる」という
+    未確認の用途拡張）を修正したことを確認する。それ以外の7商品の
+    descriptionは変更していないことも合わせて確認する。"""
+
+    BEEF_TENDON_CURRY_NAME = Sept30BatchRegressionTest.BEEF_TENDON_CURRY_NAME
+    PVC_HANGER_NAME = Sept30BatchRegressionTest.PVC_HANGER_NAME
+    DESK_FAN_NAME = Sept30BatchRegressionTest.DESK_FAN_NAME
+    SOAP_SCUM_SCRAPER_NAME = Sept30BatchRegressionTest.SOAP_SCUM_SCRAPER_NAME
+    SOBA_TEA_NAME = Sept30BatchRegressionTest.SOBA_TEA_NAME
+    FACE_ROLLER_NAME = Sept30BatchRegressionTest.FACE_ROLLER_NAME
+    BABY_PILLOW_NAME = Sept30BatchRegressionTest.BABY_PILLOW_NAME
+    HAND_SPINNER_NAME = Sept30BatchRegressionTest.HAND_SPINNER_NAME
+    HAMBURG_NAME = Sept30BatchRegressionTest.HAMBURG_NAME
+    HYPOCHLOROUS_WATER_NAME = Sept30BatchRegressionTest.HYPOCHLOROUS_WATER_NAME
+
+    # 1. 牛すじカレーに「専門店の味」をこちらの評価として生成しない。
+    def test_beef_tendon_curry_does_not_generate_quality_evaluation(self):
+        item = make_item(name=self.BEEF_TENDON_CURRY_NAME)
+        description = dg.generate_description(item, category="食品", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("専門店の味を自宅で楽しめる", description)
+        self.assertIn("牛すじカレーを自宅で楽しめる", description)
+
+    # 2. 牛すじカレーで未確認の調理の手軽さを断定しない。
+    def test_beef_tendon_curry_does_not_claim_unconfirmed_convenience(self):
+        item = make_item(name=self.BEEF_TENDON_CURRY_NAME)
+        description = dg.generate_description(item, category="食品", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("手軽に食事を済ませたい人におすすめ", description)
+        self.assertIn("牛すじカレー", description)
+        self.assertIn("3パックセット", description)
+
+    # 3. 「軽量」だけで「持ち運びしやすい」を生成しない。
+    def test_lightweight_alone_does_not_generate_portability_claim(self):
+        item = make_item(name=self.PVC_HANGER_NAME)
+        description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("持ち運びしやすい", description)
+
+    # 3b. ただし「持ち運び」等が明記されていれば従来どおり使える（回帰防止）。
+    def test_lightweight_with_explicit_portability_word_still_works(self):
+        clause, _emoji = dg._top_feature_clause("軽量で持ち運びに便利なボトル", "キッチン")
+        self.assertEqual(clause, "持ち運びしやすい")
+
+    # 4. ハンガーで絶対的な滑り防止表現へ拡張しない。
+    def test_pvc_hanger_does_not_expand_into_absolute_anti_slip_guarantee(self):
+        item = make_item(name=self.PVC_HANGER_NAME)
+        description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("衣類が滑り落ちるのを防ぎたい人に便利そう", description)
+        self.assertIn("衣類が滑り落ちにくい", description)
+        self.assertIn("30本セット", description)
+
+    # 4b. 旧タグが復活していないこと。
+    def test_pvc_hanger_old_generic_hashtags_still_absent(self):
+        item = make_item(name=self.PVC_HANGER_NAME)
+        description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS)
+        hashtag_line = description.split("\n\n")[-1]
+        self.assertIn("#ハンガー", hashtag_line)
+        self.assertNotIn("#暮らしの便利グッズ", hashtag_line)
+        self.assertNotIn("#便利グッズ", hashtag_line)
+
+    # 5. 「吊り下げ」だけで「吊り下げ収納」にしない。扇風機は「吊り下げて使える」。
+    def test_desk_fan_hanging_is_not_expanded_into_storage_claim(self):
+        item = make_item(name=self.DESK_FAN_NAME)
+        description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("吊り下げて収納できる", description)
+        self.assertIn("吊り下げて使える", description)
+
+    # 6. 「マグネットリモコン」を本体マグネット設置と誤認しない（回帰確認）。
+    def test_desk_fan_magnet_remote_still_not_read_as_magnetic_mounting(self):
+        item = make_item(name=self.DESK_FAN_NAME)
+        description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("マグネットで取り付けられる", description)
+        self.assertIn("扇風機", description)
+        hashtag_line = description.split("\n\n")[-1]
+        self.assertIn("#扇風機", hashtag_line)
+
+    # 7. 変更しない7商品のdescriptionが不変であることを確認する。
+    def test_seven_unrelated_items_are_unchanged(self):
+        cases = [
+            (self.SOAP_SCUM_SCRAPER_NAME, "掃除", "石鹸カス", "スクレーパー"),
+            (self.SOBA_TEA_NAME, "お茶", "5g×50包", "計250g"),
+            (self.FACE_ROLLER_NAME, "掃除", "フェイスローラー", None),
+            (self.BABY_PILLOW_NAME, "ベビー用品", "枕", None),
+            (self.HAND_SPINNER_NAME, "ベビー用品", "ハンドスピナー", "3点セット"),
+            (self.HAMBURG_NAME, "食品", "1個あたり130g", "10個または20個"),
+            (self.HYPOCHLOROUS_WATER_NAME, "キッチン", "次亜塩素酸水", None),
+        ]
+        for name, category, expect_a, expect_b in cases:
+            item = make_item(name=name)
+            description = dg.generate_description(item, category=category, base_hashtags=BASE_HASHTAGS)
+            self.assertIn(expect_a, description, description)
+            if expect_b:
+                self.assertIn(expect_b, description, description)
+        # HALIFTの美容効果断定なし・次亜塩素酸水の安全性過剰断定なし・
+        # ベビー枕の身体効果断定なしを個別に再確認する。
+        item = make_item(name=self.FACE_ROLLER_NAME)
+        description = dg.generate_description(item, category="掃除", base_hashtags=BASE_HASHTAGS)
+        for phrase in ("むくみが取れる", "小顔になる", "リフトアップする"):
+            self.assertNotIn(phrase, description)
+        item = make_item(name=self.HYPOCHLOROUS_WATER_NAME)
+        description = dg.generate_description(item, category="キッチン", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("キッチングッズ", description)
+        for phrase in ("完全に無害", "人体に安全", "病原体を確実に除去"):
+            self.assertNotIn(phrase, description)
+        item = make_item(name=self.BABY_PILLOW_NAME)
+        description = dg.generate_description(item, category="ベビー用品", base_hashtags=BASE_HASHTAGS)
+        for phrase in ("絶壁を防ぐ", "吐き戻しを防ぐ", "向き癖を治す"):
+            self.assertNotIn(phrase, description)
+
+
 if __name__ == "__main__":
     unittest.main()

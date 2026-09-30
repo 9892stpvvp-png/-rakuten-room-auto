@@ -554,7 +554,7 @@ PRODUCT_TYPE_TEMPLATES: list[tuple[str, _PostTemplate]] = [
             checklist_fallback="クローゼットをすっきり整えやすい",
             closing_variants=[
                 "ハンガーをまとめて揃えたい人におすすめ",
-                "衣類が滑り落ちるのを防ぎたい人に便利そう",
+                "衣類が滑りにくいハンガーを探している人におすすめ",
                 "クローゼットをすっきり整えたい人に良さそう",
                 "気になる人はチェックしてみてほしい",
             ],
@@ -2380,11 +2380,11 @@ PRODUCT_TYPE_TEMPLATES: list[tuple[str, _PostTemplate]] = [
                 "手間をかけられない日もありますよね…😅",
             ],
             solution_text="専門店の牛すじカレー",
-            checklist_core=["専門店の味を自宅で楽しめる", "ストックしておくと便利"],
+            checklist_core=["牛すじカレーを自宅で楽しめる", "ストックしておくと便利"],
             checklist_fallback="手軽な食事に取り入れやすい",
             closing_variants=[
-                "手軽に食事を済ませたい人におすすめ",
-                "気になる人はチェックしてみてほしい",
+                "牛すじカレーが気になる人におすすめ",
+                "牛すじカレーをストックしておきたい人におすすめ",
             ],
         ),
     ),
@@ -3268,14 +3268,12 @@ FEATURE_CLAUSES: list[tuple[str, str | dict[str, str], str | dict[str, str]]] = 
     # 「マグネットで取り付けられる」という事実だけにとどめている。
     ("マグネット", "マグネットで取り付けられる", "🧲"),
     ("吸盤", "吸盤で好きな場所に取り付けられる", "✨"),
-    (
-        "吊り下げ",
-        {
-            "収納": "吊り下げて収納できる",
-            DEFAULT_CATEGORY: "吊り下げて使える",
-        },
-        "🪝",
-    ),
+    # 「吊り下げて収納できる」は、検索元のcategoryが「収納」である
+    # ことだけを根拠に「収納」という具体的な用途まで拡張していた
+    # （category="収納"の扇風機のように、実際は収納用品ではない商品
+    # にも適用されてしまう）。categoryではなくタイトルの原文に近い
+    # 「吊り下げて使える」に統一する（description-genre-013対応）。
+    ("吊り下げ", "吊り下げて使える", "🪝"),
     ("突っ張り", "つっぱり棒式で取り付けやすい", "📏"),
     ("折りたた", "使わないときはコンパクトに折りたためる", "📦"),
     ("折り畳み", "使わないときはコンパクトに折りたためる", "📦"),
@@ -4222,6 +4220,17 @@ _FEATURE_CLAUSE_SUPPRESSED_FOR_PRODUCT_TYPE: dict[str, frozenset[str]] = {
 # 弁当箱」等、付属品の属性を本体機能へ誤転写しないための汎用的な仕組み）。
 _ACCESSORY_NOUN_BEFORE_SUFFIX_PATTERN = re.compile(r"^[^\s、。/]{1,8}付き")
 
+# 「軽量」「軽い」だけでは「持ち運びしやすい」という具体的な用途までは
+# 断定しない（例：ハンガーの「軽くて丈夫」は、置き場所を選びにくい、
+# という意味で使われていることもあり、持ち運ぶ用途とは限らない）。
+# 「持ち運び」「携帯」「ポータブル」等、実際に持ち運ぶ用途がタイトルで
+# 別途確認できる場合だけこの特徴を使う（description-genre-013対応。
+# FEATURE_CLAUSESのキーワードごとに、追加で確認したい語を登録できる
+# 汎用的な仕組み）。
+_FEATURE_CLAUSE_REQUIRES_CONFIRMATION: dict[str, tuple[str, ...]] = {
+    "軽量": ("持ち運び", "携帯", "ポータブル"),
+}
+
 
 def _top_feature_clause(name: str, category: str) -> tuple[str, str]:
     """商品名から、最初に見つかった特徴の（節, 絵文字）を返す。見つからなければ空文字。"""
@@ -4234,6 +4243,9 @@ def _top_feature_clause(name: str, category: str) -> tuple[str, str]:
         if keyword in name:
             remainder = name[name.index(keyword) + len(keyword):]
             if _ACCESSORY_NOUN_BEFORE_SUFFIX_PATTERN.match(remainder):
+                continue
+            required_words = _FEATURE_CLAUSE_REQUIRES_CONFIRMATION.get(keyword)
+            if required_words and not any(word in name for word in required_words):
                 continue
             clause = _resolve_by_category(clause_spec, category)
             emoji = _resolve_by_category(emoji_spec, category)
