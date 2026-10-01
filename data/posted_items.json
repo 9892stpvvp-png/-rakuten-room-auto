@@ -1,6 +1,7 @@
 {
   "posted_item_codes": [
     "a2care-official:10000003",
+    "ai-corp:10000095",
     "angelingg:10001033",
     "angelique:10047977",
     "angie:10014605",
@@ -31,6 +32,7 @@
     "coming:10000149",
     "coming:10000440",
     "creaswing:10000209",
+    "curry-tokiya:10000000",
     "dailymukuri:10000008",
     "decori:10000569",
     "dogfood-koubou:10000037",
@@ -41,10 +43,12 @@
     "ease-aroma:10000347",
     "enbliss:10000259",
     "eunicedress:10001735",
+    "exception5251:10000042",
     "exception5251:10000572",
     "f222038-numazu:10000205",
     "freedom-shops:10000002",
     "furumiyashop:10000108",
+    "g-sarai:10000074",
     "good-item:10000868",
     "gotoken1879:10000205",
     "green365:10000000",
@@ -54,6 +58,7 @@
     "honjien-3:10000446",
     "honjien-3:10003174",
     "honjien-3:10003220",
+    "honjien-3:10003226",
     "hseason:10000260",
     "hush08:10000002",
     "hush08:10000003",
@@ -75,6 +80,7 @@
     "kimurasoap:10000017",
     "kindai-ns:10001130",
     "kiryu-udon:10000056",
+    "kiyokawa1981:10000021",
     "konpouya:10003368",
     "kurashikaiteki-shop:10010285",
     "kurashikaiteki-shop:10010350",
@@ -114,6 +120,7 @@
     "pia-konodai:10000499",
     "pigeon-shop:10001747",
     "plusiine:10000361",
+    "polaristure:10000000",
     "rack-town:10001473",
     "rakuten24:10252628",
     "rakuten24:11148575",
@@ -124,6 +131,7 @@
     "sasayama-bee:10000020",
     "shimoyama-onlineshop:10001811",
     "shimoyama-onlineshop:10002758",
+    "shinbido:10002620",
     "shinbido:10002621",
     "shinbido:10002622",
     "shopmarna:10006689",
@@ -131,7 +139,9 @@
     "soukaidrink:10007430",
     "soutowelshop:10000180",
     "starfilter:10000019",
+    "sunsumarche:10000989",
     "suzumura-shoten:10000005",
+    "suzumura-shoten:10000014",
     "taigu188:10000816",
     "takara-jiang:10033602",
     "takara-jiang:10034170",
@@ -1743,6 +1753,86 @@
       "product_name": "レビューでスポンジ【マーナ公式】キッチンツール 5点セット食洗機対応 シリコン 耐熱 菜ばし トング お玉 フライ返し スプーンヘラ 調理スプーン 壁掛け 吊り下げ 収納 使いやすい おしゃれ かわいい キッチン 便利グッズ 調理器具 一人暮らし 新生活 ギフト X162",
       "posted_at": "2026-09-30T05:22:50.652Z",
       "category": "キッチン",
+      "match_keywords": []
+    },
+    {
+      "item_code": "suzumura-shoten:10000014",
+      "item_url": "https://item.rakuten.co.jp/suzumura-shoten/10000012/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "【錫村商店公式】石鹸カス 落とし ヘラ スクレーパー 掃除道具 浴室 湯垢 ヌメリ【落ちない石鹸カスに】根岸棒｜削って除去 プロ仕様 業務用",
+      "posted_at": "2026-10-01T04:43:25.161Z",
+      "category": "掃除",
+      "match_keywords": []
+    },
+    {
+      "item_code": "honjien-3:10003226",
+      "item_url": "https://item.rakuten.co.jp/honjien-3/dattansobacha-a/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "国産 韃靼そば茶 5g x 50p（250g 大容量 ティーバッグ） ほんぢ園 ＜ペットボトルよりお得 蕎麦茶 ダッタンそば茶 だったんそばちゃ 韃靼そばちゃ だったんそば茶 韃靼そば ルチン ノンカフェイン そば茶国産＞送料無料【LC】／セ／●",
+      "posted_at": "2026-10-01T04:43:50.758Z",
+      "category": "お茶",
+      "match_keywords": []
+    },
+    {
+      "item_code": "sunsumarche:10000989",
+      "item_url": "https://item.rakuten.co.jp/sunsumarche/gds-hl-hlr-1/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "【公式】鍼 マッサージ フェイスローラー ボディ 頭皮ケア ブラシ 血行促進 むくみ 胸鎖乳突筋美顔器 リフトアップ ほうれい線 コロコロ 鍼 小顔 たるみ 充電不要 ギフト プレゼント HALIFT （ハリフト）シリーズ",
+      "posted_at": "2026-10-01T04:44:16.188Z",
+      "category": "掃除",
+      "match_keywords": []
+    },
+    {
+      "item_code": "ai-corp:10000095",
+      "item_url": "https://item.rakuten.co.jp/ai-corp/aiyez01aw/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "【楽天1位】絶壁防止枕 ベビー枕 洗える 吐き戻し防止 赤ちゃん 枕 まくら 絶壁防止 出産祝い ベビー用品 ベビー 絶壁 枕 三面調節 通気性抜群 丸洗い 新生児 0ヶ月 向き癖防止 高さ調節 子供 ベビーピロー 向き癖丸い頭 ベビーまくら 通気 睡眠サポート",
+      "posted_at": "2026-10-01T04:44:40.274Z",
+      "category": "ベビー用品",
+      "match_keywords": []
+    },
+    {
+      "item_code": "polaristure:10000000",
+      "item_url": "https://item.rakuten.co.jp/polaristure/pol0001/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "2026年【TV紹介品】 ギフト無料 Polaristure 【正規品】くるくるスピンフレンド ハンドスピナー 赤ちゃん お風呂 おもちゃ 赤ちゃん おもちゃ 0歳 固定バンドでベビーカーOK 【食品衛生法試験合格】 蝶/てんとう虫/ハチ 3点セット 箱付き",
+      "posted_at": "2026-10-01T04:45:08.637Z",
+      "category": "ベビー用品",
+      "match_keywords": []
+    },
+    {
+      "item_code": "kiyokawa1981:10000021",
+      "item_url": "https://item.rakuten.co.jp/kiyokawa1981/ky-9/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "【33%OFFクーポン！9/30〜10/1】【楽天グルメ大賞受賞】ふるさと納税で大人気 累計4000万個突破！食の便利屋きよかわ デミソース ハンバーグ 湯煎 鉄板焼 ハンバーグ 130g×10個/20個 温めるだけ 冷凍 美味しい 小分け 大容量 冷凍食品 レトルト",
+      "posted_at": "2026-10-01T04:45:29.899Z",
+      "category": "食品",
+      "match_keywords": []
+    },
+    {
+      "item_code": "curry-tokiya:10000000",
+      "item_url": "https://item.rakuten.co.jp/curry-tokiya/c0003/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "【レトルトでは味わえない本格カレー】じっくり煮込んだ牛すじの旨味がたっぷりとろけた、ちょっとスパイシーな専門店のコク旨牛すじカレー！牛すじカレー専門店「戸紀屋」のこだわり牛すじカレー 3パックセット",
+      "posted_at": "2026-10-01T04:45:56.822Z",
+      "category": "食品",
+      "match_keywords": []
+    },
+    {
+      "item_code": "shinbido:10002620",
+      "item_url": "https://item.rakuten.co.jp/shinbido/pvc_hanger_30/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "極太PVCコーティング 滑らないハンガー 30本セット （軽くて丈夫！衣類が滑らず、かさばらないからクローゼットもスッキリの便利なハンガー） 10本単位で選べる16色 収納 洋服 和服 軽い 軽量 洗濯 外干し 部屋干し ステンレス ランドリー 上着 ジャケット コート スーツ",
+      "posted_at": "2026-10-01T04:46:16.771Z",
+      "category": "収納",
+      "match_keywords": []
+    },
+    {
+      "item_code": "g-sarai:10000074",
+      "item_url": "https://item.rakuten.co.jp/g-sarai/10000074/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "サライウォーター2L 次亜塩素酸水 除菌 消臭【7/8リアルタイムランキング1位】次亜塩素酸 無害 消臭除菌水 靴 塩素 臭い キッチン 犬 猫 ペット臭 衛生 子ども たばこ 靴 嘔吐処理 スプレー トイレ臭 におい カビ 汗臭 消臭剤 除菌剤 即送 遮光袋付 空間除菌 ギフト容器",
+      "posted_at": "2026-10-01T04:46:41.631Z",
+      "category": "キッチン",
+      "match_keywords": []
+    },
+    {
+      "item_code": "exception5251:10000042",
+      "item_url": "https://item.rakuten.co.jp/exception5251/i-00004/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "【楽天総合ランキング1位】【正規品】【予約受付中】卓上扇風機 South Light 扇風機 壁掛け 吊り下げ マグネットリモコン付き LED照明機能付き 1台3役 サーキュレーター USB充電 風量3段階 パワフル送風 ギフト i-00004",
+      "posted_at": "2026-10-01T04:47:07.112Z",
+      "category": "収納",
       "match_keywords": []
     }
   ]
