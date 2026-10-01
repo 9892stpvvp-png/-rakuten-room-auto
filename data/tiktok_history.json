@@ -113,6 +113,12 @@
       "item_code": "ai-corp:10000095",
       "category": "ベビー用品",
       "group_label": "便利グッズ"
+    },
+    {
+      "date": "2026-10-01",
+      "item_code": "rack-kan:10001985",
+      "category": "収納",
+      "group_label": "便利グッズ"
     }
   ]
 }
