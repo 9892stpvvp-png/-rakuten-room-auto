@@ -3337,5 +3337,465 @@ class Sept30FinalReviewFixTest(unittest.TestCase):
             self.assertNotIn(phrase, description)
 
 
+class Oct01BatchRegressionTest(unittest.TestCase):
+    """2026-10-01 15:51生成分の商品名で、PRODUCT_TYPE_TEMPLATESに未登録の
+    商品がcategory由来の汎用description（暮らしアイテム・時短グッズ等）へ
+    落ちてしまう問題への一般化対応（description-genre-014）を確認する。
+    商品名は本番で実際に取得された表記をそのまま使っている。"""
+
+    THERMO_HYGROMETER_NAME = (
+        "湿度計 温度計 温湿度計 温湿計 温度湿度計 おしゃれ デジタル 見やすい 置き掛け兼用 マグネット "
+        "アラーム付 ナチュラル 小型 コンパクト 木目調 便利グッズ デザイン ギフト【ポイント10倍 送料無料】"
+        "［ タニタ 温湿度計 TT572 ］"
+    )
+    DUSTPAN_NAME = (
+        "ちりとり捨楽 45L 70L / ちりとり 屋外 おしゃれ 自立 ゴミ袋 レジ袋 装着 落ち葉 ちりとり 捨 楽 "
+        "フレーム 大掃除 清掃用品 屋外 掃き掃除 大型 小型 スリム 便利グッズ 落葉 玄関 落ち葉集め "
+        "掃除グッズ 写楽 スリム コンパクト 枯葉 ガーデニング ちりとり集草バッグ"
+    )
+    TOILET_CLEANER_NAME = "マイルドアシッドEL 1Lトイレクリーナー 業務用 トイレ洗剤 尿石除去 黄ばみ除去"
+    WET_WIPES_NAME = (
+        "**人気商品**ノンアルコール 99%除菌 ウエットティッシュ 除菌シート80枚入 3個 6個 12個＼ "
+        "ノンアル 厚手 大判 無香料 ／送料無料 除菌ティッシュ まとめ買い VINDA 楽天スーパーセール "
+        "買い回りマラソン 備蓄 防災"
+    )
+    STORAGE_BOX_NAME = (
+        "★注目商品★【4個セット】収納ボックス キャスター付き 収納ケース 衣類収納ボックス 衣装ケース "
+        "クローゼット 押入れ収納 プラスチック 洋服 透明 アイリスオーヤマ キャリーストッカー コロ付き "
+        "ローラー フタ付き AA-740E"
+    )
+    BED_IN_BED_NAME = (
+        "レビュー投稿特典あり！【公式販売店】ファルスカ ベッドインベッド　フレックス | "
+        "添い寝☆川の字☆折り畳み☆持ち運び☆ベビーベッド☆お座りサポート☆お食事シート☆"
+        "5歳まで使用できる【赤ちゃん】【ベビー用品】【あす楽対応】"
+    )
+    UNDER_SINK_RACK_NAME = (
+        "シンク下 収納 伸縮 ラック スライド キッチン収納 調味料 調味料ラック 隙間収納 キッチン 台所 "
+        "棚 収納棚 1段 シンプル シンク下引き出し 伸縮棚 シンク下伸縮棚 ホワイト シンク下収納 "
+        "最大幅70 奥行40 アイリスオーヤマ USD-1V[RNG]"
+    )
+    GYUTAN_STEW_NAME = (
+        "牛タン シチュー 180g×4袋 レトルト レンジ 食品 全国送料無料 "
+        "カネタ●牛たんシチュー180g×4袋●k-03"
+    )
+    TENGU_SOBA_NAME = (
+        "【愛されて130余年】そば 蕎麦 乾麺 天狗そば お試し 6人前セット 3袋 山形 お土産 田舎そば "
+        "田舎蕎麦 板そば ざるそば 盛りそば soba 国産 ギフト 贈答 山形 天童 山本製麺 お祝い 内祝い "
+        "誕生日 ご挨拶 乾蕎麦 送料無料 非常食 保存食 備蓄"
+    )
+    BROOM_DUSTPAN_SET_NAME = (
+        "特典あり《 tidy Sweep スウィープ 》ほうきちりとりセット ホーキ 箒 室内用 屋外用 ベランダ用 "
+        "長柄 自立 軽い 掃除道具 コンパクト お掃除グッズ シンプル おしゃれ 白 グレー レモン ブラウン "
+        "ベージュ ブルー カフェ 飲食店 オフィス ティディ スイープ"
+    )
+
+    # 1. 温湿度計を汎用暮らしアイテムにしない。
+    def test_thermo_hygrometer_is_not_only_generic_lifestyle_item(self):
+        item = make_item(name=self.THERMO_HYGROMETER_NAME)
+        description = dg.generate_description(item, category="暮らし全般", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("温湿度計", description)
+        self.assertNotIn("毎日の暮らしに取り入れやすそうなアイテム◎", description)
+
+    # 2. 温湿度計のマグネットを付属品誤認しない（確認できる仕様として使用可能）。
+    def test_thermo_hygrometer_magnet_is_usable_as_a_confirmed_spec(self):
+        item = make_item(name=self.THERMO_HYGROMETER_NAME)
+        description = dg.generate_description(item, category="暮らし全般", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("マグネットで取り付けられる", description)
+        self.assertNotIn("壁に貼れる", description)
+
+    # 3. ちりとりを具体的に判定する。
+    def test_dustpan_is_recognized_specifically(self):
+        item = make_item(name=self.DUSTPAN_NAME)
+        description = dg.generate_description(item, category="暮らし全般", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("ちりとり", description)
+        self.assertNotIn("毎日の暮らしに取り入れやすそうなアイテム◎", description)
+
+    # 4. 45L/70Lを根拠なく商品容量と断定しない。
+    def test_dustpan_45l_70l_is_not_treated_as_confirmed_capacity(self):
+        item = make_item(name=self.DUSTPAN_NAME)
+        description = dg.generate_description(item, category="暮らし全般", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("45L・70Lから選べる", description)
+        self.assertNotIn("容量45L", description)
+
+    # 5. トイレクリーナーを汎用日用品にしない。
+    def test_toilet_cleaner_is_not_only_generic_daily_goods(self):
+        item = make_item(name=self.TOILET_CLEANER_NAME)
+        description = dg.generate_description(item, category="日用品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("トイレ", description)
+        self.assertNotIn("普段の暮らしに取り入れやすい日用品◎", description)
+
+    # 6. 1Lを商品容量として扱う（確認できれば使用可能。確認できない場合は省略する安全側の仕様）。
+    def test_toilet_cleaner_does_not_fabricate_capacity(self):
+        item = make_item(name=self.TOILET_CLEANER_NAME)
+        description = dg.generate_description(item, category="日用品", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("容量は約1L", description)
+
+    # 7. 業務用を大容量へ変換しない（回帰確認）。
+    def test_toilet_cleaner_gyoumuyou_does_not_convert_to_bulk_size(self):
+        item = make_item(name=self.TOILET_CLEANER_NAME)
+        description = dg.generate_description(item, category="日用品", base_hashtags=BASE_HASHTAGS)
+        for phrase in ("業務用サイズ", "大容量", "たっぷり"):
+            self.assertNotIn(phrase, description, description)
+        for phrase in ("尿石が必ず落ちる", "黄ばみを完全除去"):
+            self.assertNotIn(phrase, description, description)
+
+    # 8. 除菌シートを具体的に判定する。
+    def test_wet_wipes_is_recognized_specifically(self):
+        item = make_item(name=self.WET_WIPES_NAME)
+        description = dg.generate_description(item, category="日用品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("ウェットティッシュ", description)
+        self.assertNotIn("まとめてストックしておけそうな日用品◎", description)
+
+    # 9. 80枚入と3/6/12個の意味を分離する。
+    def test_wet_wipes_content_and_count_options_are_separated(self):
+        item = make_item(name=self.WET_WIPES_NAME)
+        description = dg.generate_description(item, category="日用品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("80枚入り・3個・6個・12個から選べる", description)
+
+    # 10. 99%除菌を効果保証へ拡張しない。
+    def test_wet_wipes_does_not_overclaim_disinfection(self):
+        item = make_item(name=self.WET_WIPES_NAME)
+        description = dg.generate_description(item, category="日用品", base_hashtags=BASE_HASHTAGS)
+        for phrase in ("99%確実に除菌できる", "ウイルスを99%除去する", "感染予防できる"):
+            self.assertNotIn(phrase, description, description)
+
+    # 11. 収納ボックスを具体的に判定する。
+    def test_storage_box_is_recognized_specifically(self):
+        item = make_item(name=self.STORAGE_BOX_NAME)
+        description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("収納ボックス", description)
+
+    # 12. 4個セットを維持する。
+    def test_storage_box_4_piece_set_is_preserved(self):
+        item = make_item(name=self.STORAGE_BOX_NAME)
+        description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("4個セット", description)
+        hashtag_line = description.split("\n\n")[-1]
+        self.assertIn("#収納ボックス", hashtag_line)
+        self.assertNotIn("#暮らしの便利グッズ", hashtag_line)
+        self.assertNotIn("#便利グッズ", hashtag_line)
+
+    # 13. ベッドインベッドを具体的に判定する。
+    def test_bed_in_bed_is_recognized_specifically(self):
+        item = make_item(name=self.BED_IN_BED_NAME)
+        description = dg.generate_description(item, category="ベビー用品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("ベッドインベッド", description)
+        self.assertNotIn("赤ちゃんとの暮らしに取り入れやすいベビー用品◎", description)
+
+    # 14. レビュー特典を本体にしない（回帰確認）。
+    def test_bed_in_bed_review_incentive_is_not_mistaken_for_the_product(self):
+        self.assertEqual(dg.match_product_type_keyword(self.BED_IN_BED_NAME), "ベッドインベッド")
+
+    # 15. 明示的「持ち運び」は使用可能。身体効果・安全性は保証しない。
+    def test_bed_in_bed_explicit_portability_is_usable_without_overclaiming(self):
+        item = make_item(name=self.BED_IN_BED_NAME)
+        description = dg.generate_description(item, category="ベビー用品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("持ち運びやすい", description)
+        for phrase in ("安全に添い寝できる", "5歳まで使用できる"):
+            self.assertNotIn(phrase, description, description)
+
+    # 16. シンク下伸縮ラックを具体的に判定する。
+    def test_under_sink_rack_is_recognized_specifically(self):
+        item = make_item(name=self.UNDER_SINK_RACK_NAME)
+        description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("シンク下", description)
+        self.assertNotIn("キッチンの物をすっきりまとめられそうな収納グッズ◎", description)
+
+    # 17. 単位なし70/40にcmを勝手に追加しない。
+    def test_under_sink_rack_does_not_fabricate_units_for_bare_numbers(self):
+        item = make_item(name=self.UNDER_SINK_RACK_NAME)
+        description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("70cm", description)
+        self.assertNotIn("40cm", description)
+
+    # 18. 牛タンシチューを具体的に判定する。
+    def test_gyutan_stew_is_recognized_specifically(self):
+        item = make_item(name=self.GYUTAN_STEW_NAME)
+        description = dg.generate_description(item, category="食品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("牛たんシチュー", description)
+        self.assertNotIn("手軽に楽しめそうな食品◎", description)
+
+    # 19. 180g×4袋を正しく扱う。
+    def test_gyutan_stew_quantity_is_handled_correctly(self):
+        item = make_item(name=self.GYUTAN_STEW_NAME)
+        description = dg.generate_description(item, category="食品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("180g×4袋", description)
+
+    # 20. 数量へ「使いやすい」を付けない。
+    def test_gyutan_stew_quantity_does_not_get_mechanical_usability_suffix(self):
+        item = make_item(name=self.GYUTAN_STEW_NAME)
+        description = dg.generate_description(item, category="食品", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("180g×4袋で使いやすい", description)
+
+    # 21. そばを汎用食品にしない。
+    def test_tengu_soba_is_not_only_generic_food(self):
+        item = make_item(name=self.TENGU_SOBA_NAME)
+        description = dg.generate_description(item, category="食品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("そば", description)
+        self.assertNotIn("手軽に楽しめそうな食品◎", description)
+
+    # 22. 6人前と3袋を混同しない。
+    def test_tengu_soba_servings_and_bags_are_not_conflated(self):
+        item = make_item(name=self.TENGU_SOBA_NAME)
+        description = dg.generate_description(item, category="食品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("6人前・3袋セット", description)
+
+    # 23. ほうきちりとりセットを具体的に判定する。
+    def test_broom_dustpan_set_is_recognized_specifically(self):
+        item = make_item(name=self.BROOM_DUSTPAN_SET_NAME)
+        description = dg.generate_description(item, category="掃除", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("ほうき", description)
+        self.assertNotIn("そんな掃除の手間を減らしてくれそうな掃除グッズ◎", description)
+
+    # 24. 「軽い」だけで持ち運びしやすいを生成しない（回帰確認）。
+    def test_broom_dustpan_set_does_not_generate_portability_from_light_alone(self):
+        item = make_item(name=self.BROOM_DUSTPAN_SET_NAME)
+        description = dg.generate_description(item, category="掃除", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("持ち運びしやすい", description)
+        self.assertIn("自立して置き場所を選びにくい", description)
+
+    # 25. 具体的商品判定時に旧汎用タグを付けない（10件まとめて確認）。
+    def test_new_product_types_do_not_get_mechanical_old_generic_hashtags(self):
+        names = [
+            self.THERMO_HYGROMETER_NAME, self.DUSTPAN_NAME, self.TOILET_CLEANER_NAME,
+            self.WET_WIPES_NAME, self.STORAGE_BOX_NAME, self.BED_IN_BED_NAME,
+            self.UNDER_SINK_RACK_NAME, self.GYUTAN_STEW_NAME, self.TENGU_SOBA_NAME,
+            self.BROOM_DUSTPAN_SET_NAME,
+        ]
+        categories = [
+            "暮らし全般", "暮らし全般", "日用品", "日用品", "収納", "ベビー用品",
+            "収納", "食品", "食品", "掃除",
+        ]
+        for name, category in zip(names, categories):
+            item = make_item(name=name)
+            description = dg.generate_description(item, category=category, base_hashtags=BASE_HASHTAGS)
+            hashtag_line = description.split("\n\n")[-1]
+            self.assertNotIn("#暮らしの便利グッズ", hashtag_line, description)
+            self.assertNotIn("#便利グッズ", hashtag_line, description)
+            self.assertLessEqual(len(description), 500)
+
+
+class RepeatedNounCandidateGeneralizationTest(unittest.TestCase):
+    """PRODUCT_TYPE_TEMPLATESに一致しない未知の商品でも、商品名の構造
+    （2回以上登場する具体的な語句）から安全に商品本体候補を拾う一般的な
+    仕組み（_extract_repeated_noun_candidate / _apply_repeated_noun_
+    candidate）を確認する（description-genre-014対応）。"""
+
+    def test_repeated_specific_noun_is_used_as_product_body(self):
+        name = "まるごと収穫 完熟マンゴーゼリー 完熟マンゴーゼリー 6個入 贈答用 送料無料"
+        self.assertEqual(dg._extract_repeated_noun_candidate(name), "完熟マンゴーゼリー")
+        item = make_item(name=name)
+        description = dg.generate_description(item, category="食品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("完熟マンゴーゼリー", description)
+        hashtag_line = description.split("\n\n")[-1]
+        self.assertIn("#完熟マンゴーゼリー", hashtag_line)
+        self.assertNotIn("#暮らしの便利グッズ", hashtag_line)
+        self.assertNotIn("#便利グッズ", hashtag_line)
+
+    def test_only_repeated_promotional_words_do_not_trigger_the_mechanism(self):
+        name = "送料無料 送料無料 人気 人気 おしゃれ おしゃれ 商品"
+        self.assertIsNone(dg._extract_repeated_noun_candidate(name))
+        item = make_item(name=name)
+        description = dg.generate_description(item, category="日用品", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("日用品◎", description)
+        hashtag_line = description.split("\n\n")[-1]
+        self.assertIn("#便利グッズ", hashtag_line)
+
+    def test_registered_product_type_keyword_takes_priority_over_candidate(self):
+        # PRODUCT_TYPE_TEMPLATESに一致する商品では、繰り返し候補の仕組みは
+        # 使われない（商品本体判定の優先順位1・2が常に3・4より先）。
+        name = "業務用 ハンガーラック 組立不要 頑丈 幅90cm 耐荷重100kg 高さ180cm"
+        item = make_item(name=name)
+        description = dg.generate_description(item, category="収納", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("ハンガーラック", description)
+
+
+class Oct02BatchRegressionTest(unittest.TestCase):
+    """2026-10-02 15:51生成分の商品名で、category（時短・キッチン等）に
+    引っ張られて商品本体とは異なる汎用description（時短グッズ・
+    キッチングッズ等）に落ちていた問題の追加対応（description-
+    genre-015）を確認する。商品名は本番で実際に取得された表記をそのまま
+    使っている。"""
+
+    MUSENMAI_NAME = (
+        "[お値打ち価格続行]令和7年産 無洗米 北海道産 ななつぼし 10kg 5kg×2袋 送料無料"
+        "【食味ランク特A】 [北海道沖縄へのお届けは別途送料760円] [家事時短で便利な無洗米]"
+    )
+    HAIR_CATCHER_NAME = (
+        "レビューCP実施中！《楽天1位》スタンダードサイズ:直径140mm 【HUBATH お風呂 マグネット "
+        "ヘアーキャッチャー STD140 】 排水溝 ゴミ受け 風呂 浴室 掃除 ユニットバス 排水口ネット "
+        "ごみ受け 送料無料 極排水 バスルーム 磁石"
+    )
+    BOWL_COLANDER_SET_NAME = (
+        "【在庫完売次第終了】ボール・コランダーセット （旧カラー） ボルコラ ザル ボウル セット "
+        "ボールコランダー 耐熱 プラスチック ふた付き 温野菜 電子レンジ対応 食洗機対応 キッチン "
+        "調理器具 時短 キッチングッズ"
+    )
+    RANGE_GRILL_NAME = (
+        "レンジで焼ケール 角型 丸型 深型 レンジで焼けーる レンジで焼魚 レンジで焼き魚 レンジ調理器具 "
+        "プレート 電子レンジ 魚焼き器 レンジグリル 焼き魚 グリルパン レンジ ヤケール"
+    )
+    ARIEL_NAME = (
+        "【1種類を選べる】 アリエール 洗濯洗剤 液体 詰め替え 超ジャンボ(1000g×4セット)【アリエール 液体】"
+    )
+    DISH_DETERGENT_NAME = (
+        "【 手 肌 に やさしい 食器用洗剤『Chloris Wash for Dish 』お試しサイズ／本体／詰替え用"
+        "クロリスディッシュ おしゃれ かわいい ボトル 容器 台所洗剤 キッチン用洗剤 液体洗剤 "
+        "手荒れ アロマ の香り 】"
+    )
+
+    # 1. 無洗米を「時短グッズ」にしない。
+    def test_musenmai_is_not_treated_as_a_generic_jitan_product(self):
+        item = make_item(name=self.MUSENMAI_NAME)
+        description = dg.generate_description(item, category="時短", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("無洗米", description)
+        self.assertNotIn("そんな家事の手間を減らしてくれそうな時短グッズ◎", description)
+
+    # 2. 北海道産ななつぼしを米として判定する。
+    def test_musenmai_is_recognized_as_rice(self):
+        self.assertEqual(dg.match_product_type_keyword(self.MUSENMAI_NAME), "無洗米")
+
+    # 3. 5kg×2袋・合計10kgの意味を維持する。
+    def test_musenmai_quantity_breakdown_is_preserved(self):
+        item = make_item(name=self.MUSENMAI_NAME)
+        description = dg.generate_description(item, category="時短", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("5kg×2袋", description)
+        self.assertIn("合計10kg", description)
+        self.assertNotIn("10kg・5kgから選べる", description)
+
+    # 4. 食味ランク特Aを独自の味評価へ拡張しない。
+    def test_musenmai_does_not_expand_taste_rank_into_own_evaluation(self):
+        item = make_item(name=self.MUSENMAI_NAME)
+        description = dg.generate_description(item, category="時短", base_hashtags=BASE_HASHTAGS)
+        for phrase in ("美味しい", "絶品", "特A級のおいしさ"):
+            self.assertNotIn(phrase, description, description)
+
+    # 5. ヘアーキャッチャーを「時短グッズ」にしない。
+    def test_hair_catcher_is_not_treated_as_a_generic_jitan_product(self):
+        item = make_item(name=self.HAIR_CATCHER_NAME)
+        description = dg.generate_description(item, category="時短", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("ヘアーキャッチャー", description)
+        self.assertNotIn("そんな家事の手間を減らしてくれそうな時短グッズ◎", description)
+
+    # 6. 直径140mmへ勝手に「約」を追加しない。
+    def test_hair_catcher_diameter_does_not_get_unconfirmed_approximation(self):
+        item = make_item(name=self.HAIR_CATCHER_NAME)
+        description = dg.generate_description(item, category="時短", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("直径140mm", description)
+        self.assertNotIn("直径は約140mm", description)
+
+    # 7. マグネット属性を未確認の性能へ拡張しない。重複もしない（回帰確認）。
+    def test_hair_catcher_magnet_is_not_expanded_and_not_duplicated(self):
+        item = make_item(name=self.HAIR_CATCHER_NAME)
+        description = dg.generate_description(item, category="時短", base_hashtags=BASE_HASHTAGS)
+        self.assertEqual(description.count("マグネットで取り付けられる"), 1)
+        for phrase in ("強力な磁力", "必ず固定できる"):
+            self.assertNotIn(phrase, description, description)
+
+    # 8. ボール・コランダーセットを汎用キッチン用品だけにしない。
+    def test_bowl_colander_set_is_not_only_generic_kitchen_goods(self):
+        item = make_item(name=self.BOWL_COLANDER_SET_NAME)
+        description = dg.generate_description(item, category="キッチン", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("ボール・コランダーセット", description)
+        self.assertNotIn("そんなキッチンでの家事をラクにしてくれそうなキッチングッズ◎", description)
+
+    # 9. 電子レンジ対応・食洗機対応を正しく扱う。
+    def test_bowl_colander_set_handles_microwave_and_dishwasher_facts(self):
+        item = make_item(name=self.BOWL_COLANDER_SET_NAME)
+        description = dg.generate_description(item, category="キッチン", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("食洗機対応で使いやすい", description)
+
+    # 10. レンジで焼ケールを電子レンジ調理器等として具体化する。
+    def test_range_grill_is_recognized_specifically(self):
+        item = make_item(name=self.RANGE_GRILL_NAME)
+        description = dg.generate_description(item, category="キッチン", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("レンジ調理器具", description)
+        self.assertNotIn("そんなキッチンでの家事をラクにしてくれそうなキッチングッズ◎", description)
+
+    # 11. 未確認の焼き性能・調理時間を追加しない。
+    def test_range_grill_does_not_add_unconfirmed_cooking_performance(self):
+        item = make_item(name=self.RANGE_GRILL_NAME)
+        description = dg.generate_description(item, category="キッチン", base_hashtags=BASE_HASHTAGS)
+        for phrase in (
+            "必ず焼き目が付く", "分で焼ける", "フライパン不要", "油不要", "失敗しない",
+        ):
+            self.assertNotIn(phrase, description, description)
+
+    # 12. 1000g×4セットに「使いやすい」を付けない。
+    def test_ariel_quantity_does_not_get_mechanical_usability_suffix(self):
+        item = make_item(name=self.ARIEL_NAME)
+        description = dg.generate_description(item, category="洗剤", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("1000g×4セット", description)
+        self.assertNotIn("1000g×4セットで使いやすい", description)
+        hashtag_line = description.split("\n\n")[-1]
+        self.assertIn("#アリエール", hashtag_line)
+        self.assertNotIn("#暮らしの便利グッズ", hashtag_line)
+        self.assertNotIn("#便利グッズ", hashtag_line)
+
+    # 13. 食器用洗剤の手肌効果を過剰断定しない。
+    def test_dish_detergent_does_not_overclaim_hand_skin_effects(self):
+        item = make_item(name=self.DISH_DETERGENT_NAME)
+        description = dg.generate_description(item, category="洗剤", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("食器用洗剤", description)
+        for phrase in ("手荒れを防ぐ", "肌荒れしない", "敏感肌でも安全", "肌に絶対やさしい"):
+            self.assertNotIn(phrase, description, description)
+        hashtag_line = description.split("\n\n")[-1]
+        self.assertIn("#食器用洗剤", hashtag_line)
+        self.assertNotIn("#暮らしの便利グッズ", hashtag_line)
+        self.assertNotIn("#便利グッズ", hashtag_line)
+
+    # 14. 具体的商品判定時に旧汎用タグを付けない（6件まとめて確認）。
+    def test_new_product_types_do_not_get_mechanical_old_generic_hashtags(self):
+        cases = [
+            (self.MUSENMAI_NAME, "時短"),
+            (self.HAIR_CATCHER_NAME, "時短"),
+            (self.BOWL_COLANDER_SET_NAME, "キッチン"),
+            (self.RANGE_GRILL_NAME, "キッチン"),
+            (self.ARIEL_NAME, "洗剤"),
+            (self.DISH_DETERGENT_NAME, "洗剤"),
+        ]
+        for name, category in cases:
+            item = make_item(name=name)
+            description = dg.generate_description(item, category=category, base_hashtags=BASE_HASHTAGS)
+            hashtag_line = description.split("\n\n")[-1]
+            self.assertNotIn("#時短アイテム", hashtag_line, description)
+            self.assertNotIn("#暮らしの便利グッズ", hashtag_line, description)
+            self.assertNotIn("#便利グッズ", hashtag_line, description)
+            self.assertLessEqual(len(description), 500)
+
+    # 15. description-genre-013までの回帰テストを維持する（前回から継続中の
+    # 4商品が、今回の追加修正でも一般化ロジックのみで正しいことを確認する）。
+    def test_four_continuing_items_use_the_same_generalized_logic(self):
+        campaign365_name = "マイルドアシッドEL 1Lトイレクリーナー 業務用 トイレ洗剤 尿石除去 黄ばみ除去"
+        marubeni_name = (
+            "**人気商品**ノンアルコール 99%除菌 ウエットティッシュ 除菌シート80枚入 3個 6個 12個＼ "
+            "ノンアル 厚手 大判 無香料 ／送料無料 除菌ティッシュ まとめ買い VINDA 楽天スーパーセール "
+            "買い回りマラソン 備蓄 防災"
+        )
+        roomy_name = (
+            "湿度計 温度計 温湿度計 温湿計 温度湿度計 おしゃれ デジタル 見やすい 置き掛け兼用 "
+            "マグネット アラーム付 ナチュラル 小型 コンパクト 木目調 便利グッズ デザイン ギフト"
+            "【ポイント10倍 送料無料】［ タニタ 温湿度計 TT572 ］"
+        )
+        winkl_name = (
+            "ちりとり捨楽 45L 70L / ちりとり 屋外 おしゃれ 自立 ゴミ袋 レジ袋 装着 落ち葉 ちりとり "
+            "捨 楽 フレーム 大掃除 清掃用品 屋外 掃き掃除 大型 小型 スリム 便利グッズ 落葉 玄関 "
+            "落ち葉集め 掃除グッズ 写楽 スリム コンパクト 枯葉 ガーデニング ちりとり集草バッグ"
+        )
+        cases = [
+            (campaign365_name, "日用品", "トイレ"),
+            (marubeni_name, "日用品", "ウェットティッシュ"),
+            (roomy_name, "暮らし全般", "温湿度計"),
+            (winkl_name, "暮らし全般", "ちりとり"),
+        ]
+        for name, category, expect in cases:
+            item = make_item(name=name)
+            description = dg.generate_description(item, category=category, base_hashtags=BASE_HASHTAGS)
+            self.assertIn(expect, description, description)
+            hashtag_line = description.split("\n\n")[-1]
+            self.assertNotIn("#暮らしの便利グッズ", hashtag_line, description)
+            self.assertNotIn("#便利グッズ", hashtag_line, description)
+
+
 if __name__ == "__main__":
     unittest.main()
