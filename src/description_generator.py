@@ -2448,7 +2448,11 @@ PRODUCT_TYPE_TEMPLATES: list[tuple[str, _PostTemplate]] = [
                 "地味に手間がかかりますよね…😅",
             ],
             solution_text="屋外の掃き掃除に使いやすいちりとり",
-            checklist_core=["屋外の掃き掃除に使いやすい", "自立して置きやすい"],
+            # 「自立して置きやすい」は、FEATURE_CLAUSESの「自立」（事実
+            # 表現に修正済み）と重複するため、checklist_coreには別の
+            # 確認できる事実（ゴミ袋・レジ袋の装着）を使う
+            # （description-genre-016対応）。
+            checklist_core=["屋外の掃き掃除に使いやすい", "ゴミ袋を装着して使える"],
             checklist_fallback="玄関まわりのお手入れに取り入れやすい",
             closing_variants=[
                 "ちりとりを探している人におすすめ",
@@ -2688,7 +2692,7 @@ PRODUCT_TYPE_TEMPLATES: list[tuple[str, _PostTemplate]] = [
             ],
             solution_text="研がずに使える無洗米",
             checklist_core=["研がずに使える", "普段の食事に取り入れやすい"],
-            checklist_fallback="ストックしておくと便利",
+            checklist_fallback="令和7年産",
             closing_variants=[
                 "無洗米を探している人におすすめ",
                 "気になる人はチェックしてみてほしい",
@@ -2725,7 +2729,7 @@ PRODUCT_TYPE_TEMPLATES: list[tuple[str, _PostTemplate]] = [
                 "ザルとボウルを別々に出すのが手間ですよね…😅",
             ],
             solution_text="ザルとボウルが一緒に使えるボール・コランダーセット",
-            checklist_core=["ザルとボウルを一緒に使える", "食洗機対応で使いやすい"],
+            checklist_core=["ザルとボウルを一緒に使える", "食洗機対応"],
             checklist_fallback="普段の調理に取り入れやすい",
             closing_variants=[
                 "ボール・コランダーセットを探している人におすすめ",
@@ -2743,7 +2747,7 @@ PRODUCT_TYPE_TEMPLATES: list[tuple[str, _PostTemplate]] = [
                 "ザルとボウルを別々に出すのが手間ですよね…😅",
             ],
             solution_text="ザルとボウルが一緒に使えるボール・コランダーセット",
-            checklist_core=["ザルとボウルを一緒に使える", "食洗機対応で使いやすい"],
+            checklist_core=["ザルとボウルを一緒に使える", "食洗機対応"],
             checklist_fallback="普段の調理に取り入れやすい",
             closing_variants=[
                 "ボール・コランダーセットを探している人におすすめ",
@@ -2763,7 +2767,7 @@ PRODUCT_TYPE_TEMPLATES: list[tuple[str, _PostTemplate]] = [
                 "後片付けが地味に手間ですよね…😅",
             ],
             solution_text="レンジで使えるレンジ調理器具",
-            checklist_core=["レンジで使える", "焼き料理に使いやすい"],
+            checklist_core=["レンジで使える", "焼き料理に使える"],
             checklist_fallback="普段の調理に取り入れやすい",
             closing_variants=[
                 "レンジ調理器具を探している人におすすめ",
@@ -2781,7 +2785,7 @@ PRODUCT_TYPE_TEMPLATES: list[tuple[str, _PostTemplate]] = [
                 "後片付けが地味に手間ですよね…😅",
             ],
             solution_text="レンジで使えるレンジ調理器具",
-            checklist_core=["レンジで使える", "焼き料理に使いやすい"],
+            checklist_core=["レンジで使える", "焼き料理に使える"],
             checklist_fallback="普段の調理に取り入れやすい",
             closing_variants=[
                 "レンジ調理器具を探している人におすすめ",
@@ -2799,7 +2803,7 @@ PRODUCT_TYPE_TEMPLATES: list[tuple[str, _PostTemplate]] = [
                 "後片付けが地味に手間ですよね…😅",
             ],
             solution_text="レンジで使えるレンジ調理器具",
-            checklist_core=["レンジで使える", "焼き料理に使いやすい"],
+            checklist_core=["レンジで使える", "焼き料理に使える"],
             checklist_fallback="普段の調理に取り入れやすい",
             closing_variants=[
                 "レンジ調理器具を探している人におすすめ",
@@ -3676,7 +3680,11 @@ FEATURE_CLAUSES: list[tuple[str, str | dict[str, str], str | dict[str, str]]] = 
     ("折り畳み", "使わないときはコンパクトに折りたためる", "📦"),
     ("水切り", "水切りしやすい", "💧"),
     ("防水", "水回りでも使いやすい", "☔"),
-    ("スリム", "省スペースに置きやすい", "📏"),
+    # 「省スペースに置きやすい」は、商品名から確認できる「スリムな形状」
+    # という事実を超えて「置きやすい」という評価を自動付加していたため、
+    # 事実だけの言い回しに修正した（description-genre-016対応。確認
+    # できた仕様に根拠のない評価語を機械的に付けない、という汎用ルール）。
+    ("スリム", "スリムな形状", "📏"),
     (
         "大容量",
         {
@@ -3700,7 +3708,10 @@ FEATURE_CLAUSES: list[tuple[str, str | dict[str, str], str | dict[str, str]]] = 
     # という構造の事実）より具体的で確認しやすい仕様のため、フタ付きより
     # 先に判定する（description-fix-003対応。複数の特徴が同時に確認できる
     # 商品でも、より情報量の多い事実が優先されるようにするため）。
-    ("耐熱", "耐熱素材で使いやすい", "🍽️"),
+    # 「耐熱素材で使いやすい」は、確認できる「耐熱素材である」という
+    # 事実に「使いやすい」という評価を自動付加していたため、事実だけの
+    # 言い回しに修正した（description-genre-016対応）。
+    ("耐熱", "耐熱素材", "🍽️"),
     ("食洗機", "食洗機で洗える", "🍽️"),
     ("電子レンジ", "電子レンジで使える", "🍽️"),
     ("タブレット", "タブレットタイプで使いやすい", "🍽️"),
@@ -3711,7 +3722,10 @@ FEATURE_CLAUSES: list[tuple[str, str | dict[str, str], str | dict[str, str]]] = 
     ("蓋付き", "フタ付きで使いやすい", "📦"),
     ("フタ付き", "フタ付きで使いやすい", "📦"),
     ("引き出し", "引き出し式で取り出しやすい", "📦"),
-    ("自立", "自立して置き場所を選びにくい", "📦"),
+    # 「自立して置き場所を選びにくい」は、確認できる「自立する」という
+    # 構造の事実に「置き場所を選ばない」という評価を自動付加していたため、
+    # 事実だけの言い回しに修正した（description-genre-016対応）。
+    ("自立", "自立する仕様", "📦"),
     ("充電式", "充電式で繰り返し使いやすい", "⚡"),
     ("コードレス", "コードレスで扱いやすい", "⚡"),
     # ここから下は、消耗品・飲料（洗剤・水・お茶・ジュース等）の商品名から

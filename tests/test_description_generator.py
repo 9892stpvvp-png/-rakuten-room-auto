@@ -3217,7 +3217,7 @@ class AccessoryAttributionGeneralizationTest(unittest.TestCase):
         # 候補へ進むことまで検証する）。
         clause, _emoji = dg._top_feature_clause("防水ケース付き 自立式スマホスタンド", "収納")
         self.assertNotIn("水回りでも使いやすい", clause)
-        self.assertEqual(clause, "自立して置き場所を選びにくい")
+        self.assertEqual(clause, "自立する仕様")
 
     def test_direct_product_body_feature_is_still_recognized(self):
         # キーワード自体に直接「付き」が続く場合（間に別の名詞がない）は
@@ -3552,7 +3552,7 @@ class Oct01BatchRegressionTest(unittest.TestCase):
         item = make_item(name=self.BROOM_DUSTPAN_SET_NAME)
         description = dg.generate_description(item, category="掃除", base_hashtags=BASE_HASHTAGS)
         self.assertNotIn("持ち運びしやすい", description)
-        self.assertIn("自立して置き場所を選びにくい", description)
+        self.assertIn("自立する仕様", description)
 
     # 25. 具体的商品判定時に旧汎用タグを付けない（10件まとめて確認）。
     def test_new_product_types_do_not_get_mechanical_old_generic_hashtags(self):
@@ -3703,7 +3703,7 @@ class Oct02BatchRegressionTest(unittest.TestCase):
     def test_bowl_colander_set_handles_microwave_and_dishwasher_facts(self):
         item = make_item(name=self.BOWL_COLANDER_SET_NAME)
         description = dg.generate_description(item, category="キッチン", base_hashtags=BASE_HASHTAGS)
-        self.assertIn("食洗機対応で使いやすい", description)
+        self.assertIn("食洗機対応", description)
 
     # 10. レンジで焼ケールを電子レンジ調理器等として具体化する。
     def test_range_grill_is_recognized_specifically(self):
@@ -3795,6 +3795,105 @@ class Oct02BatchRegressionTest(unittest.TestCase):
             hashtag_line = description.split("\n\n")[-1]
             self.assertNotIn("#暮らしの便利グッズ", hashtag_line, description)
             self.assertNotIn("#便利グッズ", hashtag_line, description)
+
+
+class NoEvaluativeSuffixGeneralizationTest(unittest.TestCase):
+    """「確認できた仕様に、根拠のない評価語を自動付加しない」という
+    一般ルール（description-genre-016）を確認する。FEATURE_CLAUSES側の
+    共有定義（スリム・自立・耐熱）を修正したことで、個別の商品タイプへ
+    特別対応を追加せずに複数商品へ一度に反映されることを確認する。"""
+
+    # 1. 5kg×2袋に「便利」を付けない。
+    def test_musenmai_quantity_does_not_get_benri_suffix(self):
+        item = make_item(name=Oct02BatchRegressionTest.MUSENMAI_NAME)
+        description = dg.generate_description(item, category="時短", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("5kg×2袋・合計10kg", description)
+        self.assertNotIn("5kg×2袋で便利", description)
+
+    # 2. ストック可能というだけで「便利」を生成しない。
+    def test_musenmai_does_not_generate_benri_from_stockability_alone(self):
+        item = make_item(name=Oct02BatchRegressionTest.MUSENMAI_NAME)
+        description = dg.generate_description(item, category="時短", base_hashtags=BASE_HASHTAGS)
+        self.assertNotIn("ストックしておくと便利", description)
+        self.assertIn("令和7年産", description)
+
+    # 3. スリムから「省スペースに置きやすい」を自動生成しない。
+    def test_slim_alone_does_not_generate_space_saving_evaluation(self):
+        clause, _emoji = dg._top_feature_clause("スリムタイプのちりとり", "暮らし全般")
+        self.assertEqual(clause, "スリムな形状")
+        self.assertNotIn("省スペースに置きやすい", clause)
+
+    # 4. 自立から「置きやすい」を自動生成しない。
+    def test_self_standing_alone_does_not_generate_placement_evaluation(self):
+        clause, _emoji = dg._top_feature_clause("自立するほうき", "掃除")
+        self.assertEqual(clause, "自立する仕様")
+        self.assertNotIn("置き場所を選びにくい", clause)
+
+    # 5. 食洗機対応に「使いやすい」を自動付加しない。
+    def test_dishwasher_safe_does_not_get_usability_suffix(self):
+        item = make_item(name=Oct02BatchRegressionTest.BOWL_COLANDER_SET_NAME)
+        description = dg.generate_description(item, category="キッチン", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("食洗機対応", description)
+        self.assertNotIn("食洗機対応で使いやすい", description)
+
+    # 6. 耐熱素材に「使いやすい」を自動付加しない。
+    def test_heat_resistant_material_does_not_get_usability_suffix(self):
+        item = make_item(name=Oct02BatchRegressionTest.BOWL_COLANDER_SET_NAME)
+        description = dg.generate_description(item, category="キッチン", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("耐熱素材", description)
+        self.assertNotIn("耐熱素材で使いやすい", description)
+
+    # 7. 数量に「使いやすい」を自動付加しない（回帰確認）。
+    def test_quantity_does_not_get_usability_suffix_regression(self):
+        item = make_item(name=Oct02BatchRegressionTest.ARIEL_NAME)
+        description = dg.generate_description(item, category="洗剤", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("1000g×4セット", description)
+        self.assertNotIn("1000g×4セットで使いやすい", description)
+
+    # 8. 焼き料理に「使いやすい」を自動付加しない。
+    def test_grilling_does_not_get_usability_suffix(self):
+        item = make_item(name=Oct02BatchRegressionTest.RANGE_GRILL_NAME)
+        description = dg.generate_description(item, category="キッチン", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("焼き料理に使える", description)
+        self.assertNotIn("焼き料理に使いやすい", description)
+
+    # 9. 電子レンジ対応は事実として維持できる。
+    def test_microwave_compatible_fact_is_preserved(self):
+        item = make_item(name=Oct02BatchRegressionTest.RANGE_GRILL_NAME)
+        description = dg.generate_description(item, category="キッチン", base_hashtags=BASE_HASHTAGS)
+        self.assertIn("電子レンジで使える", description)
+
+    # 10. 既存の商品本体判定を壊さない。
+    def test_product_body_detection_is_preserved(self):
+        self.assertEqual(dg.match_product_type_keyword(Oct02BatchRegressionTest.MUSENMAI_NAME), "無洗米")
+        self.assertEqual(
+            dg.match_product_type_keyword(Oct02BatchRegressionTest.BOWL_COLANDER_SET_NAME),
+            "ボール・コランダーセット",
+        )
+        self.assertEqual(
+            dg.match_product_type_keyword(Oct02BatchRegressionTest.RANGE_GRILL_NAME), "レンジ調理器具"
+        )
+
+    # 11. 旧汎用タグを復活させない。
+    def test_old_generic_hashtags_are_still_absent(self):
+        names_categories = [
+            (Oct02BatchRegressionTest.MUSENMAI_NAME, "時短"),
+            (Oct02BatchRegressionTest.BOWL_COLANDER_SET_NAME, "キッチン"),
+            (Oct02BatchRegressionTest.RANGE_GRILL_NAME, "キッチン"),
+        ]
+        winkl_name = Oct01BatchRegressionTest.DUSTPAN_NAME
+        names_categories.append((winkl_name, "暮らし全般"))
+        for name, category in names_categories:
+            item = make_item(name=name)
+            description = dg.generate_description(item, category=category, base_hashtags=BASE_HASHTAGS)
+            hashtag_line = description.split("\n\n")[-1]
+            self.assertNotIn("#暮らしの便利グッズ", hashtag_line, description)
+            self.assertNotIn("#便利グッズ", hashtag_line, description)
+            self.assertNotIn("#時短アイテム", hashtag_line, description)
+
+    # 12. description-genre-013以降の既存回帰テストはpytest全体実行で維持を確認する
+    #    （このクラス単独のテストではなく、既存のテストファイル全体の成功で
+    #    検証する）。
 
 
 if __name__ == "__main__":
