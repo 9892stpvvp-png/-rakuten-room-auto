@@ -24,6 +24,7 @@
     "calico-a1:10000058",
     "calmisence:10000000",
     "calmisence:10000038",
+    "campaign365:10000008",
     "ccsz:10000871",
     "charmying:10000053",
     "charmying:10000057",
@@ -60,6 +61,7 @@
     "honjien-3:10003220",
     "honjien-3:10003226",
     "hseason:10000260",
+    "hseason:10000349",
     "hush08:10000002",
     "hush08:10000003",
     "ichifujiec:10000032",
@@ -71,6 +73,7 @@
     "ishimatsudo:10000077",
     "jimo:10000191",
     "jimo:10000201",
+    "justrich:10001292",
     "k-home:10060922",
     "k-home:10084246",
     "kaguzaku:10005215",
@@ -98,6 +101,8 @@
     "makinoharacha:10000040",
     "makuake-store:10001375",
     "mamano:10000009",
+    "mamano:10000068",
+    "marubeni-pps:10000026",
     "masayosiryouhin:10000072",
     "midorimushishop:10000442",
     "midorimushishop:10000455",
@@ -124,8 +129,11 @@
     "rack-town:10001473",
     "rakuten24:10252628",
     "rakuten24:11148575",
+    "rakuten24:11279561",
     "rinsendou:10000327",
     "risu-onlineshop:10002060",
+    "risu-onlineshop:10002535",
+    "roomy:10008839",
     "royal3000:10006630",
     "sanki-shop:10000001",
     "sasayama-bee:10000020",
@@ -136,6 +144,7 @@
     "shinbido:10002622",
     "shopmarna:10006689",
     "sinkatec:10000425",
+    "sinkatec:10000428",
     "soukaidrink:10007430",
     "soutowelshop:10000180",
     "starfilter:10000019",
@@ -149,6 +158,7 @@
     "value-create:10000010",
     "wagaku0204:10000003",
     "wagashidonya:10000686",
+    "winkl:10000154",
     "winwinproduct:10000988",
     "yakunosoba:10000147",
     "yamatoya-d:10000208",
@@ -1833,6 +1843,86 @@
       "product_name": "【楽天総合ランキング1位】【正規品】【予約受付中】卓上扇風機 South Light 扇風機 壁掛け 吊り下げ マグネットリモコン付き LED照明機能付き 1台3役 サーキュレーター USB充電 風量3段階 パワフル送風 ギフト i-00004",
       "posted_at": "2026-10-01T04:47:07.112Z",
       "category": "収納",
+      "match_keywords": []
+    },
+    {
+      "item_code": "hseason:10000349",
+      "item_url": "https://item.rakuten.co.jp/hseason/mnhn005-2/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "[お値打ち価格続行]令和7年産 無洗米 北海道産 ななつぼし 10kg 5kg×2袋 送料無料【食味ランク特A】 [北海道沖縄へのお届けは別途送料760円] [家事時短で便利な無洗米]",
+      "posted_at": "2026-10-02T12:33:46.513Z",
+      "category": "時短",
+      "match_keywords": []
+    },
+    {
+      "item_code": "sinkatec:10000428",
+      "item_url": "https://item.rakuten.co.jp/sinkatec/hu_mhair_catcher/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "レビューCP実施中！《楽天1位》スタンダードサイズ:直径140mm 【HUBATH お風呂 マグネット ヘアーキャッチャー STD140 】 排水溝 ゴミ受け 風呂 浴室 掃除 ユニットバス 排水口ネット ごみ受け 送料無料 極排水 バスルーム 磁石",
+      "posted_at": "2026-10-02T12:34:09.092Z",
+      "category": "時短",
+      "match_keywords": []
+    },
+    {
+      "item_code": "rakuten24:11279561",
+      "item_url": "https://item.rakuten.co.jp/rakuten24/405421/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "【1種類を選べる】 アリエール 洗濯洗剤 液体 詰め替え 超ジャンボ(1000g×4セット)【アリエール 液体】",
+      "posted_at": "2026-10-02T12:34:29.119Z",
+      "category": "洗剤",
+      "match_keywords": []
+    },
+    {
+      "item_code": "campaign365:10000008",
+      "item_url": "https://item.rakuten.co.jp/campaign365/10000008/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "マイルドアシッドEL 1Lトイレクリーナー 業務用 トイレ洗剤 尿石除去 黄ばみ除去",
+      "posted_at": "2026-10-02T12:34:45.344Z",
+      "category": "日用品",
+      "match_keywords": []
+    },
+    {
+      "item_code": "marubeni-pps:10000026",
+      "item_url": "https://item.rakuten.co.jp/marubeni-pps/jyokin80-12set/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "**人気商品**ノンアルコール 99%除菌 ウエットティッシュ 除菌シート80枚入 3個 6個 12個＼ ノンアル 厚手 大判 無香料 ／送料無料 除菌ティッシュ まとめ買い VINDA 楽天スーパーセール 買い回りマラソン 備蓄 防災",
+      "posted_at": "2026-10-02T12:35:03.750Z",
+      "category": "日用品",
+      "match_keywords": []
+    },
+    {
+      "item_code": "mamano:10000068",
+      "item_url": "https://item.rakuten.co.jp/mamano/75-001/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "【 手 肌 に やさしい 食器用洗剤『Chloris Wash for Dish 』お試しサイズ／本体／詰替え用クロリスディッシュ おしゃれ かわいい ボトル 容器 台所洗剤 キッチン用洗剤 液体洗剤 手荒れ アロマ の香り 】",
+      "posted_at": "2026-10-02T12:35:20.755Z",
+      "category": "洗剤",
+      "match_keywords": []
+    },
+    {
+      "item_code": "roomy:10008839",
+      "item_url": "https://item.rakuten.co.jp/roomy/nel16sep21e03/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "湿度計 温度計 温湿度計 温湿計 温度湿度計 おしゃれ デジタル 見やすい 置き掛け兼用 マグネット アラーム付 ナチュラル 小型 コンパクト 木目調 便利グッズ デザイン ギフト【ポイント10倍 送料無料】［ タニタ 温湿度計 TT572 ］",
+      "posted_at": "2026-10-02T12:35:44.662Z",
+      "category": "暮らし全般",
+      "match_keywords": []
+    },
+    {
+      "item_code": "winkl:10000154",
+      "item_url": "https://item.rakuten.co.jp/winkl/dp-466-010-1/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "ちりとり捨楽 45L 70L / ちりとり 屋外 おしゃれ 自立 ゴミ袋 レジ袋 装着 落ち葉 ちりとり 捨 楽 フレーム 大掃除 清掃用品 屋外 掃き掃除 大型 小型 スリム 便利グッズ 落葉 玄関 落ち葉集め 掃除グッズ 写楽 スリム コンパクト 枯葉 ガーデニング ちりとり集草バッグ",
+      "posted_at": "2026-10-02T12:36:03.885Z",
+      "category": "暮らし全般",
+      "match_keywords": []
+    },
+    {
+      "item_code": "risu-onlineshop:10002535",
+      "item_url": "https://item.rakuten.co.jp/risu-onlineshop/15930-8-2set/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "【在庫完売次第終了】ボール・コランダーセット （旧カラー） ボルコラ ザル ボウル セット ボールコランダー 耐熱 プラスチック ふた付き 温野菜 電子レンジ対応 食洗機対応 キッチン 調理器具 時短 キッチングッズ",
+      "posted_at": "2026-10-02T12:36:24.124Z",
+      "category": "キッチン",
+      "match_keywords": []
+    },
+    {
+      "item_code": "justrich:10001292",
+      "item_url": "https://item.rakuten.co.jp/justrich/yake-ru/?rafcid=wsc_i_is_8bc4fc46-79ba-42ef-a242-3ded4d01abde\n",
+      "product_name": "レンジで焼ケール 角型 丸型 深型 レンジで焼けーる レンジで焼魚 レンジで焼き魚 レンジ調理器具 プレート 電子レンジ 魚焼き器 レンジグリル 焼き魚 グリルパン レンジ ヤケール",
+      "posted_at": "2026-10-02T12:36:44.786Z",
+      "category": "キッチン",
       "match_keywords": []
     }
   ]
