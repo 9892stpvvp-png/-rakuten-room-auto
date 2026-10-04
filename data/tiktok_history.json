@@ -131,6 +131,12 @@
       "item_code": "liberesta:10000108",
       "category": "家電",
       "group_label": "便利グッズ"
+    },
+    {
+      "date": "2026-10-04",
+      "item_code": "hanwha:10000700",
+      "category": "生活雑貨",
+      "group_label": "便利グッズ"
     }
   ]
 }
