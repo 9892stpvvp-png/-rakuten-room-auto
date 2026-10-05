@@ -137,6 +137,12 @@
       "item_code": "hanwha:10000700",
       "category": "生活雑貨",
       "group_label": "便利グッズ"
+    },
+    {
+      "date": "2026-10-05",
+      "item_code": "biyou-kadan:10000000",
+      "category": "美容",
+      "group_label": "便利グッズ"
     }
   ]
 }
