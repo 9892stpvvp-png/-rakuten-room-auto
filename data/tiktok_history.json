@@ -143,6 +143,12 @@
       "item_code": "biyou-kadan:10000000",
       "category": "美容",
       "group_label": "便利グッズ"
+    },
+    {
+      "date": "2026-10-06",
+      "item_code": "freedom-shops:10000035",
+      "category": "ファッション",
+      "group_label": "便利グッズ"
     }
   ]
 }
