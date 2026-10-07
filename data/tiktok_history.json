@@ -149,6 +149,12 @@
       "item_code": "freedom-shops:10000035",
       "category": "ファッション",
       "group_label": "便利グッズ"
+    },
+    {
+      "date": "2026-10-07",
+      "item_code": "milicute-himawari:10000017",
+      "category": "家電",
+      "group_label": "便利グッズ"
     }
   ]
 }
