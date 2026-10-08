@@ -155,6 +155,12 @@
       "item_code": "milicute-himawari:10000017",
       "category": "家電",
       "group_label": "便利グッズ"
+    },
+    {
+      "date": "2026-10-08",
+      "item_code": "bathroom:10002859",
+      "category": "収納",
+      "group_label": "便利グッズ"
     }
   ]
 }
