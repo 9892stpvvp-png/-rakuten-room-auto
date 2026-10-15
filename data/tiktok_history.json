@@ -1,12 +1,6 @@
 {
   "history": [
     {
-      "date": "2026-09-14",
-      "item_code": "anker:10002285",
-      "category": "時短",
-      "group_label": "便利グッズ"
-    },
-    {
       "date": "2026-09-15",
       "item_code": "auc-risecreation:10003265",
       "category": "収納",
@@ -178,6 +172,12 @@
       "date": "2026-10-13",
       "item_code": "imaifarm:10000630",
       "category": "食品",
+      "group_label": "消耗品"
+    },
+    {
+      "date": "2026-10-15",
+      "item_code": "omutsufactory:10004242",
+      "category": "ベビー用品",
       "group_label": "消耗品"
     }
   ]
