@@ -1,12 +1,6 @@
 {
   "history": [
     {
-      "date": "2026-09-15",
-      "item_code": "auc-risecreation:10003265",
-      "category": "収納",
-      "group_label": "便利グッズ"
-    },
-    {
       "date": "2026-09-16",
       "item_code": "kaguzaku:10005215",
       "category": "暮らし全般",
@@ -179,6 +173,12 @@
       "item_code": "omutsufactory:10004242",
       "category": "ベビー用品",
       "group_label": "消耗品"
+    },
+    {
+      "date": "2026-10-16",
+      "item_code": "bathroom:10002859",
+      "category": "収納",
+      "group_label": "便利グッズ"
     }
   ]
 }
