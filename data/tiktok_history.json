@@ -1,12 +1,6 @@
 {
   "history": [
     {
-      "date": "2026-09-17",
-      "item_code": "takara-jiang:10034170",
-      "category": "収納",
-      "group_label": "便利グッズ"
-    },
-    {
       "date": "2026-09-18",
       "item_code": "asahikei:10000028",
       "category": "キッチン",
@@ -179,6 +173,12 @@
       "item_code": "dreamwalk:10002620",
       "category": "美容",
       "group_label": "消耗品"
+    },
+    {
+      "date": "2026-10-18",
+      "item_code": "liberesta:10000108",
+      "category": "家電",
+      "group_label": "便利グッズ"
     }
   ]
 }
