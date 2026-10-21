@@ -1,12 +1,6 @@
 {
   "history": [
     {
-      "date": "2026-09-20",
-      "item_code": "yamatoya-d:10000208",
-      "category": "キッチン消耗品",
-      "group_label": "消耗品"
-    },
-    {
       "date": "2026-09-21",
       "item_code": "shinbido:10002621",
       "category": "収納",
@@ -178,6 +172,12 @@
       "date": "2026-10-20",
       "item_code": "bathroom:10002859",
       "category": "収納",
+      "group_label": "便利グッズ"
+    },
+    {
+      "date": "2026-10-21",
+      "item_code": "kizawa:10000040",
+      "category": "ファッション",
       "group_label": "便利グッズ"
     }
   ]
