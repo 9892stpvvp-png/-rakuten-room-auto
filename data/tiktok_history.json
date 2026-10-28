@@ -1,12 +1,6 @@
 {
   "history": [
     {
-      "date": "2026-09-27",
-      "item_code": "larutan:10000000",
-      "category": "収納",
-      "group_label": "便利グッズ"
-    },
-    {
       "date": "2026-09-28",
       "item_code": "angelingg:10001033",
       "category": "掃除",
@@ -176,6 +170,12 @@
     },
     {
       "date": "2026-10-27",
+      "item_code": "bathroom:10002859",
+      "category": "収納",
+      "group_label": "便利グッズ"
+    },
+    {
+      "date": "2026-10-28",
       "item_code": "bathroom:10002859",
       "category": "収納",
       "group_label": "便利グッズ"
