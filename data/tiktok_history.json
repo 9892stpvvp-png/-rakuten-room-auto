@@ -1,12 +1,6 @@
 {
   "history": [
     {
-      "date": "2026-10-16",
-      "item_code": "bathroom:10002859",
-      "category": "収納",
-      "group_label": "便利グッズ"
-    },
-    {
       "date": "2026-10-17",
       "item_code": "dreamwalk:10002620",
       "category": "美容",
@@ -178,6 +172,12 @@
       "date": "2026-11-18",
       "item_code": "imaifarm:10000630",
       "category": "食品",
+      "group_label": "消耗品"
+    },
+    {
+      "date": "2026-11-19",
+      "item_code": "omutsufactory:10004242",
+      "category": "ベビー用品",
       "group_label": "消耗品"
     }
   ]
